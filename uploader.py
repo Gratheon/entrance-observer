@@ -60,8 +60,6 @@ def uploadAndRemove(output_file: str):
     # remove file after uploading, you can leave it if you want a local cache
     # but you need enough storage to not run out of space
     # os.remove(output_file)
-    
-    delete_old_mp4_files()
 
 
 def delete_old_mp4_files():

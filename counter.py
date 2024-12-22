@@ -1,3 +1,5 @@
+import threading
+
 import cv2
 
 from ultralytics import YOLO, solutions
@@ -5,8 +7,14 @@ from ultralytics import YOLO, solutions
 model = YOLO("best.pt")
 
 
-def count_bees():
-    cap = cv2.VideoCapture("videos/314.mp4")
+def count_bees_async(relativeFilePath):
+    # Define a function to upload the file asynchronously
+    upload_thread = threading.Thread(target=countBees, args=(relativeFilePath,))
+    upload_thread.start()
+
+
+def countBees(relativeFilePath):
+    cap = cv2.VideoCapture(relativeFilePath)
     assert cap.isOpened(), "Error reading video file"
     w, h, fps = (
         int(cap.get(x))
@@ -14,7 +22,7 @@ def count_bees():
     )
 
     # Define region points
-    region_points = [(20, 300), (800, 300)]
+    region_points = [(0, round(h / 2)), (round(w), round(h / 2))]
 
     # Video writer
     # video_writer = cv2.VideoWriter(
@@ -46,5 +54,7 @@ def count_bees():
     # video_writer.release()
     cv2.destroyAllWindows()
 
-    print("counter: ", counter.in_counts)
-    print("counter: ", counter.out_counts)
+    # print("counter: ", counter.in_counts)
+    # print("counter: ", counter.out_counts)
+
+    return counter.in_counts, counter.out_counts
