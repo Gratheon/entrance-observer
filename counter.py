@@ -1,8 +1,15 @@
+import os
 import threading
-
+import requests
 import cv2
+import json
 
 from ultralytics import YOLO, solutions
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 
 model = YOLO("best.pt")
 
@@ -11,6 +18,37 @@ def count_bees_async(relativeFilePath):
     # Define a function to upload the file asynchronously
     upload_thread = threading.Thread(target=countBees, args=(relativeFilePath,))
     upload_thread.start()
+
+
+def countBeesAndReportTelemetry(relativeFilePath):
+    beesIn, beesOut = countBees(relativeFilePath)
+
+    bearer_token = os.getenv("API_TOKEN")
+    hiveId = os.getenv("HIVE_ID")
+    boxId = os.getenv("BOX_ID")
+
+    # Make multipart/form-data request
+    response = requests.post(
+        'https://telemetry.gratheon.com/entrance/v1/movement',
+        headers={
+            'Authorization': f'Bearer {bearer_token}'
+        },
+        data={
+            "boxId": boxId,
+            "hiveId": hiveId,
+            "beesIn": beesIn,
+            "beesOut": beesOut,
+        },
+        timeout=120,
+        allow_redirects=True
+    )
+
+    if response.status_code == 200:
+        print("Video uploaded successfully")
+    else:
+        print("Error uploading video:", response.status_code)
+
+    print(response.text)
 
 
 def countBees(relativeFilePath):

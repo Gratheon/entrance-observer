@@ -3,3 +3,4 @@ opencv-python
 ultralytics
 shapely>=2.0.0
 lapx>=0.5.2
+python-dotenv==1.0.1

@@ -7,6 +7,10 @@ import threading
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 import glob
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 def upload_file_async(file_path):
