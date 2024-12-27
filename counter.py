@@ -3,6 +3,7 @@ import threading
 import requests
 import cv2
 import json
+import time
 
 from ultralytics import YOLO, solutions
 from dotenv import load_dotenv
@@ -16,39 +17,52 @@ model = YOLO("best.pt")
 
 def count_bees_async(relativeFilePath):
     # Define a function to upload the file asynchronously
-    upload_thread = threading.Thread(target=countBees, args=(relativeFilePath,))
+    upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(relativeFilePath,))
     upload_thread.start()
 
 
 def countBeesAndReportTelemetry(relativeFilePath):
+    start_time = time.time()  # Record the start time
+
     beesIn, beesOut = countBees(relativeFilePath)
 
     bearer_token = os.getenv("API_TOKEN")
     hiveId = os.getenv("HIVE_ID")
     boxId = os.getenv("BOX_ID")
 
+    # Prepare the payload
+    payload = {
+        "boxId": boxId,
+        "hiveId": hiveId,
+        "beesIn": beesIn,
+        "beesOut": beesOut,
+    }
+
+    # Print the payload
+    print("Payload to be sent:", payload)
+
     # Make multipart/form-data request
     response = requests.post(
+        # 'http://localhost:8600/entrance/v1/movement',
         'https://telemetry.gratheon.com/entrance/v1/movement',
         headers={
-            'Authorization': f'Bearer {bearer_token}'
+            'Authorization': f'Bearer {bearer_token}',
+            'Content-Type': 'application/json'
         },
-        data={
-            "boxId": boxId,
-            "hiveId": hiveId,
-            "beesIn": beesIn,
-            "beesOut": beesOut,
-        },
+        json=payload,  # Use json parameter instead of data
         timeout=120,
         allow_redirects=True
     )
 
     if response.status_code == 200:
-        print("Video uploaded successfully")
+        print("Counts reported successfully")
     else:
-        print("Error uploading video:", response.status_code)
+        print("Error reporting counts:", response.status_code)
 
     print(response.text)
+
+    end_time = time.time()  # Record the end time
+    print(f"Time taken for countBeesAndReportTelemetry: {end_time - start_time:.2f} seconds")
 
 
 def countBees(relativeFilePath):

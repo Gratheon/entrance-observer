@@ -1,3 +1,4 @@
 .idea
+.env
 src/config/config.dev.ts
 src/config/config.prod.ts
