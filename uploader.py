@@ -21,45 +21,51 @@ def upload_file_async(file_path):
 def uploadAndRemove(output_file: str):
     # Retrieve environment variables
     bearer_token = os.getenv("API_TOKEN")
-    box_id = os.getenv("BOX_ID")
+    box_id = os.getenv("SECTION_ID")
 
     if not bearer_token or not box_id:
         print("Error: Please set the API_TOKEN and BOX_ID environment variables.")
+        print("Skipping video upload for testing purposes.")
         return
 
-    # Make multipart/form-data request
-    response = requests.post(
-        'https://video.gratheon.com/graphql', 
-        headers={
-            'Authorization': f'Bearer {bearer_token}'
-        }, 
-        data={
-            "operations": json.dumps({
-                'query': (
-                    'mutation UploadVideo($file: Upload!, $boxId: ID!) {'
-                    '  uploadGateVideo(file: $file, boxId: $boxId)'
-                    '}'
-                ),
-                'variables': {
-                    'file': None,
-                    'boxId': box_id
-                }
-            }),
-            "map": json.dumps({ "0": ["variables.file"] })
-        },
-        files = {
-            "0": open(output_file, 'rb'), # Adjust content type if needed
-        },
-        timeout=120, 
-        allow_redirects=True
-    )
+    try:
+        # Make multipart/form-data request
+        with open(output_file, 'rb') as file:
+            response = requests.post(
+                'https://video.gratheon.com/graphql', 
+                headers={
+                    'Authorization': f'Bearer {bearer_token}'
+                }, 
+                data={
+                    "operations": json.dumps({
+                        'query': (
+                            'mutation UploadVideo($file: Upload!, $boxId: ID!) {'
+                            '  uploadGateVideo(file: $file, boxId: $boxId)'
+                            '}'
+                        ),
+                        'variables': {
+                            'file': None,
+                            'boxId': box_id
+                        }
+                    }),
+                    "map": json.dumps({ "0": ["variables.file"] })
+                },
+                files = {
+                    "0": file, # Adjust content type if needed
+                },
+                timeout=120, 
+                allow_redirects=True
+            )
 
-    if response.status_code == 200:
-        print("Video uploaded successfully")
-    else:
-        print("Error uploading video:", response.status_code)
-        
-    print(response.text)
+        if response.status_code == 200:
+            print("Video uploaded successfully")
+        else:
+            print("Error uploading video:", response.status_code)
+            
+        print(response.text)
+
+    except Exception as e:
+        print(f"Error during video upload: {e}")
 
     # remove file after uploading, you can leave it if you want a local cache
     # but you need enough storage to not run out of space
