@@ -13,8 +13,9 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weights', 'best.pt'))
 
-model = YOLO("best.pt")
+model = YOLO(weights_path)
 
 
 def count_bees_async(relativeFilePath, display_video=False):
@@ -109,8 +110,6 @@ def countBees(relativeFilePath, display_video=False):
     
     in_counts = 0
     out_counts = 0
-
-    model = YOLO("best.pt")
 
     while cap.isOpened():
         success, frame = cap.read()

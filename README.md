@@ -36,6 +36,22 @@ HIVE_ID=...
 SECTION_ID=...
 ```
 
+
+
+### Testing
+
+```
+just test
+```
+
+
+#### Manual testing with UI
+Basic usage of running inference using existing video file
+```
+cd examples
+python3 video-file.py
+```
+
 ### Platform Support
 
 The entrance-observer now supports multiple platforms:
