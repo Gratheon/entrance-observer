@@ -2,11 +2,10 @@ import os
 import threading
 import requests
 import cv2
-import json
 import time
 import streamer
 
-from ultralytics import YOLO, solutions
+from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator
 from dotenv import load_dotenv
 
