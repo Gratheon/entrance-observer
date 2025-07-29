@@ -95,8 +95,10 @@ from collections import defaultdict
 track_history = defaultdict(list)
 
 def countBees(relativeFilePath, display_video=False):
+    if not os.path.exists(relativeFilePath):
+        raise FileNotFoundError(f"Video file not found at path: {relativeFilePath}")
     cap = cv2.VideoCapture(relativeFilePath)
-    assert cap.isOpened(), "Error reading video file"
+    assert cap.isOpened(), f"Error reading video file: {relativeFilePath}"
     w, h, fps = (
         int(cap.get(x))
         for x in (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS)
