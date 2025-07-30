@@ -25,11 +25,72 @@ git clone https://github.com/Gratheon/entrance-observer.git
 - Open your hive entrance view, ex https://app.gratheon.com/apiaries/55/hives/68/box/250 and use BOX_ID from the end of URL, ex. 250.
 - Rename `.env.example` to `.env` and fill in the required fields
 
+### Configuration
+We use env vars and we load them from `.env` file for ease of management.
+Some of them:
+```
+API_TOKEN=...
+HIVE_ID=...
 
+# section is a box (vertical part of the hive), get the number from the URL
+SECTION_ID=...
+```
+
+
+
+### Testing
+
+```
+just test
+```
+
+
+#### Manual testing with UI
+Basic usage of running inference using existing video file
+```
+cd examples
+python3 video-file.py
+```
+
+### Platform Support
+
+The entrance-observer now supports multiple platforms:
+
+- **Linux** (NVidia Jetson, Raspberry Pi, etc.) - Uses V4L2 backend with `/dev/video*` devices
+- **macOS** - Uses AVFoundation backend with camera indices (0, 1, 2, etc.)
+- **Windows** - Uses DirectShow backend
+
+### Camera Configuration
+
+#### Automatic Detection
+By default, the system will automatically detect and use available cameras:
 
 ```bash
 python3 -m pip install -r requirements.txt
 python3 main.py
+```
+
+#### Manual Camera Selection
+You can specify a camera device manually by modifying the `startObserverClient()` call in `main.py`:
+
+**Linux:**
+```python
+startObserverClient("/dev/video0")  # Use specific video device
+```
+
+**macOS:**
+```python
+startObserverClient("0")  # Use camera index 0 (built-in camera)
+startObserverClient("1")  # Use camera index 1 (external camera)
+```
+
+#### Testing Camera Setup
+Use the included test script to verify camera functionality:
+
+```bash
+python3 test_camera.py           # Test all available cameras
+python3 test_camera.py 0         # Test specific camera (macOS/Windows)
+python3 test_camera.py /dev/video0  # Test specific device (Linux)
 ```
 
 ## Architecture
@@ -51,21 +112,5 @@ flowchart LR
 	subgraph Cloud
         entrance-observer -."upload".-> uploader --"upload video chunk"--> gate-video-stream
 	    entrance-observer --"send edge-inference results"--> telemetry-api[<a href="https://github.com/Gratheon/telemetry-api">telemetry-api</a>]
-	end
-```
-
-### Distributed GPU inference assistance (TODO)
-
-```mermaid
-flowchart LR
-
-	subgraph Edge
-	entrance-observer --"inference unprocessed file" --> models-gate-tracker
-	end
-
-	subgraph Cloud
-	entrance-observer --"get next unprocessed video segment"--> gate-video-stream
-	entrance-observer --"send inference results"--> gate-video-stream -- "store results long-term" --> mysql
-
 	end
 ```
