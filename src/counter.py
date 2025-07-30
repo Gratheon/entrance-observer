@@ -1,9 +1,9 @@
 import os
 import threading
-import requests
 import cv2
 import time
 import streamer
+import telemetry
 
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator
@@ -25,53 +25,11 @@ def count_bees_async(relativeFilePath, display_video=False):
     upload_thread.start()
 
 def report_telemetry_async(beesIn, beesOut):
-    telemetry_thread = threading.Thread(target=report_telemetry, args=(beesIn, beesOut))
-    telemetry_thread.start()
-
-def report_telemetry(beesIn, beesOut):
     bearer_token = os.getenv("API_TOKEN")
     hiveId = os.getenv("HIVE_ID")
     boxId = os.getenv("SECTION_ID")
-
-    # Check if required environment variables are set
-    if not bearer_token or not boxId:
-        print("Error: Please set the API_TOKEN and SECTION_ID environment variables.")
-        print("Skipping telemetry upload for testing purposes.")
-        return
-
-    # Prepare the payload
-    payload = {
-        "boxId": boxId,
-        "hiveId": hiveId,
-        "beesIn": beesIn,
-        "beesOut": beesOut,
-    }
-
-    # Print the payload
-    print("Payload to be sent:", payload)
-
-    try:
-        # Make multipart/form-data request
-        response = requests.post(
-            # 'http://localhost:8600/entrance/v1/movement',
-            'https://telemetry.gratheon.com/entrance/v1/movement',
-            headers={
-                'Authorization': f'Bearer {bearer_token}',
-                'Content-Type': 'application/json'
-            },
-            json=payload,  # Use json parameter instead of data
-            timeout=120,
-            allow_redirects=True
-        )
-
-        if response.status_code == 200:
-            print("Counts reported successfully")
-        else:
-            print("Error reporting counts:", response.status_code)
-
-        print(response.text)
-    except Exception as e:
-        print(f"Error sending telemetry: {e}")
+    base_url = os.getenv("TELEMETRY_BASE_URL", "https://telemetry.gratheon.com")
+    telemetry.report_telemetry_async(beesIn, beesOut, bearer_token, hiveId, boxId, base_url)
 
 
 def countBeesAndReportTelemetry(relativeFilePath, display_video=False):
@@ -84,7 +42,11 @@ def countBeesAndReportTelemetry(relativeFilePath, display_video=False):
         print(f"Error during bee counting: {e}")
         return
     
-    report_telemetry(beesIn, beesOut)
+    bearer_token = os.getenv("API_TOKEN")
+    hiveId = os.getenv("HIVE_ID")
+    boxId = os.getenv("SECTION_ID")
+    base_url = os.getenv("TELEMETRY_BASE_URL", "https://telemetry.gratheon.com")
+    telemetry.report_telemetry(beesIn, beesOut, bearer_token, hiveId, boxId, base_url)
     
     end_time = time.time()  # Record the end time
     print(f"Time taken for countBeesAndReportTelemetry: {end_time - start_time:.2f} seconds")

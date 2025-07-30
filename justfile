@@ -1,2 +1,2 @@
 test:
-    pytest tests/counter_test.py
+    pytest tests
