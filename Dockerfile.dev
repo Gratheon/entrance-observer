@@ -1,7 +1,0 @@
-FROM golang:1.22.0-alpine
-
-WORKDIR /app
-
-EXPOSE 8400
-
-CMD ["go", "run", "main.go"]
