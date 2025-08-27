@@ -12,41 +12,25 @@ from counter import count_bees_async
 cv2.CAP_GSTREAMER
 
 
-def startObserverClient(cameraDevicePath=None):
-    FPS = 30
-    WIDTH_PX = 640
-    HEIGHT_PX = 480
+def startObserverClient():
+    FPS = int(os.getenv("FPS", 30))
+    WIDTH_PX = int(os.getenv("WIDTH_PX", 640))
+    HEIGHT_PX = int(os.getenv("HEIGHT_PX", 480))
 
     # List available cameras for debugging
     print(f"Running on {platform.system()}")
     available_cameras = list_available_cameras()
     print(f"Available cameras: {available_cameras}")
 
-    # Get platform-specific camera configuration
-    if cameraDevicePath is None:
-        camera_config = get_default_camera_config()
-        device = camera_config["device"]
-        backend = camera_config["backend"]
-        
-        # If default device is not available, use first available camera
-        if available_cameras and device not in available_cameras:
-            device = available_cameras[0]
-            print(f"Default camera not available, using: {device}")
-    else:
-        # Use provided device path with appropriate backend
-        device = cameraDevicePath
-        system = platform.system().lower()
-        if system == "darwin":
-            # On macOS, if a string path is provided, try to convert to int
-            try:
-                device = int(cameraDevicePath) if isinstance(cameraDevicePath, str) and cameraDevicePath.isdigit() else cameraDevicePath
-            except ValueError:
-                device = cameraDevicePath
-            backend = cv2.CAP_AVFOUNDATION
-        elif system == "linux":
-            backend = cv2.CAP_V4L2
-        else:
-            backend = cv2.CAP_DSHOW if system == "windows" else cv2.CAP_ANY
+    camera_config = get_default_camera_config()
+    device = camera_config["device"]
+    backend = camera_config["backend"]
+    
+    # If default device is not available, use first available camera
+    if available_cameras and device not in available_cameras:
+        device = available_cameras[0]
+        print(f"Default camera not available, using: {device}")
+
 
     print(f"Initializing camera with device: {device}, backend: {backend}")
     camera = cv2.VideoCapture(device, backend)
@@ -79,8 +63,7 @@ def startObserverClient(cameraDevicePath=None):
 
     try:
         while True:
-            # timestamp = int(datetime.datetime.now().timestamp())
-            timestamp = '314'
+            timestamp = int(datetime.datetime.now().timestamp())
             output_file = f'./videos/{timestamp}.mp4'
             out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'mp4v'), FPS, (WIDTH_PX, HEIGHT_PX))
 
@@ -88,7 +71,7 @@ def startObserverClient(cameraDevicePath=None):
             while True:
                 ret, frame = camera.read()
                 if not ret:
-                    print('breaking')
+                    print('Error: Failed to capture frame')
                     break
                 out.write(frame)
                 cv2.imshow("Preview", frame)
@@ -98,7 +81,7 @@ def startObserverClient(cameraDevicePath=None):
                     break
 
             print(f"Video saved to {output_file}")
-            count_bees_async(output_file)
+            # count_bees_async(output_file)
             # upload_file_async(output_file)
             # delete_old_mp4_files()
 
