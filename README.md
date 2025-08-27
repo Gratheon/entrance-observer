@@ -35,18 +35,21 @@ HIVE_ID=...
 SECTION_ID=...
 ```
 
-### Testing
+### Unit tests
 
-Unit/integration tests:
+We use [`just`](https://github.com/casey/just) to run commands instead of `make`. Under the hood it relies on pytest. Unit tests check simple functions:
+
 ```
 just test
 ```
 
-### Manual tests / Examples
-Basic usage of running bee counting (inference) using existing video file
+### Integration tests
+Integration tests rely on more complexity and side effects. It needs/checks
+- cameras to be present
+- GPU inference to works
+- network request reaches gratheon telemetry endpoint
 ```
-cd examples
-python3 video-file.py
+just test-integration
 ```
 
 

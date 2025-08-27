@@ -40,6 +40,7 @@ def report_telemetry(beesIn, beesOut, bearer_token, hiveId, boxId, base_url):
         else:
             print("Error reporting counts:", response.status_code)
 
-        print(response.text)
+        return response.text
     except Exception as e:
         print(f"Error sending telemetry: {e}")
+        raise e
