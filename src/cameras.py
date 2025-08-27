@@ -1,5 +1,6 @@
 import platform
 import cv2
+import os
 
 def list_available_cameras():
     """List available cameras on the system"""
@@ -51,19 +52,31 @@ def list_available_cameras():
 
 def get_default_camera_config():
     system = platform.system().lower()
+    device_from_env = os.getenv("CAMERA_DEVICE")
 
-    if system == "darwin":  # macOS
-        return {
-            "device": 0,  # Default camera index on macOS
-            "backend": cv2.CAP_AVFOUNDATION
-        }
+    if device_from_env:
+        # If the device is a number, convert it to an integer
+        if device_from_env.isdigit():
+            device = int(device_from_env)
+        else:
+            device = device_from_env
+    elif system == "darwin":  # macOS
+        device = 0
     elif system == "linux":
-        return {
-            "device": "/dev/video2",
-            "backend": cv2.CAP_V4L2
-        }
+        device = "/dev/video2"
     else:  # Windows or other
-        return {
-            "device": 0,
-            "backend": cv2.CAP_DSHOW if system == "windows" else cv2.CAP_ANY
-        }
+        device = 0
+
+    if system == "darwin":
+        backend = cv2.CAP_AVFOUNDATION
+    elif system == "linux":
+        backend = cv2.CAP_V4L2
+    elif system == "windows":
+        backend = cv2.CAP_DSHOW
+    else:
+        backend = cv2.CAP_ANY
+
+    return {
+        "device": device,
+        "backend": backend
+    }
