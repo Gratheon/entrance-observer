@@ -82,7 +82,7 @@ def startObserverClient():
         while True:
             timestamp = int(datetime.datetime.now().timestamp())
             output_file = f'./videos/{timestamp}.mp4'
-            debug_output_file = f'./videos/{timestamp}_debug.mp4'
+            debug_output_file = f'./videos/{timestamp}_detect.mp4'
             out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'avc1'), FPS, (target_width, target_height))
 
             start_time = time.time()
@@ -104,11 +104,11 @@ def startObserverClient():
 
             print(f"Video saved to {output_file}")
             
-            def upload_debug_file(file_path):
+            def upload_detect_file(file_path):
                 print(f"Uploading debug file: {file_path}")
                 upload_file_async(file_path)
 
-            count_bees_async(output_file, output_video_path=debug_output_file, on_complete=upload_debug_file)
+            count_bees_async(output_file, output_video_path=debug_output_file, on_complete=upload_detect_file)
             # countBeesAndReportTelemetry(output_file, display_video=True)
             upload_file_async(output_file)
             delete_old_mp4_files()
