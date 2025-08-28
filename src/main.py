@@ -6,7 +6,7 @@ import platform
 
 from src.cameras import list_available_cameras, get_default_camera_config
 from uploader import upload_file_async, delete_old_mp4_files
-from counter import count_bees_async
+from counter import count_bees_async, countBeesAndReportTelemetry
 
 # enable GPU acceleration
 cv2.CAP_GSTREAMER
@@ -81,9 +81,10 @@ def startObserverClient():
                     break
 
             print(f"Video saved to {output_file}")
-            # count_bees_async(output_file)
-            # upload_file_async(output_file)
-            # delete_old_mp4_files()
+            count_bees_async(output_file)
+            # countBeesAndReportTelemetry(output_file, display_video=True)
+            upload_file_async(output_file)
+            delete_old_mp4_files()
 
 
     except KeyboardInterrupt:
