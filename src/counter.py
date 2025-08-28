@@ -17,12 +17,12 @@ weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weig
 model = YOLO(weights_path)
 
 
-def count_bees_async(relativeFilePath, display_video=False, output_video_path=None):
+def count_bees_async(relativeFilePath, display_video=False, output_video_path=None, on_complete=None):
     print(f"Starting bee counting for {relativeFilePath}", flush=True)
     # This function is kept for compatibility, but the new approach is to call countBees and report_telemetry_async separately
     if display_video:
         print("Warning: display_video=True in async mode might not work as expected. Run countBees in the main thread for UI.", flush=True)
-    upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(relativeFilePath, display_video, output_video_path))
+    upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(relativeFilePath, display_video, output_video_path, on_complete))
     upload_thread.start()
 
 def report_telemetry_async(beesIn, beesOut):
@@ -33,7 +33,7 @@ def report_telemetry_async(beesIn, beesOut):
     telemetry.report_telemetry_async(beesIn, beesOut, bearer_token, hiveId, boxId, base_url)
 
 
-def countBeesAndReportTelemetry(relativeFilePath, display_video=False, output_video_path=None):
+def countBeesAndReportTelemetry(relativeFilePath, display_video=False, output_video_path=None, on_complete=None):
     start_time = time.time()  # Record the start time
 
     try:
@@ -49,6 +49,9 @@ def countBeesAndReportTelemetry(relativeFilePath, display_video=False, output_vi
     base_url = os.getenv("TELEMETRY_BASE_URL", "https://telemetry.gratheon.com")
     telemetry.report_telemetry(beesIn, beesOut, bearer_token, hiveId, boxId, base_url)
     
+    if on_complete:
+        on_complete(output_video_path)
+
     end_time = time.time()  # Record the end time
     print(f"Time taken for countBeesAndReportTelemetry: {end_time - start_time:.2f} seconds", flush=True)
 
@@ -61,77 +64,52 @@ def countBees(relativeFilePath, display_video=False, output_video_path=None):
     track_history.clear()
     if not os.path.exists(relativeFilePath):
         raise FileNotFoundError(f"Video file not found at path: {relativeFilePath}")
+    
+    # Define counting line
     cap = cv2.VideoCapture(relativeFilePath)
     assert cap.isOpened(), f"Error reading video file: {relativeFilePath}"
     w, h, fps = (
         int(cap.get(x))
         for x in (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS)
     )
-
-    out = None
-    if output_video_path:
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(output_video_path, fourcc, fps, (w, h))
-
-    # Define counting line
     line_y = round(h / 2)
-    
+    cap.release()
+
     in_counts = 0
     out_counts = 0
 
-    while cap.isOpened():
-        success, frame = cap.read()
-        if not success:
-            print("Video frame is empty or video processing has been successfully completed.", flush=True)
-            break
+    # Stream processing
+    results = model.track(relativeFilePath, show=display_video, stream=True, persist=True, imgsz=w, conf=0.5, save=True)
 
-        results = model.track(frame, persist=True)
-
-        if results[0].boxes.is_track:
-            boxes = results[0].boxes.xyxy.cpu()
-            track_ids = results[0].boxes.id.int().cpu().tolist()
-
-            annotator = Annotator(frame, line_width=2)
-
-            for box, track_id in zip(boxes, track_ids):
-                annotator.box_label(box, str(track_id), color=(0, 200, 0))
+    saved_video_path = None
+    for r in results:
+        if saved_video_path is None:
+            saved_video_path = r.save_dir
+        boxes = r.boxes
+        if boxes.is_track:
+            for box, track_id in zip(boxes.xyxy.cpu(), boxes.id.int().cpu().tolist()):
                 bbox_center = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
-
                 track = track_history[track_id]
                 track.append((float(bbox_center[0]), float(bbox_center[1])))
                 if len(track) > 2:
-                    # Check if the bee crossed the line
                     if track[-2][1] < line_y and track[-1][1] >= line_y:
                         in_counts += 1
                     elif track[-2][1] > line_y and track[-1][1] <= line_y:
                         out_counts += 1
-                
                 if len(track) > 30:
                     track.pop(0)
-
-        # Draw the counting line
-        cv2.line(frame, (0, line_y), (w, line_y), (200, 0, 0), 2)
-        
-        # Display counts on the frame
-        cv2.putText(frame, f"In: {in_counts}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 200), 2)
-        cv2.putText(frame, f"Out: {out_counts}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 200), 2)
-
-        if display_video:
-            cv2.imshow("Bee Counter", frame)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
-        
-        if out:
-            out.write(frame)
-        
-        streamer.video_frame = frame
-
-    cap.release()
-    if out:
-        out.release()
-        print(f"Debug video saved to {output_video_path}", flush=True)
-    if display_video:
-        cv2.destroyAllWindows()
+    
+    if saved_video_path and output_video_path:
+        source_video_name = os.path.basename(relativeFilePath)
+        default_saved_file = os.path.join(saved_video_path, source_video_name)
+        if os.path.exists(default_saved_file):
+            os.rename(default_saved_file, output_video_path)
+            try:
+                os.rmdir(saved_video_path)
+            except OSError:
+                # The directory is not empty, which is unexpected.
+                # We can log this or handle it as needed.
+                pass
 
     print(f"Counting results: {in_counts} in, {out_counts} out", flush=True)
     

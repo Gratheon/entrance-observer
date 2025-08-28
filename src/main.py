@@ -64,7 +64,12 @@ def startObserverClient():
     aspect_ratio = actual_height / actual_width
     target_width = WIDTH_PX
     target_height = int(target_width * aspect_ratio)
-    print(f"Target resolution: {target_width}x{target_height}")
+
+    # Adjust height to be a multiple of 32 for YOLO compatibility
+    if target_height % 32 != 0:
+        target_height = (target_height // 32) * 32
+    
+    print(f"Target resolution (adjusted for YOLO): {target_width}x{target_height}")
 
 
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, target_width)
@@ -98,7 +103,12 @@ def startObserverClient():
                     break
 
             print(f"Video saved to {output_file}")
-            count_bees_async(output_file, output_video_path=debug_output_file)
+            
+            def upload_debug_file(file_path):
+                print(f"Uploading debug file: {file_path}")
+                upload_file_async(file_path)
+
+            count_bees_async(output_file, output_video_path=debug_output_file, on_complete=upload_debug_file)
             # countBeesAndReportTelemetry(output_file, display_video=True)
             upload_file_async(output_file)
             delete_old_mp4_files()
