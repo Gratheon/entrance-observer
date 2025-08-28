@@ -78,7 +78,7 @@ flowchart LR
 	entrance-observer --"read with native python to file"--> webcam["📷 webcam"]
 	entrance-observer -."write video file locally" .-> filesystem["🖴 filesystem"]
 	entrance-observer -."run inference from file" .-> counter --"read"--> filesystem
-	counter -."run inference".-> yolov8["👁️‍🗨 YOLOv8"]
+	counter -."run inference".-> yolov8["👁️‍🗨 YOLOv8"] --"write _detect videos"--> filesystem
     uploader --"read file"--> filesystem
     
 	end
