@@ -58,6 +58,7 @@ from collections import defaultdict
 track_history = defaultdict(list)
 
 def countBees(relativeFilePath, display_video=False, output_video_path=None):
+    track_history.clear()
     if not os.path.exists(relativeFilePath):
         raise FileNotFoundError(f"Video file not found at path: {relativeFilePath}")
     cap = cv2.VideoCapture(relativeFilePath)
