@@ -18,9 +18,10 @@ model = YOLO(weights_path)
 
 
 def count_bees_async(relativeFilePath, display_video=False):
+    print(f"Starting bee counting for {relativeFilePath}", flush=True)
     # This function is kept for compatibility, but the new approach is to call countBees and report_telemetry_async separately
     if display_video:
-        print("Warning: display_video=True in async mode might not work as expected. Run countBees in the main thread for UI.")
+        print("Warning: display_video=True in async mode might not work as expected. Run countBees in the main thread for UI.", flush=True)
     upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(relativeFilePath, display_video))
     upload_thread.start()
 
@@ -37,9 +38,9 @@ def countBeesAndReportTelemetry(relativeFilePath, display_video=False):
 
     try:
         beesIn, beesOut = countBees(relativeFilePath, display_video)
-        print(f"Bee counting completed: {beesIn} in, {beesOut} out")
+        print(f"Bee counting completed: {beesIn} in, {beesOut} out", flush=True)
     except Exception as e:
-        print(f"Error during bee counting: {e}")
+        print(f"Error during bee counting: {e}", flush=True)
         return
     
     bearer_token = os.getenv("API_TOKEN")
@@ -49,7 +50,7 @@ def countBeesAndReportTelemetry(relativeFilePath, display_video=False):
     telemetry.report_telemetry(beesIn, beesOut, bearer_token, hiveId, boxId, base_url)
     
     end_time = time.time()  # Record the end time
-    print(f"Time taken for countBeesAndReportTelemetry: {end_time - start_time:.2f} seconds")
+    print(f"Time taken for countBeesAndReportTelemetry: {end_time - start_time:.2f} seconds", flush=True)
 
 
 from collections import defaultdict
@@ -75,7 +76,7 @@ def countBees(relativeFilePath, display_video=False):
     while cap.isOpened():
         success, frame = cap.read()
         if not success:
-            print("Video frame is empty or video processing has been successfully completed.")
+            print("Video frame is empty or video processing has been successfully completed.", flush=True)
             break
 
         results = model.track(frame, persist=True)
@@ -120,6 +121,6 @@ def countBees(relativeFilePath, display_video=False):
     if display_video:
         cv2.destroyAllWindows()
 
-    print(f"Counting results: {in_counts} in, {out_counts} out")
+    print(f"Counting results: {in_counts} in, {out_counts} out", flush=True)
     
     return in_counts, out_counts
