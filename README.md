@@ -9,7 +9,9 @@ https://github.com/user-attachments/assets/a3243245-34a8-4626-a990-f7e34b7b8ff6
 ## Features
 
 - Video input stream. Best to use 4K USB camera. Streams data into memory and then store it on disk with as 10 sec chunks
+	- Tries to autodetect camera if its not found
 - Uploads video chunks to gratheon web-app for playback (assuming wifi/lan is present)
+	- Uses H.264 codec for video compression (~2mb for 10 sec)
 - Runs bee detection using YOLO ML model
 
 
@@ -26,14 +28,17 @@ git clone https://github.com/Gratheon/entrance-observer.git
 
 ### Configuration
 We use env vars and we load them from `.env` file for ease of management.
-Some of them:
-```
-API_TOKEN=...
-HIVE_ID=...
 
-# section is a box (vertical part of the hive), get the number from the URL
-SECTION_ID=...
-```
+|var|description|example|
+|--|--|--|
+|HIVE_ID|identifier of the hive. Can be found in the gratheon.com hive URL|364|
+|SECTION_ID|hive section (box). Can be found in the URL|1944|
+|API_TOKEN|authentication token| 9f23616a52-2a51-4369-96d3-237a456eedb5
+|CAMERA_DEVICE|numerical number for the device|0
+|FPS|frame rate of the camera|30|
+|WIDTH_PX|width of the output video. |960|
+|HEIGHT_PX|height of the video. will be ignored if it does not match aspect ratio of the camera, will get calculated based on WIDTH_PX |720|
+
 
 ### Unit tests
 
@@ -61,38 +66,6 @@ The entrance-observer now supports multiple platforms:
 - **macOS** - Uses AVFoundation backend with camera indices (0, 1, 2, etc.)
 - **Windows** - Uses DirectShow backend
 
-### Camera Configuration
-
-#### Automatic Detection
-By default, the system will automatically detect and use available cameras:
-
-```bash
-python3 -m pip install -r requirements.txt
-python3 main.py
-```
-
-#### Manual Camera Selection
-You can specify a camera device manually by modifying the `startObserverClient()` call in `main.py`:
-
-**Linux:**
-```python
-startObserverClient("/dev/video0")  # Use specific video device
-```
-
-**macOS:**
-```python
-startObserverClient("0")  # Use camera index 0 (built-in camera)
-startObserverClient("1")  # Use camera index 1 (external camera)
-```
-
-#### Testing Camera Setup
-Use the included test script to verify camera functionality:
-
-```bash
-python3 test_camera.py           # Test all available cameras
-python3 test_camera.py 0         # Test specific camera (macOS/Windows)
-python3 test_camera.py /dev/video0  # Test specific device (Linux)
-```
 
 ## Architecture
 
