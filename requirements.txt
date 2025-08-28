@@ -1,6 +1,6 @@
 requests-toolbelt==1.0.0
-opencv-python
-ultralytics
+opencv-python==4.11.0.86
+ultralytics==8.3.159
 shapely>=2.0.0
 lapx>=0.5.2
 python-dotenv==1.0.1
