@@ -83,7 +83,7 @@ def startObserverClient():
             timestamp = int(datetime.datetime.now().timestamp())
             output_file = f'./videos/{timestamp}.mp4'
             debug_output_file = f'./videos/{timestamp}_debug.mp4'
-            out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'mp4v'), FPS, (target_width, target_height))
+            out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'avc1'), FPS, (target_width, target_height))
 
             start_time = time.time()
             while True:
