@@ -55,9 +55,21 @@ def startObserverClient():
             print("Failed to open any camera")
             return
 
-    camera.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH_PX)
-    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT_PX)
-    camera.set(cv2.CAP_PROP_FPS, 30)
+    # Get the actual width and height from the camera
+    actual_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
+    actual_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    print(f"Camera's native resolution: {actual_width}x{actual_height}")
+
+    # Calculate the target height to maintain aspect ratio
+    aspect_ratio = actual_height / actual_width
+    target_width = WIDTH_PX
+    target_height = int(target_width * aspect_ratio)
+    print(f"Target resolution: {target_width}x{target_height}")
+
+
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, target_width)
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, target_height)
+    camera.set(cv2.CAP_PROP_FPS, FPS)
 
     cv2.namedWindow("Preview", cv2.WINDOW_AUTOSIZE)
 
@@ -65,7 +77,8 @@ def startObserverClient():
         while True:
             timestamp = int(datetime.datetime.now().timestamp())
             output_file = f'./videos/{timestamp}.mp4'
-            out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'mp4v'), FPS, (WIDTH_PX, HEIGHT_PX))
+            debug_output_file = f'./videos/{timestamp}_debug.mp4'
+            out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'mp4v'), FPS, (target_width, target_height))
 
             start_time = time.time()
             while True:
@@ -73,15 +86,19 @@ def startObserverClient():
                 if not ret:
                     print('Error: Failed to capture frame')
                     break
-                out.write(frame)
-                cv2.imshow("Preview", frame)
+                
+                # Resize the frame to the target resolution
+                resized_frame = cv2.resize(frame, (target_width, target_height))
+                
+                out.write(resized_frame)
+                cv2.imshow("Preview", resized_frame)
 
                 if cv2.waitKey(1) & 0xFF == ord('q') or time.time() - start_time >= 10:
                     out.release()
                     break
 
             print(f"Video saved to {output_file}")
-            count_bees_async(output_file)
+            count_bees_async(output_file, output_video_path=debug_output_file)
             # countBeesAndReportTelemetry(output_file, display_video=True)
             upload_file_async(output_file)
             delete_old_mp4_files()

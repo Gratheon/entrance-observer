@@ -17,12 +17,12 @@ weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weig
 model = YOLO(weights_path)
 
 
-def count_bees_async(relativeFilePath, display_video=False):
+def count_bees_async(relativeFilePath, display_video=False, output_video_path=None):
     print(f"Starting bee counting for {relativeFilePath}", flush=True)
     # This function is kept for compatibility, but the new approach is to call countBees and report_telemetry_async separately
     if display_video:
         print("Warning: display_video=True in async mode might not work as expected. Run countBees in the main thread for UI.", flush=True)
-    upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(relativeFilePath, display_video))
+    upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(relativeFilePath, display_video, output_video_path))
     upload_thread.start()
 
 def report_telemetry_async(beesIn, beesOut):
@@ -33,11 +33,11 @@ def report_telemetry_async(beesIn, beesOut):
     telemetry.report_telemetry_async(beesIn, beesOut, bearer_token, hiveId, boxId, base_url)
 
 
-def countBeesAndReportTelemetry(relativeFilePath, display_video=False):
+def countBeesAndReportTelemetry(relativeFilePath, display_video=False, output_video_path=None):
     start_time = time.time()  # Record the start time
 
     try:
-        beesIn, beesOut = countBees(relativeFilePath, display_video)
+        beesIn, beesOut = countBees(relativeFilePath, display_video, output_video_path)
         print(f"Bee counting completed: {beesIn} in, {beesOut} out", flush=True)
     except Exception as e:
         print(f"Error during bee counting: {e}", flush=True)
@@ -57,7 +57,7 @@ from collections import defaultdict
 
 track_history = defaultdict(list)
 
-def countBees(relativeFilePath, display_video=False):
+def countBees(relativeFilePath, display_video=False, output_video_path=None):
     if not os.path.exists(relativeFilePath):
         raise FileNotFoundError(f"Video file not found at path: {relativeFilePath}")
     cap = cv2.VideoCapture(relativeFilePath)
@@ -66,6 +66,11 @@ def countBees(relativeFilePath, display_video=False):
         int(cap.get(x))
         for x in (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS)
     )
+
+    out = None
+    if output_video_path:
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(output_video_path, fourcc, fps, (w, h))
 
     # Define counting line
     line_y = round(h / 2)
@@ -115,9 +120,15 @@ def countBees(relativeFilePath, display_video=False):
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
         
+        if out:
+            out.write(frame)
+        
         streamer.video_frame = frame
 
     cap.release()
+    if out:
+        out.release()
+        print(f"Debug video saved to {output_video_path}", flush=True)
     if display_video:
         cv2.destroyAllWindows()
 
