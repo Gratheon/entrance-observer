@@ -17,6 +17,11 @@ https://github.com/user-attachments/assets/a3243245-34a8-4626-a990-f7e34b7b8ff6
 
 Note. I Tried dual CSI cameras too, it could work too, but quality of optics was not sufficient (too much fish-eye)
 
+## Running
+```
+python3 src/main.py
+```
+
 ## Installation
 
 ```
@@ -39,6 +44,7 @@ We use env vars and we load them from `.env` file for ease of management.
 |WIDTH_PX|width of the output video. |960|
 |HEIGHT_PX|height of the video. will be ignored if it does not match aspect ratio of the camera, will get calculated based on WIDTH_PX |720|
 
+## Development
 
 ### Unit tests
 
