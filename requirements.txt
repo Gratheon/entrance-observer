@@ -4,3 +4,4 @@ ultralytics==8.3.159
 shapely>=2.0.0
 lapx>=0.5.2
 python-dotenv==1.0.1
+Flask==3.1.0
