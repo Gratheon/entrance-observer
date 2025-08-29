@@ -13,12 +13,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def upload_file_async(file_path):
+def upload_file_async(file_path, start_time_utc):
     # Define a function to upload the file asynchronously
-    upload_thread = threading.Thread(target=uploadAndRemove, args=(file_path,))
+    upload_thread = threading.Thread(target=uploadAndRemove, args=(file_path, start_time_utc))
     upload_thread.start()
 
-def uploadAndRemove(output_file: str):
+def uploadAndRemove(output_file: str, start_time_utc: datetime):
     # Retrieve environment variables
     bearer_token = os.getenv("API_TOKEN")
     box_id = os.getenv("SECTION_ID")
@@ -39,13 +39,14 @@ def uploadAndRemove(output_file: str):
                 data={
                     "operations": json.dumps({
                         'query': (
-                            'mutation UploadVideo($file: Upload!, $boxId: ID!) {'
-                            '  uploadGateVideo(file: $file, boxId: $boxId)'
+                            'mutation UploadVideo($file: Upload!, $boxId: ID!, $startTime: DateTime!) {'
+                            '  uploadGateVideo(file: $file, boxId: $boxId, startTime: $startTime)'
                             '}'
                         ),
                         'variables': {
                             'file': None,
-                            'boxId': box_id
+                            'boxId': box_id,
+                            'startTime': start_time_utc.isoformat()
                         }
                     }),
                     "map": json.dumps({ "0": ["variables.file"] })
