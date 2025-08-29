@@ -26,10 +26,11 @@ python3 src/main.py
 
 ```
 git clone https://github.com/Gratheon/entrance-observer.git
+cp .env.example .env
 ```
 - Generate API token in https://app.gratheon.com/account
 - Open your hive entrance view, ex https://app.gratheon.com/apiaries/55/hives/68/box/250 and use BOX_ID from the end of URL, ex. 250.
-- Rename `.env.example` to `.env` and fill in the required fields
+- Edit `.env` and configure values
 
 ### Configuration
 We use env vars and we load them from `.env` file for ease of management.
