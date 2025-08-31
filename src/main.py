@@ -5,6 +5,7 @@ import cv2
 import platform
 from flask import Flask, Response, render_template_string
 import threading
+from ultralytics import YOLO
 
 from src.cameras import list_available_cameras, get_default_camera_config
 from uploader import upload_file_async, delete_old_mp4_files
@@ -15,15 +16,19 @@ cv2.CAP_GSTREAMER
 
 app = Flask(__name__)
 video_frame = None
+yolo_frame = None
 frame_lock = threading.Lock()
 
-def generate_frames():
-    global video_frame
+weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weights', 'best.pt'))
+model = YOLO(weights_path)
+
+def generate_frames(get_frame):
     while True:
         with frame_lock:
-            if video_frame is None:
+            frame = get_frame()
+            if frame is None:
                 continue
-            (flag, encodedImage) = cv2.imencode(".jpg", video_frame)
+            (flag, encodedImage) = cv2.imencode(".jpg", frame)
             if not flag:
                 continue
         yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
@@ -38,18 +43,28 @@ def index():
      </head>
      <body>
        <h1>Video Streaming Demonstration</h1>
-       <img src="{{ url_for('video_feed') }}">
+       <table>
+         <tr>
+           <td><img src="{{ url_for('video_feed') }}"></td>
+           <td><img src="{{ url_for('video_feed_yolo') }}"></td>
+         </tr>
+       </table>
      </body>
    </html>
    """)
 
 @app.route("/video_feed")
 def video_feed():
-    return Response(generate_frames(),
+    return Response(generate_frames(lambda: video_frame),
+                    mimetype="multipart/x-mixed-replace; boundary=frame")
+
+@app.route("/video_feed_yolo")
+def video_feed_yolo():
+    return Response(generate_frames(lambda: yolo_frame),
                     mimetype="multipart/x-mixed-replace; boundary=frame")
 
 def startObserverClient():
-    global video_frame
+    global video_frame, yolo_frame
     FPS = int(os.getenv("FPS", 30))
     WIDTH_PX = int(os.getenv("WIDTH_PX", 640))
     HEIGHT_PX = int(os.getenv("HEIGHT_PX", 480))
@@ -129,8 +144,12 @@ def startObserverClient():
                 
                 resized_frame = cv2.resize(frame, (target_width, target_height))
                 
+                results = model.track(resized_frame, persist=True)
+                annotated_frame = results[0].plot()
+
                 with frame_lock:
                     video_frame = resized_frame.copy()
+                    yolo_frame = annotated_frame.copy()
 
                 out.write(resized_frame)
 
@@ -158,4 +177,5 @@ if __name__ == '__main__':
     observer_thread = threading.Thread(target=startObserverClient)
     observer_thread.daemon = True
     observer_thread.start()
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    from waitress import serve
+    serve(app, host="0.0.0.0", port=8080)

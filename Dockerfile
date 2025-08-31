@@ -58,6 +58,7 @@ RUN python3 -m pip install --no-cache-dir -v "lapx>=0.5"
 RUN python3 -m pip install --no-cache-dir -v python-dotenv==1.0
 RUN python3 -m pip install --no-cache-dir -v Flask==3.1
 RUN python3 -m pip install --no-cache-dir -v opencv-python-headless
+RUN python3 -m pip install --no-cache-dir -v waitress
 
 # Install the specific PyTorch wheel for Jetson with CUDA support
 # This is crucial for GPU acceleration of the YOLO model
