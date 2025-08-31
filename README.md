@@ -32,7 +32,7 @@ This method uses Docker to run the application in a containerized environment, w
     ```
 2.  **Start the Container**: With the `Dockerfile` and `docker-compose.yml` files in the `entrance-observer` directory, you can start the application with:
     ```bash
-    docker-compose up --build
+    docker compose up --build
     ```
 This will build the Docker image and start the container. The application's UI should appear on your screen.
 
