@@ -9,12 +9,12 @@ WORKDIR /app
 # - python3 and pip for running the application
 # - git for cloning repositories if needed
 # - v4l-utils to help with camera device management
-# RUN apt-get update && apt-get install -y \
-#     python3 \
-#     python3-pip \
-#     git \
-#     v4l-utils \
-#     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    # git \
+    # v4l-utils \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy the application files into the container
 COPY . .
