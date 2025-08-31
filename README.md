@@ -40,10 +40,18 @@ We use env vars and we load them from `.env` file for ease of management.
 |HIVE_ID|identifier of the hive. Can be found in the gratheon.com hive URL|364|
 |SECTION_ID|hive section (box). Can be found in the URL|1944|
 |API_TOKEN|authentication token| 9f23616a52-2a51-4369-96d3-237a456eedb5
-|CAMERA_DEVICE|numerical number for the device|0
+|CAMERA_DEVICE|numerical number for the device. For Linux, you can set it to `/dev/video0`.|0
 |FPS|frame rate of the camera|30|
 |WIDTH_PX|width of the output video. |960|
 |HEIGHT_PX|height of the video. will be ignored if it does not match aspect ratio of the camera, will get calculated based on WIDTH_PX |720|
+
+## Listing cameras
+To list which cameras correspond to which devices in linux, you can use:
+```
+sudo apt install v4l-utils
+v4l2-ctl --list-devices
+ ```
+
 
 ## Development
 
