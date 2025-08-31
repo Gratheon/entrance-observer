@@ -16,11 +16,14 @@ WORKDIR /app
 #     # v4l-utils \
 #     && rm -rf /var/lib/apt/lists/*
 
+# Install system dependencies for OpenCV
+RUN apt-get update && apt-get install -y python3-opencv && rm -rf /var/lib/apt/lists/*
+
 # Copy the application files into the container
 COPY . .
 
-# Install the Python dependencies from requirements.txt
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
+# Install the Python dependencies from requirements.jetson.txt
+RUN python3 -m pip install --no-cache-dir -r requirements.jetson.txt
 
 # Install the specific PyTorch wheel for Jetson with CUDA support
 # This is crucial for GPU acceleration of the YOLO model
