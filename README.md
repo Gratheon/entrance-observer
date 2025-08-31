@@ -12,32 +12,17 @@ https://github.com/user-attachments/assets/a3243245-34a8-4626-a990-f7e34b7b8ff6
 	- Tries to autodetect camera if its not found
 - Uploads video chunks to gratheon web-app for playback (assuming wifi/lan is present)
 	- Uses H.264 codec for video compression (~2mb for 10 sec)
+		- Falls back to mp4 ifcodec is not available (~10mb per 10 sec)
 	- Skips upload if no bees were incoming/outgoing to avoid unnecessary traffic
 - Runs bee detection using YOLO ML model
 
 
 Note. I Tried dual CSI cameras too, it could work too, but quality of optics was not sufficient (too much fish-eye)
 
-## Running
-```
-PYTHONPATH=. python3 src/main.py
-```
-
-### Running with Docker (Recommended for Jetson)
-
-This method uses Docker to run the application in a containerized environment, which is the recommended approach for Jetson devices. It simplifies dependency management and ensures a consistent runtime environment.
-
-1.  **Allow X11 Forwarding on Host**: Before running the container, you'll need to allow connections to your X server from the container. You can do this by running the following command on your host machine:
-    ```bash
-    xhost +
-    ```
-2.  **Start the Container**: With the `Dockerfile` and `docker-compose.yml` files in the `entrance-observer` directory, you can start the application with:
-    ```bash
-    docker compose up --build
-    ```
-This will build the Docker image and start the container. The application's UI should appear on your screen.
-
 ## Installation
+
+- After manual installation of the entrance observer device, make sure to correctly position camera, so that hive entrance is **down**.
+- Setup your edge devices to prepare the service
 
 ```
 git clone https://github.com/Gratheon/entrance-observer.git
@@ -47,7 +32,18 @@ pip install -r requirements.txt
 ```
 - Generate API token in https://app.gratheon.com/account
 - Open your hive entrance view, ex https://app.gratheon.com/apiaries/55/hives/68/box/250 and use BOX_ID from the end of URL, ex. 250.
-- Edit `.env` and configure values
+- Edit `.env` and configure values (see Configuration section below)
+- Run service (see Running section below)
+- Open service web ui (see URL section below)
+
+### Tuning
+- Once service runs, make sure its detection speed is below 10 sec video segment. Otherwise you risk of having detection being slower than recording, thus crashing the service. Ex. in logs:
+```
+Time taken for countBeesAndReportTelemetry: 7.31 seconds
+```
+- Reduce width/height or FPS if detection is too slow
+- Check wether videos are uploaded to the web-app and are accessible for playback there.
+
 
 ### Configuration
 We use env vars and we load them from `.env` file for ease of management.
@@ -63,7 +59,17 @@ We use env vars and we load them from `.env` file for ease of management.
 |HEIGHT_PX|height of the video. will be ignored if it does not match aspect ratio of the camera, will get calculated based on WIDTH_PX |720|
 
 
+#### Listing cameras
+To list which cameras correspond to which devices in linux, you can use:
+```
+sudo apt install v4l-utils
+v4l2-ctl --list-devices
+ ```
+
+
+
 ## Supported environments
+Tested on these environments:
 ✅ Mac OSX
 ✅ Jetson Orin Nano
 	- Ubuntu 22
@@ -71,24 +77,25 @@ We use env vars and we load them from `.env` file for ease of management.
 	- Jetpack 6
 	- cuDNN 8 
 
-### Jetson Orin setup
-After running pip install of main dependencies, you must ensure to install pytorch with cuda support
+
+## Running natively (Mac)
 ```
-dpkg-query --show nvidia-jetpack # assuming you are on 6.0
-
-# wget https://developer.download.nvidia.com/compute/redist/jp/v60dp/pytorch/torch-2.2.0a0+81ea7a4.nv24.01-cp310-cp310-linux_aarch64.whl
-
-wget https://pypi.jetson-ai-lab.io/jp6/cu126/+f/de1/5388b8f70e4e1/torchaudio-2.8.0-cp310-cp310-linux_aarch64.whl#sha256=de15388b8f70e4e17a05b23a4ae1f55a288c91449371bb8aeeb69184d40be17f
+PYTHONPATH=. python3 src/main.py
 ```
 
+### Running with Docker (Jetson Orin)
 
-
-## Listing cameras
-To list which cameras correspond to which devices in linux, you can use:
+```bash
+docker compose up --build
 ```
-sudo apt install v4l-utils
-v4l2-ctl --list-devices
- ```
+
+
+
+## URLs
+|URL| Description |
+|--|--|
+|http://localhost:3030 | Entrance observer service web UI with local web cam stream, available after startup |
+
 
 
 ## Development
