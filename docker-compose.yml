@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  entrance-observer:
+    build: .
+    runtime: nvidia # Enable NVIDIA GPU support
+    environment:
+      - DISPLAY=${DISPLAY} # Forward the display
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix # Mount the X11 socket
+      - ./videos:/app/videos # Persist the videos
+    devices:
+      - /dev/video0:/dev/video0 # Mount the camera device
+    env_file:
+      - .env # Load environment variables from .env file

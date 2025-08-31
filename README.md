@@ -19,14 +19,30 @@ Note. I Tried dual CSI cameras too, it could work too, but quality of optics was
 
 ## Running
 ```
-python3 src/main.py
+PYTHONPATH=. python3 src/main.py
 ```
+
+### Running with Docker (Recommended for Jetson)
+
+This method uses Docker to run the application in a containerized environment, which is the recommended approach for Jetson devices. It simplifies dependency management and ensures a consistent runtime environment.
+
+1.  **Allow X11 Forwarding on Host**: Before running the container, you'll need to allow connections to your X server from the container. You can do this by running the following command on your host machine:
+    ```bash
+    xhost +
+    ```
+2.  **Start the Container**: With the `Dockerfile` and `docker-compose.yml` files in the `entrance-observer` directory, you can start the application with:
+    ```bash
+    docker-compose up --build
+    ```
+This will build the Docker image and start the container. The application's UI should appear on your screen.
 
 ## Installation
 
 ```
 git clone https://github.com/Gratheon/entrance-observer.git
 cp .env.example .env
+
+pip install -r requirements.txt
 ```
 - Generate API token in https://app.gratheon.com/account
 - Open your hive entrance view, ex https://app.gratheon.com/apiaries/55/hives/68/box/250 and use BOX_ID from the end of URL, ex. 250.
@@ -44,6 +60,27 @@ We use env vars and we load them from `.env` file for ease of management.
 |FPS|frame rate of the camera|30|
 |WIDTH_PX|width of the output video. |960|
 |HEIGHT_PX|height of the video. will be ignored if it does not match aspect ratio of the camera, will get calculated based on WIDTH_PX |720|
+
+
+## Supported environments
+✅ Mac OSX
+✅ Jetson Orin Nano
+	- Ubuntu 22
+	- Python 3.10
+	- Jetpack 6
+	- cuDNN 8 
+
+### Jetson Orin setup
+After running pip install of main dependencies, you must ensure to install pytorch with cuda support
+```
+dpkg-query --show nvidia-jetpack # assuming you are on 6.0
+
+# wget https://developer.download.nvidia.com/compute/redist/jp/v60dp/pytorch/torch-2.2.0a0+81ea7a4.nv24.01-cp310-cp310-linux_aarch64.whl
+
+wget https://pypi.jetson-ai-lab.io/jp6/cu126/+f/de1/5388b8f70e4e1/torchaudio-2.8.0-cp310-cp310-linux_aarch64.whl#sha256=de15388b8f70e4e17a05b23a4ae1f55a288c91449371bb8aeeb69184d40be17f
+```
+
+
 
 ## Listing cameras
 To list which cameras correspond to which devices in linux, you can use:
