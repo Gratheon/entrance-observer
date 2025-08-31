@@ -17,8 +17,6 @@ WORKDIR /app
 #     # v4l-utils \
 #     && rm -rf /var/lib/apt/lists/*
 
-# Install system dependencies for OpenCV
-RUN apt-get update && apt-get install -y python3-opencv && rm -rf /var/lib/apt/lists/*
 
 # Copy the application files into the container
 COPY . .
