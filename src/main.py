@@ -5,6 +5,7 @@ import cv2
 import platform
 from flask import Flask, Response, render_template_string
 import threading
+import logging
 from ultralytics import YOLO
 
 from src.cameras import list_available_cameras, get_default_camera_config
@@ -20,6 +21,7 @@ yolo_frame = None
 frame_lock = threading.Lock()
 
 weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weights', 'best.pt'))
+logging.getLogger('ultralytics').setLevel(logging.WARNING)
 model = YOLO(weights_path)
 
 def generate_frames(get_frame):
@@ -63,7 +65,7 @@ def index():
            text-align: center;
          }
          .header img { 
-           height: 80px; 
+           height: 100px; 
            margin: 0 auto; 
            display: block; 
          }
@@ -123,6 +125,9 @@ def index():
              <h3>Detections</h3>
              <img src="{{ url_for('video_feed_yolo') }}">
            </div>
+         </div>
+         <div style="text-align: center; padding-top: 20px; font-size: 24px; color: #424242;">
+           &darr; Hive Entrance &darr;
          </div>
        </div>
        <div class="footer">
@@ -261,4 +266,5 @@ if __name__ == '__main__':
     observer_thread.daemon = True
     observer_thread.start()
     from waitress import serve
-    serve(app, host="0.0.0.0", port=8080)
+    print("--- Starting web server on http://0.0.0.0:3030 ---")
+    serve(app, host="0.0.0.0", port=3030)
