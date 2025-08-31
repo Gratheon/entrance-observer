@@ -1,5 +1,5 @@
 requests-toolbelt==1.0
-opencv-python==4.11
+opencv-python # ==4.11
 ultralytics==8.3
 shapely>=2.0
 lapx>=0.5
