@@ -1,7 +1,7 @@
-requests-toolbelt==1.0.0
-opencv-python==4.11.0.86
-ultralytics==8.3.159
-shapely>=2.0.0
-lapx>=0.5.2
-python-dotenv==1.0.1
-Flask==3.1.0
+requests-toolbelt==1.0
+opencv-python==4.11
+ultralytics==8.3
+shapely>=2.0
+lapx>=0.5
+python-dotenv==1.0
+Flask==3.1
