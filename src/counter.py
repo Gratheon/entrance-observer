@@ -50,7 +50,7 @@ def countBeesAndReportTelemetry(relativeFilePath, display_video=False, output_vi
     telemetry.report_telemetry(beesIn, beesOut, bearer_token, hiveId, boxId, base_url)
     
     if on_complete:
-        on_complete(output_video_path)
+        on_complete(output_video_path, beesIn, beesOut)
 
     end_time = time.time()  # Record the end time
     print(f"Time taken for countBeesAndReportTelemetry: {end_time - start_time:.2f} seconds", flush=True)

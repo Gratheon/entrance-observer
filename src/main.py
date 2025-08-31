@@ -247,12 +247,15 @@ def startObserverClient():
 
             print(f"Video saved to {output_file}")
             
-            def upload_detect_file(file_path):
-                print(f"Uploading debug file: {file_path}")
-                upload_file_async(file_path, start_time_utc)
+            def upload_detect_file(file_path, beesIn, beesOut):
+                if beesIn > 0 or beesOut > 0:
+                    print(f"Uploading debug file: {file_path}")
+                    upload_file_async(file_path, start_time_utc)
+                    upload_file_async(output_file, start_time_utc)
+                else:
+                    print("No bees detected, skipping upload")
 
             count_bees_async(output_file, output_video_path=debug_output_file, on_complete=upload_detect_file)
-            upload_file_async(output_file, start_time_utc)
             delete_old_mp4_files()
 
     except KeyboardInterrupt:

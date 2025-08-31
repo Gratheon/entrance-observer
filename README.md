@@ -12,6 +12,7 @@ https://github.com/user-attachments/assets/a3243245-34a8-4626-a990-f7e34b7b8ff6
 	- Tries to autodetect camera if its not found
 - Uploads video chunks to gratheon web-app for playback (assuming wifi/lan is present)
 	- Uses H.264 codec for video compression (~2mb for 10 sec)
+	- Skips upload if no bees were incoming/outgoing to avoid unnecessary traffic
 - Runs bee detection using YOLO ML model
 
 
