@@ -83,7 +83,17 @@ def startObserverClient():
             timestamp = int(datetime.datetime.now().timestamp())
             output_file = f'./videos/{timestamp}.mp4'
             debug_output_file = f'./videos/{timestamp}_detect.mp4'
+            
+            # Attempt to initialize VideoWriter with 'avc1' codec
             out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'avc1'), FPS, (target_width, target_height))
+            
+            if not out.isOpened():
+                print("Failed to open VideoWriter with 'avc1' codec, trying 'mp4v'...")
+                # Fallback to 'mp4v' if 'avc1' fails
+                out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'mp4v'), FPS, (target_width, target_height))
+                if not out.isOpened():
+                    print("Fallback codec 'mp4v' also failed. Exiting.")
+                    break
 
             start_time = time.time()
             start_time_utc = datetime.datetime.utcnow()
