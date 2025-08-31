@@ -3,10 +3,11 @@ import time
 import datetime
 import cv2
 import platform
-from flask import Flask, Response, render_template_string
+from flask import Flask, Response, render_template_string, jsonify
 import threading
 import logging
 from ultralytics import YOLO
+from collections import deque
 
 from src.cameras import list_available_cameras, get_default_camera_config
 from uploader import upload_file_async, delete_old_mp4_files
@@ -19,6 +20,7 @@ app = Flask(__name__)
 video_frame = None
 yolo_frame = None
 frame_lock = threading.Lock()
+bee_counts_history = deque(maxlen=3600)  # Store up to last 10h. 10*60*6 entries (1 hour if updated every 10 sec)
 
 weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weights', 'best.pt'))
 logging.getLogger('ultralytics').setLevel(logging.WARNING)
@@ -129,7 +131,42 @@ def index():
          <div style="text-align: center; padding-top: 20px; font-size: 24px; color: #424242;">
            &darr; Hive Entrance &darr;
          </div>
+         <div id="bee-counts-container" style="padding: 20px;">
+           <h3 style="text-align: center; color: #424242; font-weight: 500;">Bee Traffic</h3>
+           <table id="bee-counts-table" style="width: 100%; border-collapse: collapse;">
+             <thead>
+               <tr>
+                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Incoming</th>
+                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Outgoing</th>
+                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Time</th>
+               </tr>
+             </thead>
+             <tbody>
+             </tbody>
+           </table>
+         </div>
        </div>
+       <script>
+         function fetchBeeCounts() {
+           fetch('/api/bee_counts')
+             .then(response => response.json())
+             .then(data => {
+               const tableBody = document.querySelector('#bee-counts-table tbody');
+               tableBody.innerHTML = '';
+               data.forEach(count => {
+                 const row = document.createElement('tr');
+                 row.innerHTML = `
+                   <td style="border: 1px solid #ddd; padding: 8px;">${count.incoming}</td>
+                   <td style="border: 1px solid #ddd; padding: 8px;">${count.outgoing}</td>
+                   <td style="border: 1px solid #ddd; padding: 8px;">${count.time}</td>
+                 `;
+                 tableBody.insertBefore(row, tableBody.firstChild);
+               });
+             });
+         }
+         setInterval(fetchBeeCounts, 10000);
+         fetchBeeCounts();
+       </script>
        <div class="footer">
          <ul>
             <li><a href="https://gratheon.com/terms" target="_blank">Terms of Use</a></li>
@@ -150,6 +187,10 @@ def video_feed():
 def video_feed_yolo():
     return Response(generate_frames(lambda: yolo_frame),
                     mimetype="multipart/x-mixed-replace; boundary=frame")
+
+@app.route("/api/bee_counts")
+def bee_counts():
+    return jsonify(list(bee_counts_history))
 
 def startObserverClient():
     global video_frame, yolo_frame
@@ -248,6 +289,11 @@ def startObserverClient():
             print(f"Video saved to {output_file}")
             
             def upload_detect_file(file_path, beesIn, beesOut):
+                bee_counts_history.append({
+                    "incoming": beesIn,
+                    "outgoing": beesOut,
+                    "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                })
                 if beesIn > 0 or beesOut > 0:
                     print(f"Uploading debug file: {file_path}")
                     upload_file_async(file_path, start_time_utc)

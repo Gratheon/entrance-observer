@@ -1,6 +1,6 @@
 # gratheon / entrance-observer
 
-Beehive entrance video processing client script.
+Beehive entrance video processing client app.
 Intended to be deployed on edge on NVidia Jetson Orin / Jetson Nano / Mac or similar GPU-capable machines.
 
 https://github.com/user-attachments/assets/a3243245-34a8-4626-a990-f7e34b7b8ff6
@@ -8,16 +8,20 @@ https://github.com/user-attachments/assets/a3243245-34a8-4626-a990-f7e34b7b8ff6
 
 ## Features
 
-- Video input stream. Best to use 4K USB camera. Streams data into memory and then store it on disk with as 10 sec chunks
+- **Video capture**. Best to use 4K USB camera. Streams data into memory and then store it on disk with as 10 sec chunks
 	- Tries to autodetect camera if its not found
-- Uploads video chunks to gratheon web-app for playback (assuming wifi/lan is present)
+- **Video upload**. Uploads video chunks to gratheon web-app for playback (assuming wifi/lan is present)
 	- Uses H.264 codec for video compression (~2mb for 10 sec)
 		- Falls back to mp4 ifcodec is not available (~10mb per 10 sec)
 	- Skips upload if no bees were incoming/outgoing to avoid unnecessary traffic
-- Runs bee detection using YOLO ML model
+- **Bee detection** using YOLO 11 model with custom bee detection weights
+- **Incoming and outgoing bee counting**. Stats are sent to gratheon web-app for aggregate statistics
+- **Web UI** for local network access and configuration (with streaming)
+	- Simple log of incoming/outgoing bees for the past 10h
 
-
-Note. I Tried dual CSI cameras too, it could work too, but quality of optics was not sufficient (too much fish-eye)
+### Notes
+- I Tried dual CSI cameras too, it could work too, but quality of optics was not sufficient (too much fish-eye)
+- Note we are not _streaming_ video to gratheon.com as we do not adjust bandwidth/video quality depending on connectivity. So reliable network connection is essential. We are uploading chunks.
 
 ## Installation
 
