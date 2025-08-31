@@ -2,9 +2,7 @@ services:
   entrance-observer:
     build:
       context: .
-      dns:
-        - 8.8.8.8
-        - 8.8.4.4
+      network: host
     runtime: nvidia # Enable NVIDIA GPU support
     dns:
       - 8.8.8.8
