@@ -1,4 +1,4 @@
-requests-toolbelt==1.0
+requests-toolbelt
 ultralytics==8.3
 shapely>=2.0
 lapx>=0.5

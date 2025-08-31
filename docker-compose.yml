@@ -1,10 +1,10 @@
 services:
   entrance-observer:
-    build: .
+    build:
+      context: .
+      network: host   # <-- Add this under build
+    network_mode: host
     runtime: nvidia # Enable NVIDIA GPU support
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
     environment:
       - DISPLAY=${DISPLAY} # Forward the display
       - NVIDIA_VISIBLE_DEVICES=all

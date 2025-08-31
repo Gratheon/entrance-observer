@@ -17,12 +17,47 @@ WORKDIR /app
 #     # v4l-utils \
 #     && rm -rf /var/lib/apt/lists/*
 
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DEFAULT_TIMEOUT=100
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PIP_RETRIES=10
+ENV PIP_TRUSTED_HOST=pypi.org
+ENV PIP_INDEX_URL=https://pypi.org/simple
+#ENV PIP_ONLY_BINARY=:all:
+ENV PYTHONPATH=.
+
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libx11-xcb1 \
+    libxcb-xinerama0 \
+    libxcb-icccm4 \
+    libxcb-image0 \
+    libxcb-keysyms1 \
+    libxcb-randr0 \
+    libxcb-render-util0 \
+    libxcb-shape0 \
+    libxcb-shm0 \
+    libxcb-sync1 \
+    libxcb-xfixes0 \
+    libxcb-xkb1 \
+    libxkbcommon-x11-0 \
+    libxrender1 \
+    && rm -rf /var/lib/apt/lists/*
+
 
 # Copy the application files into the container
 COPY . .
 
 # Install the Python dependencies from requirements.jetson.txt
-RUN python3 -m pip install --no-cache-dir -r requirements.jetson.txt
+#RUN python3 -m pip install --no-cache-dir -v --index-url=https://pypi.org/simple --trusted-host pypi.org -r requirements.jetson.txt
+
+RUN python3 -m pip install --no-cache-dir -v requests-toolbelt
+RUN python3 -m pip install --no-cache-dir -v ultralytics==8.3
+RUN python3 -m pip install --no-cache-dir -v "shapely>=2.0"
+RUN python3 -m pip install --no-cache-dir -v "lapx>=0.5"
+RUN python3 -m pip install --no-cache-dir -v python-dotenv==1.0
+RUN python3 -m pip install --no-cache-dir -v Flask==3.1
+RUN python3 -m pip install --no-cache-dir -v opencv-python-headless
 
 # Install the specific PyTorch wheel for Jetson with CUDA support
 # This is crucial for GPU acceleration of the YOLO model
