@@ -20,7 +20,7 @@ WORKDIR /app
 COPY . .
 
 # Install the Python dependencies from requirements.txt
-RUN python -m pip install --no-cache-dir -r requirements.txt
+RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 # Install the specific PyTorch wheel for Jetson with CUDA support
 # This is crucial for GPU acceleration of the YOLO model
