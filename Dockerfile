@@ -47,6 +47,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy the application files into the container
 COPY . .
+COPY img ./img
 
 # Install the Python dependencies from requirements.jetson.txt
 #RUN python3 -m pip install --no-cache-dir -v --index-url=https://pypi.org/simple --trusted-host pypi.org -r requirements.jetson.txt

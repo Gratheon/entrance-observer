@@ -34,21 +34,104 @@ def generate_frames(get_frame):
         yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
               bytearray(encodedImage) + b'\r\n')
 
+from flask import send_from_directory
+
+@app.route('/img/<path:path>')
+def send_img(path):
+    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'img'), path)
+
 @app.route("/")
 def index():
     return render_template_string("""
    <html>
      <head>
-       <title>Video Streaming Demonstration</title>
+       <title>Entrance Observer</title>
+       <style>
+         body { 
+           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+           margin: 0; 
+           padding: 0; 
+           background-color: #f8f8f8; /* @color-gray-bg */
+           display: flex;
+           flex-direction: column;
+           min-height: 100vh;
+         }
+         .header { 
+           background: white; 
+           border-bottom: 1px solid #c5c5c5; /* @color-gray-breadcrumbs-border */
+           padding: 8px;
+           text-align: center;
+         }
+         .header img { 
+           height: 80px; 
+           margin: 0 auto; 
+           display: block; 
+         }
+         .container { 
+           padding: 20px; 
+           flex-grow: 1;
+         }
+         .video-container { 
+           display: flex; 
+           justify-content: center; 
+           gap: 20px; 
+           flex-wrap: wrap;
+         }
+         .video-wrapper h2 {
+           text-align: center;
+           color: #424242; /* @color-gray-breadcrumbs-text */
+           font-weight: 500;
+         }
+         .footer { 
+           background-color: #ececec; /* @color-gray-breadcrumbs */
+           border-top: 1px solid #c5c5c5; /* @color-gray-breadcrumbs-border */
+           padding: 20px;
+           box-sizing: border-box;
+         }
+         .footer ul {
+           display: flex;
+           justify-content: center;
+           list-style: none;
+           margin: 0;
+           padding: 0;
+         }
+         .footer li {
+           padding: 0 10px;
+         }
+         .footer a { 
+           color: black; 
+           text-decoration: none; 
+         }
+         .footer a:hover {
+            text-decoration: underline;
+         }
+       </style>
      </head>
      <body>
-       <h1>Video Streaming Demonstration</h1>
-       <table>
-         <tr>
-           <td><img src="{{ url_for('video_feed') }}"></td>
-           <td><img src="{{ url_for('video_feed_yolo') }}"></td>
-         </tr>
-       </table>
+       <div class="header">
+         <a href="https://app.gratheon.com/apiaries" target="_blank">
+            <img src="{{ url_for('send_img', path='gratheon.png') }}" alt="Gratheon Logo">
+         </a>
+       </div>
+       <div class="container">
+         <div class="video-container">
+           <div class="video-wrapper">
+             <h3>Live Feed</h3>
+             <img src="{{ url_for('video_feed') }}">
+           </div>
+           <div class="video-wrapper">
+             <h3>Detections</h3>
+             <img src="{{ url_for('video_feed_yolo') }}">
+           </div>
+         </div>
+       </div>
+       <div class="footer">
+         <ul>
+            <li><a href="https://gratheon.com/terms" target="_blank">Terms of Use</a></li>
+            <li><a href="https://gratheon.com/privacy" target="_blank">Privacy policy</a></li>
+            <li><a href="https://gratheon.com/docs/entrance-observer/" target="_blank">Docs</a></li>
+         </ul>
+       </div>
      </body>
    </html>
    """)
