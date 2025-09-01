@@ -273,9 +273,9 @@ def startObserverClient():
     WIDTH_PX = int(os.getenv("WIDTH_PX", 640))
     HEIGHT_PX = int(os.getenv("HEIGHT_PX", 480))
 
-    print(f"Running on {platform.system()}")
+    print(f"🖥️ Running on {platform.system()}")
     available_cameras = list_available_cameras()
-    print(f"Available cameras: {available_cameras}")
+    print(f"📷 Available cameras: {available_cameras}")
 
     camera_config = get_default_camera_config()
     device = camera_config["device"]
@@ -283,32 +283,32 @@ def startObserverClient():
     
     if available_cameras and device not in available_cameras:
         device = available_cameras[0]
-        print(f"Default camera not available, using: {device}")
+        print(f"⚠️ Default camera not available, using: {device}")
 
-    print(f"Initializing camera with device: {device}, backend: {backend}")
+    print(f"🔌 Initializing camera with device: {device}, backend: {backend}")
     camera = cv2.VideoCapture(device, backend)
 
     if not camera.isOpened():
-        print(f"Error: Could not open camera with device: {device}")
+        print(f"❌ Error: Could not open camera with device: {device}")
         if available_cameras:
-            print("Trying available cameras as fallback...")
+            print("🔄 Trying available cameras as fallback...")
             for alt_device in available_cameras:
                 if alt_device != device:
-                    print(f"Trying camera: {alt_device}")
+                    print(f"🔄 Trying camera: {alt_device}")
                     camera = cv2.VideoCapture(alt_device, backend)
                     if camera.isOpened():
-                        print(f"Successfully opened camera: {alt_device}")
+                        print(f"✅ Successfully opened camera: {alt_device}")
                         device = alt_device
                         break
                     camera.release()
         
         if not camera.isOpened():
-            print("Failed to open any camera")
+            print("❌ Failed to open any camera")
             return
 
     actual_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
     actual_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    print(f"Camera's native resolution: {actual_width}x{actual_height}")
+    print(f"ℹ️ Camera's native resolution: {actual_width}x{actual_height}")
 
     aspect_ratio = actual_height / actual_width
     target_width = WIDTH_PX
@@ -317,7 +317,7 @@ def startObserverClient():
     if target_height % 32 != 0:
         target_height = (target_height // 32) * 32
     
-    print(f"Target resolution (adjusted for YOLO): {target_width}x{target_height}")
+    print(f"🎯 Target resolution (adjusted for YOLO): {target_width}x{target_height}")
 
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, target_width)
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, target_height)
@@ -332,10 +332,10 @@ def startObserverClient():
             out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'avc1'), FPS, (target_width, target_height))
             
             if not out.isOpened():
-                print("Failed to open VideoWriter with 'avc1' codec, trying 'mp4v'...")
+                print("⚠️ Failed to open VideoWriter with 'avc1' codec, trying 'mp4v'...")
                 out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'mp4v'), FPS, (target_width, target_height))
                 if not out.isOpened():
-                    print("Fallback codec 'mp4v' also failed. Exiting.")
+                    print("❌ Fallback codec 'mp4v' also failed. Exiting.")
                     break
 
             start_time = time.time()
@@ -343,7 +343,7 @@ def startObserverClient():
             while True:
                 ret, frame = camera.read()
                 if not ret:
-                    print('Error: Failed to capture frame')
+                    print('❌ Error: Failed to capture frame')
                     break
                 
                 resized_frame = cv2.resize(frame, (target_width, target_height))
@@ -361,7 +361,7 @@ def startObserverClient():
                     out.release()
                     break
 
-            print(f"Video saved to {output_file}")
+            print(f"💾 Video saved to {output_file}")
             
             def upload_detect_file(file_path, beesIn, beesOut, detectedBees):
                 bee_counts_history.append({
@@ -371,17 +371,17 @@ def startObserverClient():
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 })
                 if beesIn > 0 or beesOut > 0:
-                    print(f"Uploading debug file: {file_path}")
+                    print(f"☁️ Uploading debug file: {file_path}")
                     upload_file_async(file_path, start_time_utc)
                     upload_file_async(output_file, start_time_utc)
                 else:
-                    print("No bees detected, skipping upload")
+                    print("🤫 No bees detected, skipping upload")
 
             count_bees_async(output_file, output_video_path=debug_output_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient)
             delete_old_mp4_files()
 
     except KeyboardInterrupt:
-        print("Recording and uploading stopped by user")
+        print("🛑 Recording and uploading stopped by user")
 
     finally:
         camera.release()
@@ -391,5 +391,5 @@ if __name__ == '__main__':
     observer_thread.daemon = True
     observer_thread.start()
     from waitress import serve
-    print("--- Starting web server on http://0.e.0.0:3030 ---")
+    print("🚀 --- Starting web server on http://0.0.0.0:3030 ---")
     serve(app, host="0.0.0.0", port=3030)

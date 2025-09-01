@@ -18,7 +18,7 @@ model = YOLO(weights_path)
 
 
 def count_bees_async(relativeFilePath, display_video=False, output_video_path=None, on_complete=None, detection_line_coefficient=None):
-    print(f"Starting bee counting for {relativeFilePath}", flush=True)
+    print(f"🐝 Starting bee counting for {relativeFilePath}", flush=True)
     # This function is kept for compatibility, but the new approach is to call countBees and report_telemetry_async separately
     if display_video:
         print("Warning: display_video=True in async mode might not work as expected. Run countBees in the main thread for UI.", flush=True)
@@ -38,9 +38,9 @@ def countBeesAndReportTelemetry(relativeFilePath, display_video=False, output_vi
 
     try:
         beesIn, beesOut, detectedBees = countBees(relativeFilePath, display_video, output_video_path, detection_line_coefficient)
-        print(f"Bee counting completed: {beesIn} in, {beesOut} out, {detectedBees} detected", flush=True)
+        print(f"✅ Bee counting completed: {beesIn} in, {beesOut} out, {detectedBees} detected", flush=True)
     except Exception as e:
-        print(f"Error during bee counting: {e}", flush=True)
+        print(f"❌ Error during bee counting: {e}", flush=True)
         return
     
     bearer_token = os.getenv("API_TOKEN")
@@ -53,7 +53,7 @@ def countBeesAndReportTelemetry(relativeFilePath, display_video=False, output_vi
         on_complete(output_video_path, beesIn, beesOut, detectedBees)
 
     end_time = time.time()  # Record the end time
-    print(f"Time taken for countBeesAndReportTelemetry: {end_time - start_time:.2f} seconds", flush=True)
+    print(f"⏱️ Time taken for countBeesAndReportTelemetry: {end_time - start_time:.2f} seconds", flush=True)
 
 
 from collections import defaultdict
@@ -116,6 +116,6 @@ def countBees(relativeFilePath, display_video=False, output_video_path=None, det
                 # We can log this or handle it as needed.
                 pass
 
-    print(f"Counting results: {in_counts} in, {out_counts} out", flush=True)
+    print(f"📊 Counting results: {in_counts} in, {out_counts} out", flush=True)
     
     return in_counts, out_counts, len(detected_bees)

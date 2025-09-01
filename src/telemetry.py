@@ -20,7 +20,7 @@ def report_telemetry(beesIn, beesOut, bearer_token, hiveId, boxId, base_url):
     }
 
     # Print the payload
-    print("Payload to be sent:", payload)
+    print("📡 Payload to be sent:", payload)
 
     try:
         # Make multipart/form-data request
@@ -36,11 +36,11 @@ def report_telemetry(beesIn, beesOut, bearer_token, hiveId, boxId, base_url):
         )
 
         if response.status_code == 200:
-            print("Counts reported successfully")
+            print("✅ Counts reported successfully")
         else:
-            print("Error reporting counts:", response.status_code)
+            print("❌ Error reporting counts:", response.status_code)
 
         return response.text
     except Exception as e:
-        print(f"Error sending telemetry: {e}")
+        print(f"❌ Error sending telemetry: {e}")
         raise e
