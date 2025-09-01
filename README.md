@@ -16,8 +16,10 @@ https://github.com/user-attachments/assets/a3243245-34a8-4626-a990-f7e34b7b8ff6
 	- Skips upload if no bees were incoming/outgoing to avoid unnecessary traffic
 - **Bee detection** using YOLO 11 model with custom bee detection weights
 - **Incoming and outgoing bee counting**. Stats are sent to gratheon web-app for aggregate statistics
-- **Web UI** for local network access and configuration (with streaming)
-	- Simple log of incoming/outgoing bees for the past 10h
+- **Web UI** for local network access and configuration (with streaming) with a simple log of:
+	- detected bees
+	- incoming/outgoing bees
+	- max log is the past 10h
 
 ### Notes
 - I Tried dual CSI cameras too, it could work too, but quality of optics was not sufficient (too much fish-eye)
