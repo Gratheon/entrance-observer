@@ -357,7 +357,8 @@ def startObserverClient():
 
                 out.write(resized_frame)
 
-                if time.time() - start_time >= 10:
+                video_chunk_length = int(os.getenv("VIDEO_CHUNK_LENGTH_SEC", 60))
+                if time.time() - start_time >= video_chunk_length:
                     out.release()
                     break
 
