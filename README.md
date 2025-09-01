@@ -63,6 +63,7 @@ We use env vars and we load them from `.env` file for ease of management.
 |FPS|frame rate of the camera|30|
 |WIDTH_PX|width of the output video. |960|
 |HEIGHT_PX|height of the video. will be ignored if it does not match aspect ratio of the camera, will get calculated based on WIDTH_PX |720|
+|CONFIDENCE|detection confidence threshold, from 0 to 1|0.5|
 
 
 #### Listing cameras

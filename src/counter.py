@@ -80,7 +80,8 @@ def countBees(relativeFilePath, display_video=False, output_video_path=None):
     detected_bees = set()
 
     # Stream processing
-    results = model.track(relativeFilePath, show=display_video, stream=True, persist=True, imgsz=w, conf=0.5, save=True)
+    confidence = float(os.getenv("CONFIDENCE", 0.5))
+    results = model.track(relativeFilePath, show=display_video, stream=True, persist=True, imgsz=w, conf=confidence, save=True)
 
     saved_video_path = None
     for r in results:
