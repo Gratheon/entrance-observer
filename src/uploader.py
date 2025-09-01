@@ -74,7 +74,7 @@ def uploadAndRemove(output_file: str, start_time_utc: datetime):
 
 
 def delete_old_mp4_files():
-    directory = "./cam"
+    directory = "./videos"
     max_age_hours = 1
     now = datetime.now()
     max_age = timedelta(hours=max_age_hours)
