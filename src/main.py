@@ -3,7 +3,7 @@ import time
 import datetime
 import cv2
 import platform
-from flask import Flask, Response, render_template_string, jsonify
+from flask import Flask, Response, render_template_string, jsonify, request
 import threading
 import logging
 from ultralytics import YOLO
@@ -46,7 +46,7 @@ def send_img(path):
 
 @app.route("/")
 def index():
-    return render_template_string("""
+    html = """
    <html>
      <head>
        <title>Entrance Observer</title>
@@ -80,6 +80,10 @@ def index():
            justify-content: center; 
            gap: 20px; 
            flex-wrap: wrap;
+         }
+         .toggle-container {
+           text-align: center;
+           margin-bottom: 20px;
          }
          .video-wrapper h2 {
            text-align: center;
@@ -118,14 +122,18 @@ def index():
          </a>
        </div>
        <div class="container">
+         <div class="toggle-container">
+           <label>
+             <input type="checkbox" id="feed-toggle">
+             Show Live Feed
+           </label>
+         </div>
          <div class="video-container">
            <div class="video-wrapper">
-             <h3>Live Feed</h3>
-             <img src="{{ url_for('video_feed') }}">
-           </div>
-           <div class="video-wrapper">
-             <h3>Detections</h3>
-             <img src="{{ url_for('video_feed_yolo') }}">
+             <div id="video-container" style="position: relative; display: inline-block;">
+                <img id="video-feed-img" src="{{ url_for('video_feed_yolo') }}">
+                <div id="detection-line" style="position: absolute; left: 0; width: 100%; height: 4px; background-color: red; cursor: pointer; top: {{ detection_line_coefficient * 100 }}%;"></div>
+             </div>
            </div>
          </div>
          <div style="text-align: center; padding-top: 20px; font-size: 24px; color: #424242;">
@@ -169,6 +177,61 @@ def index():
          setInterval(fetchBeeCounts, 10000);
          fetchBeeCounts();
        </script>
+       <script>
+         const feedToggle = document.getElementById('feed-toggle');
+         const videoFeedImg = document.getElementById('video-feed-img');
+         const liveFeedUrl = "{{ url_for('video_feed') }}";
+         const yoloFeedUrl = "{{ url_for('video_feed_yolo') }}";
+
+         feedToggle.addEventListener('change', () => {
+           if (feedToggle.checked) {
+             videoFeedImg.src = liveFeedUrl;
+           } else {
+             videoFeedImg.src = yoloFeedUrl;
+           }
+         });
+       </script>
+       <script>
+         const detectionLine = document.getElementById('detection-line');
+         const videoContainer = document.getElementById('video-container');
+         let isDragging = false;
+
+         detectionLine.addEventListener('mousedown', (e) => {
+           isDragging = true;
+         });
+
+         videoContainer.addEventListener('mousemove', (e) => {
+           if (isDragging) {
+             const rect = videoContainer.getBoundingClientRect();
+             const y = e.clientY - rect.top;
+             const height = rect.height;
+             let coefficient = y / height;
+             if (coefficient < 0) coefficient = 0;
+             if (coefficient > 1) coefficient = 1;
+             detectionLine.style.top = `${coefficient * 100}%`;
+           }
+         });
+
+         videoContainer.addEventListener('mouseup', (e) => {
+           if (isDragging) {
+             isDragging = false;
+             const rect = videoContainer.getBoundingClientRect();
+             const y = e.clientY - rect.top;
+             const height = rect.height;
+             let coefficient = y / height;
+             if (coefficient < 0) coefficient = 0;
+             if (coefficient > 1) coefficient = 1;
+             
+             fetch('/api/set_detection_line', {
+               method: 'POST',
+               headers: {
+                 'Content-Type': 'application/json',
+               },
+               body: JSON.stringify({ coefficient: coefficient }),
+             });
+           }
+         });
+       </script>
        <div class="footer">
          <ul>
             <li><a href="https://gratheon.com/terms" target="_blank">Terms of Use</a></li>
@@ -178,7 +241,8 @@ def index():
        </div>
      </body>
    </html>
-   """)
+   """
+    return render_template_string(html, detection_line_coefficient=detection_line_coefficient)
 
 @app.route("/video_feed")
 def video_feed():
@@ -193,6 +257,15 @@ def video_feed_yolo():
 @app.route("/api/bee_counts")
 def bee_counts():
     return jsonify(list(bee_counts_history))
+
+detection_line_coefficient = float(os.getenv("DETECTION_LINE", 0.5))
+
+@app.route("/api/set_detection_line", methods=['POST'])
+def set_detection_line():
+    global detection_line_coefficient
+    data = request.get_json()
+    detection_line_coefficient = data['coefficient']
+    return jsonify(success=True)
 
 def startObserverClient():
     global video_frame, yolo_frame
@@ -304,7 +377,7 @@ def startObserverClient():
                 else:
                     print("No bees detected, skipping upload")
 
-            count_bees_async(output_file, output_video_path=debug_output_file, on_complete=upload_detect_file)
+            count_bees_async(output_file, output_video_path=debug_output_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient)
             delete_old_mp4_files()
 
     except KeyboardInterrupt:
@@ -318,5 +391,5 @@ if __name__ == '__main__':
     observer_thread.daemon = True
     observer_thread.start()
     from waitress import serve
-    print("--- Starting web server on http://0.0.0.0:3030 ---")
+    print("--- Starting web server on http://0.e.0.0:3030 ---")
     serve(app, host="0.0.0.0", port=3030)

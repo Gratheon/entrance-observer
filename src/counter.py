@@ -17,12 +17,12 @@ weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weig
 model = YOLO(weights_path)
 
 
-def count_bees_async(relativeFilePath, display_video=False, output_video_path=None, on_complete=None):
+def count_bees_async(relativeFilePath, display_video=False, output_video_path=None, on_complete=None, detection_line_coefficient=None):
     print(f"Starting bee counting for {relativeFilePath}", flush=True)
     # This function is kept for compatibility, but the new approach is to call countBees and report_telemetry_async separately
     if display_video:
         print("Warning: display_video=True in async mode might not work as expected. Run countBees in the main thread for UI.", flush=True)
-    upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(relativeFilePath, display_video, output_video_path, on_complete))
+    upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(relativeFilePath, display_video, output_video_path, on_complete, detection_line_coefficient))
     upload_thread.start()
 
 def report_telemetry_async(beesIn, beesOut):
@@ -33,11 +33,11 @@ def report_telemetry_async(beesIn, beesOut):
     telemetry.report_telemetry_async(beesIn, beesOut, bearer_token, hiveId, boxId, base_url)
 
 
-def countBeesAndReportTelemetry(relativeFilePath, display_video=False, output_video_path=None, on_complete=None):
+def countBeesAndReportTelemetry(relativeFilePath, display_video=False, output_video_path=None, on_complete=None, detection_line_coefficient=None):
     start_time = time.time()  # Record the start time
 
     try:
-        beesIn, beesOut, detectedBees = countBees(relativeFilePath, display_video, output_video_path)
+        beesIn, beesOut, detectedBees = countBees(relativeFilePath, display_video, output_video_path, detection_line_coefficient)
         print(f"Bee counting completed: {beesIn} in, {beesOut} out, {detectedBees} detected", flush=True)
     except Exception as e:
         print(f"Error during bee counting: {e}", flush=True)
@@ -60,7 +60,7 @@ from collections import defaultdict
 
 track_history = defaultdict(list)
 
-def countBees(relativeFilePath, display_video=False, output_video_path=None):
+def countBees(relativeFilePath, display_video=False, output_video_path=None, detection_line_coefficient=None):
     track_history.clear()
     if not os.path.exists(relativeFilePath):
         raise FileNotFoundError(f"Video file not found at path: {relativeFilePath}")
@@ -72,7 +72,9 @@ def countBees(relativeFilePath, display_video=False, output_video_path=None):
         int(cap.get(x))
         for x in (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS)
     )
-    line_y = round(h / 2)
+    if detection_line_coefficient is None:
+        detection_line_coefficient = float(os.getenv("DETECTION_LINE", 0.5))
+    line_y = round(h * detection_line_coefficient)
     cap.release()
 
     in_counts = 0
