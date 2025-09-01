@@ -138,6 +138,7 @@ def index():
                <tr>
                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Incoming</th>
                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Outgoing</th>
+                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Detected</th>
                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Time</th>
                </tr>
              </thead>
@@ -158,6 +159,7 @@ def index():
                  row.innerHTML = `
                    <td style="border: 1px solid #ddd; padding: 8px;">${count.incoming}</td>
                    <td style="border: 1px solid #ddd; padding: 8px;">${count.outgoing}</td>
+                   <td style="border: 1px solid #ddd; padding: 8px;">${count.detected}</td>
                    <td style="border: 1px solid #ddd; padding: 8px;">${count.time}</td>
                  `;
                  tableBody.insertBefore(row, tableBody.firstChild);
@@ -288,10 +290,11 @@ def startObserverClient():
 
             print(f"Video saved to {output_file}")
             
-            def upload_detect_file(file_path, beesIn, beesOut):
+            def upload_detect_file(file_path, beesIn, beesOut, detectedBees):
                 bee_counts_history.append({
                     "incoming": beesIn,
                     "outgoing": beesOut,
+                    "detected": detectedBees,
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 })
                 if beesIn > 0 or beesOut > 0:

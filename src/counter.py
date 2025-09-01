@@ -37,8 +37,8 @@ def countBeesAndReportTelemetry(relativeFilePath, display_video=False, output_vi
     start_time = time.time()  # Record the start time
 
     try:
-        beesIn, beesOut = countBees(relativeFilePath, display_video, output_video_path)
-        print(f"Bee counting completed: {beesIn} in, {beesOut} out", flush=True)
+        beesIn, beesOut, detectedBees = countBees(relativeFilePath, display_video, output_video_path)
+        print(f"Bee counting completed: {beesIn} in, {beesOut} out, {detectedBees} detected", flush=True)
     except Exception as e:
         print(f"Error during bee counting: {e}", flush=True)
         return
@@ -50,7 +50,7 @@ def countBeesAndReportTelemetry(relativeFilePath, display_video=False, output_vi
     telemetry.report_telemetry(beesIn, beesOut, bearer_token, hiveId, boxId, base_url)
     
     if on_complete:
-        on_complete(output_video_path, beesIn, beesOut)
+        on_complete(output_video_path, beesIn, beesOut, detectedBees)
 
     end_time = time.time()  # Record the end time
     print(f"Time taken for countBeesAndReportTelemetry: {end_time - start_time:.2f} seconds", flush=True)
@@ -77,6 +77,7 @@ def countBees(relativeFilePath, display_video=False, output_video_path=None):
 
     in_counts = 0
     out_counts = 0
+    detected_bees = set()
 
     # Stream processing
     results = model.track(relativeFilePath, show=display_video, stream=True, persist=True, imgsz=w, conf=0.5, save=True)
@@ -88,6 +89,7 @@ def countBees(relativeFilePath, display_video=False, output_video_path=None):
         boxes = r.boxes
         if boxes.is_track:
             for box, track_id in zip(boxes.xyxy.cpu(), boxes.id.int().cpu().tolist()):
+                detected_bees.add(track_id)
                 bbox_center = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
                 track = track_history[track_id]
                 track.append((float(bbox_center[0]), float(bbox_center[1])))
@@ -113,4 +115,4 @@ def countBees(relativeFilePath, display_video=False, output_video_path=None):
 
     print(f"Counting results: {in_counts} in, {out_counts} out", flush=True)
     
-    return in_counts, out_counts
+    return in_counts, out_counts, len(detected_bees)
