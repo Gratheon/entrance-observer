@@ -17,7 +17,7 @@ def report_telemetry(beesIn, beesOut, bearer_token, hiveId, boxId, base_url):
         "hiveId": hiveId,
         "beesIn": beesIn,
         "beesOut": beesOut,
-    }
+    }2
 
     # Print the payload
     print("📡 Payload to be sent:", payload)
@@ -39,6 +39,7 @@ def report_telemetry(beesIn, beesOut, bearer_token, hiveId, boxId, base_url):
             print("✅ Counts reported successfully")
         else:
             print("❌ Error reporting counts:", response.status_code)
+            print(response.text)
 
         return response.text
     except Exception as e:
