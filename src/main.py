@@ -8,23 +8,70 @@ import threading
 import logging
 from ultralytics import YOLO
 from collections import deque
+import numpy as np
+
+# Conditionally import GStreamer for Linux systems
+IS_LINUX = platform.system() == 'Linux'
+if IS_LINUX:
+    import gi
+    gi.require_version('Gst', '1.0')
+    from gi.repository import Gst, GLib
+    Gst.init(None)
 
 from src.cameras import list_available_cameras, get_default_camera_config
 from uploader import upload_file_async, delete_old_mp4_files
 from counter import count_bees_async
 
-# enable GPU acceleration
-cv2.CAP_GSTREAMER
-
 app = Flask(__name__)
 video_frame = None
 yolo_frame = None
 frame_lock = threading.Lock()
-bee_counts_history = deque(maxlen=3600)  # Store up to last 10h. 10*60*6 entries (1 hour if updated every 10 sec)
+bee_counts_history = deque(maxlen=3600)
 
 weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weights', 'best.pt'))
 logging.getLogger('ultralytics').setLevel(logging.WARNING)
 model = YOLO(weights_path)
+
+class GStreamerWriter:
+    def __init__(self, output_file, width, height, fps):
+        self.output_file = output_file
+        pipeline_desc = (
+            f"appsrc name=source ! "
+            f"videoconvert ! "
+            f"x264enc speed-preset=ultrafast tune=zerolatency ! "
+            f"mp4mux ! "
+            f"filesink location={self.output_file}"
+        )
+        self.pipeline = Gst.parse_launch(pipeline_desc)
+        self.appsrc = self.pipeline.get_by_name('source')
+        self.appsrc.set_property('caps', Gst.Caps.from_string(f"video/x-raw,format=BGR,width={width},height={height},framerate={fps}/1"))
+        self.pipeline.set_state(Gst.State.PLAYING)
+
+    def write(self, frame):
+        data = frame.tobytes()
+        buf = Gst.Buffer.new_allocate(None, len(data), None)
+        buf.fill(0, data)
+        self.appsrc.emit('push-buffer', buf)
+
+    def release(self):
+        self.appsrc.emit('end-of-stream')
+        self.pipeline.set_state(Gst.State.NULL)
+
+class Cv2Writer:
+    def __init__(self, output_file, width, height, fps):
+        # Use 'avc1' for H.264 encoding on macOS, which is more efficient than 'mp4v'.
+        fourcc = cv2.VideoWriter_fourcc(*'avc1')
+        self.writer = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
+        if not self.writer.isOpened():
+            print("⚠️ 'avc1' codec failed, falling back to 'mp4v'.")
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            self.writer = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
+
+    def write(self, frame):
+        self.writer.write(frame)
+
+    def release(self):
+        self.writer.release()
 
 def generate_frames(get_frame):
     while True:
@@ -323,20 +370,37 @@ def startObserverClient():
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, target_height)
     camera.set(cv2.CAP_PROP_FPS, FPS)
 
+    def process_video_chunk(writer, video_path, debug_video_path, start_time, detection_line_coeff):
+        writer.release()
+        print(f"💾 Video saved to {video_path}")
+
+        def upload_detect_file(file_path, beesIn, beesOut, detectedBees):
+            bee_counts_history.append({
+                "incoming": beesIn,
+                "outgoing": beesOut,
+                "detected": detectedBees,
+                "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
+            if beesIn > 0 or beesOut > 0:
+                print(f"☁️ Uploading debug file: {file_path}")
+                upload_file_async(file_path, start_time)
+                upload_file_async(video_path, start_time)
+            else:
+                print("🤫 No bees detected, skipping upload")
+
+        count_bees_async(video_path, output_video_path=debug_video_path, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coeff)
+        delete_old_mp4_files()
+
     try:
         while True:
             timestamp = int(datetime.datetime.now().timestamp())
             output_file = f'./videos/{timestamp}.mp4'
             debug_output_file = f'./videos/{timestamp}_detect.mp4'
             
-            out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'avc1'), FPS, (target_width, target_height))
-            
-            if not out.isOpened():
-                print("⚠️ Failed to open VideoWriter with 'avc1' codec, trying 'mp4v'...")
-                out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'mp4v'), FPS, (target_width, target_height))
-                if not out.isOpened():
-                    print("❌ Fallback codec 'mp4v' also failed. Exiting.")
-                    break
+            if IS_LINUX:
+                out = GStreamerWriter(output_file, target_width, target_height, FPS)
+            else:
+                out = Cv2Writer(output_file, target_width, target_height, FPS)
 
             start_time = time.time()
             start_time_utc = datetime.datetime.utcnow()
@@ -359,27 +423,12 @@ def startObserverClient():
 
                 video_chunk_length = int(os.getenv("VIDEO_CHUNK_LENGTH_SEC", 60))
                 if time.time() - start_time >= video_chunk_length:
-                    out.release()
+                    processing_thread = threading.Thread(
+                        target=process_video_chunk,
+                        args=(out, output_file, debug_output_file, start_time_utc, detection_line_coefficient)
+                    )
+                    processing_thread.start()
                     break
-
-            print(f"💾 Video saved to {output_file}")
-            
-            def upload_detect_file(file_path, beesIn, beesOut, detectedBees):
-                bee_counts_history.append({
-                    "incoming": beesIn,
-                    "outgoing": beesOut,
-                    "detected": detectedBees,
-                    "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                })
-                if beesIn > 0 or beesOut > 0:
-                    print(f"☁️ Uploading debug file: {file_path}")
-                    upload_file_async(file_path, start_time_utc)
-                    upload_file_async(output_file, start_time_utc)
-                else:
-                    print("🤫 No bees detected, skipping upload")
-
-            count_bees_async(output_file, output_video_path=debug_output_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient)
-            delete_old_mp4_files()
 
     except KeyboardInterrupt:
         print("🛑 Recording and uploading stopped by user")
