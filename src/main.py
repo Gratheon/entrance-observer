@@ -8,11 +8,12 @@ import threading
 import logging
 from ultralytics import YOLO
 from collections import deque
+import queue
 
 from src.cameras import list_available_cameras, get_default_camera_config
 from src.video_utils import VideoWriterFactory
 from uploader import upload_file_async, delete_old_mp4_files
-from counter import count_bees_async
+from counter import count_bees_from_frames_async
 
 # enable GPU acceleration
 cv2.CAP_GSTREAMER
@@ -22,7 +23,6 @@ video_frame = None
 yolo_frame = None
 frame_lock = threading.Lock()
 bee_counts_history = deque(maxlen=3600)  # Store up to last 10h. 10*60*6 entries (1 hour if updated every 10 sec)
-frame_buffer = deque(maxlen=600)  # Buffer for ~20s at 30fps
 capture_thread_running = False
 
 weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weights', 'best.pt'))
@@ -270,24 +270,87 @@ def set_detection_line():
     detection_line_coefficient = data['coefficient']
     return jsonify(success=True)
 
-def frame_capture_thread(camera):
+def frame_capture_thread(camera, frame_queue):
     """A simple thread that continuously captures frames from the camera."""
-    global frame_buffer, capture_thread_running
+    global capture_thread_running
     print("🚀 Starting frame capture thread...")
     while capture_thread_running:
         ret, frame = camera.read()
         if ret:
-            frame_buffer.append(frame)
+            try:
+                frame_queue.put(frame, block=False)
+            except queue.Full:
+                # If the queue is full, we can skip a frame to avoid blocking
+                pass
         else:
             # If reading fails, wait a bit before trying again.
             time.sleep(0.01)
     print("🛑 Stopping frame capture thread...")
 
+def processing_thread(frame_queue, writer_fps, target_width, target_height):
+    global video_frame, yolo_frame
+    while capture_thread_running:
+        timestamp = int(datetime.datetime.now().timestamp())
+        output_file = f'./videos/{timestamp}.mp4'
+        detections_video_file = f'./videos/{timestamp}_detect.mp4'
+
+        out = VideoWriterFactory.create_writer(output_file, writer_fps, (target_width, target_height))
+        if not out:
+            break
+
+        video_chunk_length = int(os.getenv("VIDEO_CHUNK_LENGTH_SEC", 20))
+        num_frames_to_capture = int(writer_fps * video_chunk_length)
+
+        print(f"🎥 Recording {num_frames_to_capture} frames for a {video_chunk_length} second video at {writer_fps:.2f} FPS...")
+
+        start_time_utc = datetime.datetime.utcnow()
+        
+        frames_for_counting = []
+
+        for _ in range(num_frames_to_capture):
+            try:
+                frame = frame_queue.get(timeout=2)
+            except queue.Empty:
+                print("⚠️ Frame queue is empty, stopping chunk.")
+                break
+
+            resized_frame = cv2.resize(frame, (target_width, target_height))
+            
+            results = model.track(resized_frame, persist=True)
+            annotated_frame = results[0].plot()
+
+            with frame_lock:
+                video_frame = resized_frame.copy()
+                yolo_frame = annotated_frame.copy()
+
+            out.write(resized_frame)
+            frames_for_counting.append((resized_frame, results))
+
+        out.release()
+        print(f"💾 Video saved to {output_file}")
+
+        def upload_detect_file(file_path, beesIn, beesOut, detectedBees):
+            bee_counts_history.append({
+                "incoming": beesIn,
+                "outgoing": beesOut,
+                "detected": detectedBees,
+                "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
+            if beesIn > 0 or beesOut > 0:
+                print(f"☁️ Uploading debug file: {file_path}")
+                upload_file_async(output_file, file_path, start_time_utc)
+            else:
+                print("🤫 No bees detected, skipping upload")
+
+        detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, writer_fps, (target_width, target_height))
+        
+        count_bees_from_frames_async(frames_for_counting, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=writer_fps, frame_shape=(target_height, target_width))
+        delete_old_mp4_files()
+
 def measure_actual_fps(camera, duration_sec=5):
     """Measures the actual frames per second of the camera."""
     print(f"Calibrating camera FPS over {duration_sec} seconds...")
     
-    # It's good practice to read a few frames to 'warm up' the camera and flush buffer
     for _ in range(10):
         ret, _ = camera.read()
         if not ret:
@@ -313,7 +376,7 @@ def measure_actual_fps(camera, duration_sec=5):
     return fps
 
 def startObserverClient():
-    global video_frame, yolo_frame, frame_buffer, capture_thread_running
+    global capture_thread_running
     FPS = int(os.getenv("FPS", 30))
     WIDTH_PX = int(os.getenv("WIDTH_PX", 640))
     HEIGHT_PX = int(os.getenv("HEIGHT_PX", 480))
@@ -374,74 +437,22 @@ def startObserverClient():
         print(f"⚠️ FPS calibration failed. Falling back to requested FPS: {FPS}")
         writer_fps = FPS
 
-    # Start the capture thread
+    frame_queue = queue.Queue(maxsize=int(writer_fps * 5))
+
     capture_thread_running = True
-    cap_thread = threading.Thread(target=frame_capture_thread, args=(camera,))
+    cap_thread = threading.Thread(target=frame_capture_thread, args=(camera, frame_queue))
     cap_thread.daemon = True
     cap_thread.start()
 
+    proc_thread = threading.Thread(target=processing_thread, args=(frame_queue, writer_fps, target_width, target_height))
+    proc_thread.daemon = True
+    proc_thread.start()
+
     try:
-        while True:
-            timestamp = int(datetime.datetime.now().timestamp())
-            output_file = f'./videos/{timestamp}.mp4'
-            detections_video_file = f'./videos/{timestamp}_detect.mp4'
-            
-            out = VideoWriterFactory.create_writer(output_file, writer_fps, (target_width, target_height))
-            if not out:
-                break
-
-            # Clear buffer from previous run before starting
-            frame_buffer.clear()
-            
-            video_chunk_length = int(os.getenv("VIDEO_CHUNK_LENGTH_SEC", 20))
-            num_frames_to_capture = int(writer_fps * video_chunk_length)
-            
-            print(f"🎥 Recording {num_frames_to_capture} frames for a {video_chunk_length} second video at {writer_fps:.2f} FPS...")
-            
-            start_time_utc = datetime.datetime.utcnow()
-            
-            for frame_count in range(num_frames_to_capture):
-                # Wait until a frame is available in the buffer
-                while not frame_buffer:
-                    time.sleep(0.01)
-
-                frame = frame_buffer.popleft()
-                
-                resized_frame = cv2.resize(frame, (target_width, target_height))
-                
-                results = model.track(resized_frame, persist=True)
-                annotated_frame = results[0].plot()
-
-                with frame_lock:
-                    video_frame = resized_frame.copy()
-                    yolo_frame = annotated_frame.copy()
-
-                out.write(resized_frame)
-
-            out.release()
-            print(f"💾 Video saved to {output_file}")
-            
-            def upload_detect_file(file_path, beesIn, beesOut, detectedBees):
-                bee_counts_history.append({
-                    "incoming": beesIn,
-                    "outgoing": beesOut,
-                    "detected": detectedBees,
-                    "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                })
-                if beesIn > 0 or beesOut > 0:
-                    print(f"☁️ Uploading debug file: {file_path}")
-                    upload_file_async(output_file, file_path, start_time_utc)
-                else:
-                    print("🤫 No bees detected, skipping upload")
-
-            detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, writer_fps, (target_width, target_height))
-            
-            count_bees_async(output_file, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=writer_fps)
-            delete_old_mp4_files()
-
+        while cap_thread.is_alive() and proc_thread.is_alive():
+            time.sleep(1)
     except KeyboardInterrupt:
         print("🛑 Recording and uploading stopped by user")
-
     finally:
         print("Cleaning up resources...")
         capture_thread_running = False
