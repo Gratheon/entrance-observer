@@ -13,12 +13,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def upload_file_async(file_path, start_time_utc):
+def upload_file_async(file_path, detections_file_path, start_time_utc):
     # Define a function to upload the file asynchronously
-    upload_thread = threading.Thread(target=uploadAndRemove, args=(file_path, start_time_utc))
+    upload_thread = threading.Thread(target=uploadAndRemove, args=(file_path, detections_file_path, start_time_utc))
     upload_thread.start()
 
-def uploadAndRemove(output_file: str, start_time_utc: datetime):
+def uploadAndRemove(output_file: str, detections_file: str, start_time_utc: datetime):
     # Retrieve environment variables
     bearer_token = os.getenv("API_TOKEN")
     box_id = os.getenv("SECTION_ID")
@@ -30,31 +30,36 @@ def uploadAndRemove(output_file: str, start_time_utc: datetime):
 
     try:
         # Make multipart/form-data request
-        with open(output_file, 'rb') as file:
+        with open(output_file, 'rb') as file, open(detections_file, 'rb') as detectionsFile:
             response = requests.post(
-                'https://video.gratheon.com/graphql', 
+                'https://video.gratheon.com/graphql',
                 headers={
                     'Authorization': f'Bearer {bearer_token}'
-                }, 
+                },
                 data={
                     "operations": json.dumps({
                         'query': (
-                            'mutation UploadVideo($file: Upload!, $boxId: ID!, $startTime: DateTime!) {'
-                            '  uploadGateVideo(file: $file, boxId: $boxId, startTime: $startTime)'
+                            'mutation UploadVideo($file: Upload!, $detectionsFile: Upload!, $boxId: ID!, $startTime: DateTime!) {'
+                            '  uploadGateVideo(file: $file, detectionsFile: $detectionsFile, boxId: $boxId, startTime: $startTime)'
                             '}'
                         ),
                         'variables': {
                             'file': None,
+                            'detectionsFile': None,
                             'boxId': box_id,
                             'startTime': start_time_utc.isoformat()
                         }
                     }),
-                    "map": json.dumps({ "0": ["variables.file"] })
+                    "map": json.dumps({
+                        "0": ["variables.file"],
+                        "1": ["variables.detectionsFile"]
+                    })
                 },
-                files = {
-                    "0": file, # Adjust content type if needed
+                files={
+                    "0": file,
+                    "1": detectionsFile,
                 },
-                timeout=120, 
+                timeout=120,
                 allow_redirects=True
             )
 
@@ -62,7 +67,7 @@ def uploadAndRemove(output_file: str, start_time_utc: datetime):
             print("Video uploaded successfully")
         else:
             print("Error uploading video:", response.status_code)
-            
+
         print(response.text)
 
     except Exception as e:
@@ -71,6 +76,7 @@ def uploadAndRemove(output_file: str, start_time_utc: datetime):
     # remove file after uploading, you can leave it if you want a local cache
     # but you need enough storage to not run out of space
     # os.remove(output_file)
+    # os.remove(detections_file)
 
 
 def delete_old_mp4_files():

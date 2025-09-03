@@ -369,8 +369,7 @@ def startObserverClient():
                 })
                 if beesIn > 0 or beesOut > 0:
                     print(f"☁️ Uploading debug file: {file_path}")
-                    upload_file_async(file_path, start_time_utc)
-                    upload_file_async(output_file, start_time_utc)
+                    upload_file_async(output_file, file_path, start_time_utc)
                 else:
                     print("🤫 No bees detected, skipping upload")
 
