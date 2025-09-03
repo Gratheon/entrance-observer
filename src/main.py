@@ -328,7 +328,7 @@ def startObserverClient():
         while True:
             timestamp = int(datetime.datetime.now().timestamp())
             output_file = f'./videos/{timestamp}.mp4'
-            debug_output_file = f'./videos/{timestamp}_detect.mp4'
+            detections_video_file = f'./videos/{timestamp}_detect.mp4'
             
             out = VideoWriterFactory.create_writer(output_file, FPS, (target_width, target_height))
             if not out:
@@ -374,9 +374,9 @@ def startObserverClient():
                 else:
                     print("🤫 No bees detected, skipping upload")
 
-            debug_video_writer = VideoWriterFactory.create_writer(debug_output_file, FPS, (target_width, target_height))
+            detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, FPS, (target_width, target_height))
             
-            count_bees_async(output_file, output_video_path=debug_output_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=debug_video_writer)
+            count_bees_async(output_file, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer)
             delete_old_mp4_files()
 
     except KeyboardInterrupt:
