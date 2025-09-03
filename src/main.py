@@ -22,6 +22,8 @@ video_frame = None
 yolo_frame = None
 frame_lock = threading.Lock()
 bee_counts_history = deque(maxlen=3600)  # Store up to last 10h. 10*60*6 entries (1 hour if updated every 10 sec)
+frame_buffer = deque(maxlen=600)  # Buffer for ~20s at 30fps
+capture_thread_running = False
 
 weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weights', 'best.pt'))
 logging.getLogger('ultralytics').setLevel(logging.WARNING)
@@ -268,6 +270,19 @@ def set_detection_line():
     detection_line_coefficient = data['coefficient']
     return jsonify(success=True)
 
+def frame_capture_thread(camera):
+    """A simple thread that continuously captures frames from the camera."""
+    global frame_buffer, capture_thread_running
+    print("🚀 Starting frame capture thread...")
+    while capture_thread_running:
+        ret, frame = camera.read()
+        if ret:
+            frame_buffer.append(frame)
+        else:
+            # If reading fails, wait a bit before trying again.
+            time.sleep(0.01)
+    print("🛑 Stopping frame capture thread...")
+
 def measure_actual_fps(camera, duration_sec=5):
     """Measures the actual frames per second of the camera."""
     print(f"Calibrating camera FPS over {duration_sec} seconds...")
@@ -298,7 +313,7 @@ def measure_actual_fps(camera, duration_sec=5):
     return fps
 
 def startObserverClient():
-    global video_frame, yolo_frame
+    global video_frame, yolo_frame, frame_buffer, capture_thread_running
     FPS = int(os.getenv("FPS", 30))
     WIDTH_PX = int(os.getenv("WIDTH_PX", 640))
     HEIGHT_PX = int(os.getenv("HEIGHT_PX", 480))
@@ -317,6 +332,7 @@ def startObserverClient():
 
     print(f"🔌 Initializing camera with device: {device}, backend: {backend}")
     camera = cv2.VideoCapture(device, backend)
+    camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
     if not camera.isOpened():
         print(f"❌ Error: Could not open camera with device: {device}")
@@ -358,6 +374,12 @@ def startObserverClient():
         print(f"⚠️ FPS calibration failed. Falling back to requested FPS: {FPS}")
         writer_fps = FPS
 
+    # Start the capture thread
+    capture_thread_running = True
+    cap_thread = threading.Thread(target=frame_capture_thread, args=(camera,))
+    cap_thread.daemon = True
+    cap_thread.start()
+
     try:
         while True:
             timestamp = int(datetime.datetime.now().timestamp())
@@ -368,17 +390,22 @@ def startObserverClient():
             if not out:
                 break
 
+            # Clear buffer from previous run before starting
+            frame_buffer.clear()
+            
             video_chunk_length = int(os.getenv("VIDEO_CHUNK_LENGTH_SEC", 20))
             num_frames_to_capture = int(writer_fps * video_chunk_length)
             
-            print(f"🎥 Recording {num_frames_to_capture} frames for {video_chunk_length} seconds at {writer_fps:.2f} FPS...")
-
+            print(f"🎥 Recording {num_frames_to_capture} frames for a {video_chunk_length} second video at {writer_fps:.2f} FPS...")
+            
             start_time_utc = datetime.datetime.utcnow()
+            
             for frame_count in range(num_frames_to_capture):
-                ret, frame = camera.read()
-                if not ret:
-                    print(f'❌ Error: Failed to capture frame at frame {frame_count + 1}/{num_frames_to_capture}')
-                    break
+                # Wait until a frame is available in the buffer
+                while not frame_buffer:
+                    time.sleep(0.01)
+
+                frame = frame_buffer.popleft()
                 
                 resized_frame = cv2.resize(frame, (target_width, target_height))
                 
@@ -416,6 +443,10 @@ def startObserverClient():
         print("🛑 Recording and uploading stopped by user")
 
     finally:
+        print("Cleaning up resources...")
+        capture_thread_running = False
+        if 'cap_thread' in locals() and cap_thread.is_alive():
+            cap_thread.join()
         camera.release()
 
 if __name__ == '__main__':
