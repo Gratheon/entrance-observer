@@ -268,6 +268,35 @@ def set_detection_line():
     detection_line_coefficient = data['coefficient']
     return jsonify(success=True)
 
+def measure_actual_fps(camera, duration_sec=5):
+    """Measures the actual frames per second of the camera."""
+    print(f"Calibrating camera FPS over {duration_sec} seconds...")
+    
+    # It's good practice to read a few frames to 'warm up' the camera and flush buffer
+    for _ in range(10):
+        ret, _ = camera.read()
+        if not ret:
+            print("⚠️ Could not read from camera during warmup.")
+            return 0
+
+    frame_count = 0
+    start_time = time.time()
+    while (time.time() - start_time) < duration_sec:
+        ret, _ = camera.read()
+        if not ret:
+            break
+        frame_count += 1
+    
+    end_time = time.time()
+    actual_duration = end_time - start_time
+    if actual_duration == 0:
+        print("⚠️ Calibration failed: duration was zero.")
+        return 0
+    
+    fps = frame_count / actual_duration
+    print(f"✅ Calibration successful: {fps:.2f} FPS")
+    return fps
+
 def startObserverClient():
     global video_frame, yolo_frame
     FPS = int(os.getenv("FPS", 30))
@@ -324,13 +353,18 @@ def startObserverClient():
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, target_height)
     camera.set(cv2.CAP_PROP_FPS, FPS)
 
+    writer_fps = measure_actual_fps(camera)
+    if writer_fps < 1:
+        print(f"⚠️ FPS calibration failed. Falling back to requested FPS: {FPS}")
+        writer_fps = FPS
+
     try:
         while True:
             timestamp = int(datetime.datetime.now().timestamp())
             output_file = f'./videos/{timestamp}.mp4'
             detections_video_file = f'./videos/{timestamp}_detect.mp4'
             
-            out = VideoWriterFactory.create_writer(output_file, FPS, (target_width, target_height))
+            out = VideoWriterFactory.create_writer(output_file, writer_fps, (target_width, target_height))
             if not out:
                 break
 
@@ -373,7 +407,7 @@ def startObserverClient():
                 else:
                     print("🤫 No bees detected, skipping upload")
 
-            detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, FPS, (target_width, target_height))
+            detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, writer_fps, (target_width, target_height))
             
             count_bees_async(output_file, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer)
             delete_old_mp4_files()
