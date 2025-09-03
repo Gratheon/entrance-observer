@@ -368,12 +368,16 @@ def startObserverClient():
             if not out:
                 break
 
-            start_time = time.time()
+            video_chunk_length = int(os.getenv("VIDEO_CHUNK_LENGTH_SEC", 20))
+            num_frames_to_capture = int(writer_fps * video_chunk_length)
+            
+            print(f"🎥 Recording {num_frames_to_capture} frames for {video_chunk_length} seconds at {writer_fps:.2f} FPS...")
+
             start_time_utc = datetime.datetime.utcnow()
-            while True:
+            for frame_count in range(num_frames_to_capture):
                 ret, frame = camera.read()
                 if not ret:
-                    print('❌ Error: Failed to capture frame')
+                    print(f'❌ Error: Failed to capture frame at frame {frame_count + 1}/{num_frames_to_capture}')
                     break
                 
                 resized_frame = cv2.resize(frame, (target_width, target_height))
@@ -387,11 +391,7 @@ def startObserverClient():
 
                 out.write(resized_frame)
 
-                video_chunk_length = int(os.getenv("VIDEO_CHUNK_LENGTH_SEC", 60))
-                if time.time() - start_time >= video_chunk_length:
-                    out.release()
-                    break
-
+            out.release()
             print(f"💾 Video saved to {output_file}")
             
             def upload_detect_file(file_path, beesIn, beesOut, detectedBees):
