@@ -80,3 +80,66 @@ def get_default_camera_config():
         "device": device,
         "backend": backend
     }
+
+def initialize_camera(device, backend, width, height, fps):
+    """
+    Initializes the camera using the specified backend with optimized settings.
+    """
+    print(f"🔌 Initializing camera with device={device} and backend={backend}...")
+    camera = cv2.VideoCapture(device, backend)
+    
+    if not camera.isOpened():
+        print(f"⚠️ Failed to open camera.")
+        return camera
+    
+    # Optimize camera settings for better performance
+    camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Minimize buffer to reduce latency
+    
+    # Force MJPEG format - critical for performance (YUYV only supports 2 FPS)
+    camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+    
+    # Verify MJPEG format was set successfully
+    actual_fourcc_before = int(camera.get(cv2.CAP_PROP_FOURCC))
+    fourcc_str_before = ''.join([chr((actual_fourcc_before >> 8*i) & 0xFF) for i in range(4)])
+    print(f"📐 Format before resolution: {fourcc_str_before}")
+    
+    # Set resolution and FPS
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    camera.set(cv2.CAP_PROP_FPS, fps)
+    
+    # Additional V4L2 optimizations for Linux
+    if backend == cv2.CAP_V4L2:
+        # Critical: Set MJPEG format again after resolution to ensure it sticks
+        camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+        
+        # Disable auto-exposure and auto-white-balance for consistent performance
+        camera.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # Manual exposure
+        camera.set(cv2.CAP_PROP_EXPOSURE, -6)  # Fast exposure setting
+        
+        # Set pixel format for better performance
+        camera.set(cv2.CAP_PROP_CONVERT_RGB, 1)
+        
+        # Optimize for speed over quality
+        camera.set(cv2.CAP_PROP_BRIGHTNESS, 128)
+        camera.set(cv2.CAP_PROP_CONTRAST, 128)
+        camera.set(cv2.CAP_PROP_SATURATION, 128)
+        
+        # Additional performance optimizations
+        try:
+            # Try to reduce JPEG quality for better performance
+            camera.set(cv2.CAP_PROP_JPEG_QUALITY, 50)  # Lower quality = faster processing
+        except:
+            pass
+    
+    # Verify actual settings
+    actual_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
+    actual_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    actual_fps = camera.get(cv2.CAP_PROP_FPS)
+    actual_fourcc = int(camera.get(cv2.CAP_PROP_FOURCC))
+    
+    print(f"📐 Requested: {width}x{height}@{fps}fps")
+    print(f"📐 Actual: {actual_width}x{actual_height}@{actual_fps}fps")
+    print(f"📐 Codec: {chr(actual_fourcc & 0xFF)}{chr((actual_fourcc >> 8) & 0xFF)}{chr((actual_fourcc >> 16) & 0xFF)}{chr((actual_fourcc >> 24) & 0xFF)}")
+    
+    return camera

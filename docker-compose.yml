@@ -2,17 +2,30 @@ services:
   entrance-observer:
     build:
       context: .
-      network: host   # <-- Add this under build
+      network: host
+    privileged: true
     network_mode: host
     runtime: nvidia # Enable NVIDIA GPU support
+    ipc: host
     ports:
       - "3030:3030"
+    group_add:
+      - 'video'
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
     volumes:
       - ./videos:/app/videos # Persist the videos
+      - /tmp:/tmp
+      - /usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra
+      - /usr/lib/aarch64-linux-gnu/tegra-egl:/usr/lib/aarch64-linux-gnu/tegra-egl
     devices:
       - /dev/video0:/dev/video0 # Mount the camera device
+      - /dev/nvhost-ctrl:/dev/nvhost-ctrl
+      - /dev/nvhost-ctrl-gpu:/dev/nvhost-ctrl-gpu
+      - /dev/nvhost-prof-gpu:/dev/nvhost-prof-gpu
+      - /dev/nvmap:/dev/nvmap
+      - /dev/nvhost-gpu:/dev/nvhost-gpu
+      - /dev/nvhost-as-gpu:/dev/nvhost-as-gpu
     env_file:
       - .env # Load environment variables from .env file

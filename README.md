@@ -138,22 +138,8 @@ The entrance-observer now supports multiple platforms:
 
 ## Architecture
 
-- We upload a 10 sec video chunks to gratheon web-app for playback feature
-- We separate webcam from inference mostly because inference is dockerized while webcam uses local window for preview.
+The video processing pipeline is designed to be robust and efficient, handling both the capture of raw video frames and their subsequent encoding into a compressed format suitable for storage and analysis.
 
-```mermaid
-flowchart LR
-	subgraph Edge
-	entrance-observer --"read with native python to file"--> webcam["📷 webcam"]
-	entrance-observer -."write video file locally" .-> filesystem["🖴 filesystem"]
-	entrance-observer -."run inference from file" .-> counter --"read"--> filesystem
-	counter -."run inference".-> yolov8["👁️‍🗨 YOLOv8"] --"write _detect videos"--> filesystem
-    uploader --"read file"--> filesystem
-    
-	end
+### Video Processing Workflow
 
-	subgraph Cloud
-        entrance-observer -."upload".-> uploader --"upload video chunk"--> gate-video-stream
-	    entrance-observer --"send edge-inference results"--> telemetry-api[<a href="https://github.com/Gratheon/telemetry-api">telemetry-api</a>]
-	end
-```
+The application uses OpenCV for both video capture and encoding. The `cv2.VideoCapture` function is used to interface with the camera hardware, and the `cv2.VideoWriter` function is used to encode the video. This approach was chosen for its simplicity and reliability across different platforms.

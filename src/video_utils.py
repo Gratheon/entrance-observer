@@ -1,4 +1,19 @@
 import cv2
+import platform
+
+class OpenCVWriterWrapper:
+    def __init__(self, writer):
+        self.writer = writer
+
+    def write(self, frame, capture_time_monotonic=None):
+        # The timestamp is ignored, but the method signature is compatible
+        self.writer.write(frame)
+
+    def release(self):
+        self.writer.release()
+
+    def isOpened(self):
+        return self.writer.isOpened()
 
 class VideoWriterFactory:
     """
@@ -20,7 +35,7 @@ class VideoWriterFactory:
         writer = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
         
         if writer.isOpened():
-            return writer
+            return OpenCVWriterWrapper(writer)
             
         # If the preferred codec failed and it was the default 'avc1', try the fallback
         if cls._preferred_codec == 'avc1':
@@ -32,7 +47,7 @@ class VideoWriterFactory:
             if writer.isOpened():
                 print(f"✅ Fallback codec '{fallback_codec}' succeeded. Setting as preferred.")
                 cls._preferred_codec = fallback_codec
-                return writer
+                return OpenCVWriterWrapper(writer)
 
         # If we've reached here, all attempts have failed
         print(f"❌ Failed to open VideoWriter for {output_path} with any available codec.")

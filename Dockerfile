@@ -61,11 +61,6 @@ RUN python3 -m pip install --no-cache-dir -v Flask==3.1
 RUN python3 -m pip install --no-cache-dir -v opencv-python-headless
 RUN python3 -m pip install --no-cache-dir -v waitress
 
-# Install the specific PyTorch wheel for Jetson with CUDA support
-# This is crucial for GPU acceleration of the YOLO model
-# RUN wget https://pypi.jetson-ai-lab.io/jp6/cu126/+f/de1/5388b8f70e4e1/torchaudio-2.8.0-cp310-cp310-linux_aarch64.whl#sha256=de15388b8f70e4e17a05b23a4ae1f55a288c91449371bb8aeeb69184d40be17f && \
-#     pip3 install torchaudio-2.8.0-cp310-cp310-linux_aarch64.whl && \
-#     rm torchaudio-2.8.0-cp310-cp310-linux_aarch64.whl
-
+ 
 # Set the default command to run the application
 CMD ["python3", "src/main.py"]
