@@ -409,7 +409,7 @@ def startObserverClient():
 
             detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, writer_fps, (target_width, target_height))
             
-            count_bees_async(output_file, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer)
+            count_bees_async(output_file, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=writer_fps)
             delete_old_mp4_files()
 
     except KeyboardInterrupt:
