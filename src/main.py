@@ -29,6 +29,11 @@ weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weig
 logging.getLogger('ultralytics').setLevel(logging.WARNING)
 model = YOLO(weights_path)
 
+def is_day_time():
+    """Checks if the current time is between 6 AM and 10 PM."""
+    current_hour = datetime.datetime.now().hour
+    return 6 <= current_hour < 22
+
 def generate_frames(get_frame):
     while True:
         with frame_lock:
@@ -326,6 +331,16 @@ def frame_capture_thread(camera, video_queue, ai_queue):
 
 def video_writer_thread(video_queue, writer_fps, target_width, target_height):
     while capture_thread_running:
+        if not is_day_time():
+            print("🌙 Night time, skipping video recording. Waiting for day time...")
+            while not video_queue.empty():
+                try:
+                    video_queue.get_nowait()
+                except queue.Empty:
+                    break
+            time.sleep(60)
+            continue
+
         timestamp = int(datetime.datetime.now().timestamp())
         output_file = f'./videos/{timestamp}.mp4'
 
@@ -366,6 +381,27 @@ def video_writer_thread(video_queue, writer_fps, target_width, target_height):
 def processing_thread(ai_queue, writer_fps, target_width, target_height):
     global video_frame, yolo_frame
     while capture_thread_running:
+        if not is_day_time():
+            print("🌙 Night time, skipping AI processing. Waiting for day time...")
+            try:
+                frame, _ = ai_queue.get(timeout=1)
+                overlay_text = "Processing paused during night time"
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                font_scale = 1
+                font_thickness = 2
+                text_size = cv2.getTextSize(overlay_text, font, font_scale, font_thickness)[0]
+                text_x = (frame.shape[1] - text_size[0]) // 2
+                text_y = (frame.shape[0] + text_size[1]) // 2
+                cv2.putText(frame, overlay_text, (text_x, text_y), font, font_scale, (0, 0, 255), font_thickness)
+                
+                with frame_lock:
+                    video_frame = frame.copy()
+                    yolo_frame = frame.copy()
+            except queue.Empty:
+                pass
+            time.sleep(60)
+            continue
+
         timestamp = int(datetime.datetime.now().timestamp())
         detections_video_file = f'./videos/{timestamp}_detect.mp4'
 

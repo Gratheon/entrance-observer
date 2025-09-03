@@ -20,6 +20,7 @@ https://github.com/user-attachments/assets/a3243245-34a8-4626-a990-f7e34b7b8ff6
 	- detected bees
 	- incoming/outgoing bees
 	- max log is the past 10h
+	- sleep at night time (22:00-06:00)
 
 ### Notes
 - I Tried dual CSI cameras too, it could work too, but quality of optics was not sufficient (too much fish-eye)
