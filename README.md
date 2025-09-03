@@ -138,22 +138,39 @@ The entrance-observer now supports multiple platforms:
 
 ## Architecture
 
-- We upload a 10 sec video chunks to gratheon web-app for playback feature
-- We separate webcam from inference mostly because inference is dockerized while webcam uses local window for preview.
+The video processing pipeline is designed to be robust and efficient, handling both the capture of raw video frames and their subsequent encoding into a compressed format suitable for storage and analysis. The process is divided into two main stages: Frame Capture and Video Encoding.
+
+### Video Processing Workflow
+
+The application follows a two-stage process to handle video:
+
+1.  **Frame Capture (via OpenCV):** The application uses the `cv2.VideoCapture` function with the V4L2 backend to directly interface with the camera hardware. This method was chosen for its stability and reliability, especially in environments where GStreamer's hardware-accelerated sources (`nvarguscamerasrc`) are unavailable or misconfigured. This stage is responsible for grabbing raw video frames from the camera and passing them into the application's memory.
+
+2.  **Video Encoding (via GStreamer):** Once the raw frames are in memory, they are passed to a GStreamer pipeline for encoding. The `GStreamerWriter` class constructs a pipeline that takes the raw frames from an `appsrc` element, converts them to the I420 color format, and then encodes them into an H.264 video stream using the `openh264enc` software encoder. This stream is then packaged into an MP4 container (`mp4mux`) and saved to the filesystem. This approach is more efficient than OpenCV's default `VideoWriter` and provides better control over the encoding process.
+
+This hybrid approach ensures reliable camera capture while still leveraging GStreamer's power for efficient, software-based video encoding.
 
 ```mermaid
-flowchart LR
-	subgraph Edge
-	entrance-observer --"read with native python to file"--> webcam["📷 webcam"]
-	entrance-observer -."write video file locally" .-> filesystem["🖴 filesystem"]
-	entrance-observer -."run inference from file" .-> counter --"read"--> filesystem
-	counter -."run inference".-> yolov8["👁️‍🗨 YOLOv8"] --"write _detect videos"--> filesystem
-    uploader --"read file"--> filesystem
-    
-	end
+flowchart TD
+    subgraph "Stage 1: Frame Capture"
+        A[Camera Hardware] -->|Raw Video Signal| B(OpenCV VideoCapture);
+        B -->|Raw Frames in memory)| C{Application Core};
+    end
 
-	subgraph Cloud
-        entrance-observer -."upload".-> uploader --"upload video chunk"--> gate-video-stream
-	    entrance-observer --"send edge-inference results"--> telemetry-api[<a href="https://github.com/Gratheon/telemetry-api">telemetry-api</a>]
-	end
+    subgraph "Stage 2: Video Encoding"
+        C -->|Push Frames| D[GStreamer appsrc];
+        D --> E[videoconvert];
+        E --> F[openh264enc];
+        F --> G[h264parse];
+        G --> H[mp4mux];
+        H --> I[filesink];
+        I -->|MP4 Video File| J[🖴 Filesystem];
+    end
+
+    subgraph "Downstream Processing"
+        J --> K{YOLOv8 Inference};
+        K --> L[Bee Counting];
+        L --> M{Telemetry Upload};
+        J --> N{Video Chunk Upload};
+    end
 ```

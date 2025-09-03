@@ -74,10 +74,10 @@ def countBees(frames, output_video_path=None, detection_line_coefficient=None, v
                 print("❌ Fallback codec 'mp4v' also failed. No debug video will be saved.")
                 video_writer = None
 
-    for frame, results in frames:
+    for frame, results, capture_time in frames:
         if video_writer:
             annotated_frame = results[0].plot()
-            video_writer.write(annotated_frame)
+            video_writer.write(annotated_frame, capture_time)
 
         boxes = results[0].boxes
         if boxes.is_track:

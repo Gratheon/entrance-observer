@@ -80,3 +80,30 @@ def get_default_camera_config():
         "device": device,
         "backend": backend
     }
+
+def initialize_camera(device, backend, width, height, fps):
+    """
+    Initializes the camera with a hardware-accelerated GStreamer pipeline for USB cameras on Jetson.
+    """
+    # GStreamer pipeline for USB cameras, using autovideoconvert for maximum compatibility
+    gstreamer_pipeline = (
+        f"v4l2src device={device} ! "
+        f"video/x-raw, width={width}, height={height}, framerate={fps}/1 ! "
+        f"autovideoconvert ! "
+        f"video/x-raw, format=BGR ! appsink"
+    )
+    
+    print(f"🔌 Attempting to initialize camera with GStreamer pipeline for USB camera...")
+    camera = cv2.VideoCapture(gstreamer_pipeline, cv2.CAP_GSTREAMER)
+    camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
+    if not camera.isOpened():
+        print(f"⚠️ GStreamer pipeline failed. Falling back to default V4L2 backend.")
+        camera = cv2.VideoCapture(device, backend)
+        camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        # Set properties again for the fallback
+        camera.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        camera.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        camera.set(cv2.CAP_PROP_FPS, fps)
+
+    return camera

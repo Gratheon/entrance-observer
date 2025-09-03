@@ -10,15 +10,14 @@ class GStreamerWriter:
         self.output_file = output_file
         width, height = resolution
         self.fps = fps
-        self.frame_count = 0
-        self.duration = 1 / self.fps * Gst.SECOND  # duration of a frame in nanoseconds
+        self.start_time = None
         
         pipeline_desc = (
             f"appsrc name=source is-live=true block=true format=GST_FORMAT_TIME "
             f"caps=video/x-raw,format=BGR,width={width},height={height},framerate={int(fps)}/1 ! "
             f"videoconvert ! "
             f"video/x-raw,format=I420 ! "
-            f"x264enc speed-preset=ultrafast tune=zerolatency ! "
+            f"openh264enc ! "
             f"h264parse ! "
             f"mp4mux ! "
             f"filesink location={self.output_file} "
@@ -31,14 +30,16 @@ class GStreamerWriter:
         self.appsrc = self.pipeline.get_by_name('source')
         self.pipeline.set_state(Gst.State.PLAYING)
 
-    def write(self, frame):
+    def write(self, frame, capture_time_monotonic):
+        if self.start_time is None:
+            self.start_time = capture_time_monotonic
+
         data = frame.tobytes()
         buf = Gst.Buffer.new_allocate(None, len(data), None)
         buf.fill(0, data)
         
-        buf.pts = self.frame_count * self.duration
-        buf.duration = self.duration
-        self.frame_count += 1
+        # Timestamps are in nanoseconds
+        buf.pts = int((capture_time_monotonic - self.start_time) * 1e9)
         
         self.appsrc.emit('push-buffer', buf)
 
@@ -50,6 +51,20 @@ class GStreamerWriter:
 
     def isOpened(self):
         return self.pipeline is not None
+
+class OpenCVWriterWrapper:
+    def __init__(self, writer):
+        self.writer = writer
+
+    def write(self, frame, capture_time_monotonic=None):
+        # The timestamp is ignored, but the method signature is compatible
+        self.writer.write(frame)
+
+    def release(self):
+        self.writer.release()
+
+    def isOpened(self):
+        return self.writer.isOpened()
 
 class VideoWriterFactory:
     """
@@ -80,7 +95,7 @@ class VideoWriterFactory:
         writer = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
         
         if writer.isOpened():
-            return writer
+            return OpenCVWriterWrapper(writer)
             
         # If the preferred codec failed and it was the default 'avc1', try the fallback
         if cls._preferred_codec == 'avc1':
@@ -92,7 +107,7 @@ class VideoWriterFactory:
             if writer.isOpened():
                 print(f"✅ Fallback codec '{fallback_codec}' succeeded. Setting as preferred.")
                 cls._preferred_codec = fallback_codec
-                return writer
+                return OpenCVWriterWrapper(writer)
 
         # If we've reached here, all attempts have failed
         print(f"❌ Failed to open VideoWriter for {output_path} with any available codec.")

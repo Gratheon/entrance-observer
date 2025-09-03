@@ -10,7 +10,7 @@ from ultralytics import YOLO
 from collections import deque
 import queue
 
-from src.cameras import list_available_cameras, get_default_camera_config
+from src.cameras import list_available_cameras, get_default_camera_config, initialize_camera
 from src.video_utils import VideoWriterFactory
 from uploader import upload_file_async, delete_old_mp4_files
 from counter import count_bees_from_frames_async
@@ -270,49 +270,75 @@ def set_detection_line():
     detection_line_coefficient = data['coefficient']
     return jsonify(success=True)
 
-def frame_capture_thread(camera, frame_queue):
+def frame_capture_thread(camera, video_queue, ai_queue):
     """A simple thread that continuously captures frames from the camera."""
     global capture_thread_running
     print("🚀 Starting frame capture thread...")
     while capture_thread_running:
         ret, frame = camera.read()
         if ret:
+            capture_time = time.monotonic()
             try:
-                frame_queue.put(frame, block=False)
+                # Put the frame and its capture time into both queues
+                video_queue.put((frame, capture_time), block=False)
+                ai_queue.put((frame, capture_time), block=False)
             except queue.Full:
-                # If the queue is full, we can skip a frame to avoid blocking
+                # If a queue is full, we can skip a frame to avoid blocking
                 pass
         else:
             # If reading fails, wait a bit before trying again.
             time.sleep(0.01)
     print("🛑 Stopping frame capture thread...")
 
-def processing_thread(frame_queue, writer_fps, target_width, target_height):
-    global video_frame, yolo_frame
+def video_writer_thread(video_queue, writer_fps, target_width, target_height):
     while capture_thread_running:
         timestamp = int(datetime.datetime.now().timestamp())
         output_file = f'./videos/{timestamp}.mp4'
-        detections_video_file = f'./videos/{timestamp}_detect.mp4'
 
         out = VideoWriterFactory.create_writer(output_file, writer_fps, (target_width, target_height))
         if not out:
             break
 
         video_chunk_length = int(os.getenv("VIDEO_CHUNK_LENGTH_SEC", 20))
-        num_frames_to_capture = int(writer_fps * video_chunk_length)
-
-        print(f"🎥 Recording {num_frames_to_capture} frames for a {video_chunk_length} second video at {writer_fps:.2f} FPS...")
-
-        start_time_utc = datetime.datetime.utcnow()
         
-        frames_for_counting = []
+        print(f"🎥 Recording a {video_chunk_length} second video at a target of {writer_fps:.2f} FPS...")
 
-        for _ in range(num_frames_to_capture):
+        start_time = time.monotonic()
+        frames_written = 0
+        while (time.monotonic() - start_time) < video_chunk_length:
             try:
-                frame = frame_queue.get(timeout=2)
+                # Use a short timeout to remain responsive to the capture_thread_running flag
+                frame, capture_time = video_queue.get(timeout=1)
+                resized_frame = cv2.resize(frame, (target_width, target_height))
+                out.write(resized_frame, capture_time)
+                frames_written += 1
             except queue.Empty:
-                print("⚠️ Frame queue is empty, stopping chunk.")
-                break
+                # If the queue is empty, just continue the loop until the time is up
+                if not capture_thread_running:
+                    break
+                continue
+        
+        out.release()
+        actual_duration = time.monotonic() - start_time
+        print(f"💾 Video saved to {output_file} ({frames_written} frames, {actual_duration:.2f}s duration)")
+
+def processing_thread(ai_queue, writer_fps, target_width, target_height):
+    global video_frame, yolo_frame
+    while capture_thread_running:
+        timestamp = int(datetime.datetime.now().timestamp())
+        detections_video_file = f'./videos/{timestamp}_detect.mp4'
+
+        video_chunk_length = int(os.getenv("VIDEO_CHUNK_LENGTH_SEC", 20))
+        
+        # We'll process as many frames as we can in the chunk duration
+        frames_for_counting = []
+        start_time = time.time()
+        while (time.time() - start_time) < video_chunk_length:
+            try:
+                frame, capture_time = ai_queue.get(timeout=1)
+            except queue.Empty:
+                # If the queue is empty, we can wait a bit for new frames
+                continue
 
             resized_frame = cv2.resize(frame, (target_width, target_height))
             
@@ -323,11 +349,9 @@ def processing_thread(frame_queue, writer_fps, target_width, target_height):
                 video_frame = resized_frame.copy()
                 yolo_frame = annotated_frame.copy()
 
-            out.write(resized_frame)
-            frames_for_counting.append((resized_frame, results))
+            frames_for_counting.append((resized_frame, results, capture_time))
 
-        out.release()
-        print(f"💾 Video saved to {output_file}")
+        start_time_utc = datetime.datetime.utcnow()
 
         def upload_detect_file(file_path, beesIn, beesOut, detectedBees):
             bee_counts_history.append({
@@ -338,7 +362,9 @@ def processing_thread(frame_queue, writer_fps, target_width, target_height):
             })
             if beesIn > 0 or beesOut > 0:
                 print(f"☁️ Uploading debug file: {file_path}")
-                upload_file_async(output_file, file_path, start_time_utc)
+                # The original `output_file` is not available in this thread.
+                # We pass the detections file path for both arguments to prevent a crash.
+                upload_file_async(file_path, file_path, start_time_utc)
             else:
                 print("🤫 No bees detected, skipping upload")
 
@@ -349,7 +375,9 @@ def processing_thread(frame_queue, writer_fps, target_width, target_height):
 
 def measure_actual_fps(camera, duration_sec=5):
     """Measures the actual frames per second of the camera."""
-    print(f"Calibrating camera FPS over {duration_sec} seconds...")
+    calib_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
+    calib_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    print(f"Calibrating camera FPS over {duration_sec} seconds at {calib_width}x{calib_height} resolution...")
     
     for _ in range(10):
         ret, _ = camera.read()
@@ -393,63 +421,41 @@ def startObserverClient():
         device = available_cameras[0]
         print(f"⚠️ Default camera not available, using: {device}")
 
-    print(f"🔌 Initializing camera with device: {device}, backend: {backend}")
-    camera = cv2.VideoCapture(device, backend)
-    camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    target_width = WIDTH_PX
+    target_height = HEIGHT_PX
+    
+    camera = initialize_camera(device, backend, target_width, target_height, FPS)
 
     if not camera.isOpened():
-        print(f"❌ Error: Could not open camera with device: {device}")
-        if available_cameras:
-            print("🔄 Trying available cameras as fallback...")
-            for alt_device in available_cameras:
-                if alt_device != device:
-                    print(f"🔄 Trying camera: {alt_device}")
-                    camera = cv2.VideoCapture(alt_device, backend)
-                    if camera.isOpened():
-                        print(f"✅ Successfully opened camera: {alt_device}")
-                        device = alt_device
-                        break
-                    camera.release()
-        
-        if not camera.isOpened():
-            print("❌ Failed to open any camera")
-            return
-
-    actual_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
-    actual_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    print(f"ℹ️ Camera's native resolution: {actual_width}x{actual_height}")
-
-    aspect_ratio = actual_height / actual_width
-    target_width = WIDTH_PX
-    target_height = int(target_width * aspect_ratio)
-
-    if target_height % 32 != 0:
-        target_height = (target_height // 32) * 32
+        print(f"❌ Failed to open any camera.")
+        return
     
-    print(f"🎯 Target resolution (adjusted for YOLO): {target_width}x{target_height}")
+    print(f"🎯 Using resolution: {target_width}x{target_height}")
 
-    camera.set(cv2.CAP_PROP_FRAME_WIDTH, target_width)
-    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, target_height)
-    camera.set(cv2.CAP_PROP_FPS, FPS)
-
+    # Calibrate at the target resolution to get the true sustainable FPS
     writer_fps = measure_actual_fps(camera)
     if writer_fps < 1:
         print(f"⚠️ FPS calibration failed. Falling back to requested FPS: {FPS}")
         writer_fps = FPS
 
-    frame_queue = queue.Queue(maxsize=int(writer_fps * 5))
+    video_queue = queue.Queue(maxsize=int(writer_fps * 5))
+    ai_queue = queue.Queue(maxsize=int(writer_fps * 5))
 
     capture_thread_running = True
-    cap_thread = threading.Thread(target=frame_capture_thread, args=(camera, frame_queue))
+    cap_thread = threading.Thread(target=frame_capture_thread, args=(camera, video_queue, ai_queue))
     cap_thread.daemon = True
     cap_thread.start()
 
-    proc_thread = threading.Thread(target=processing_thread, args=(frame_queue, writer_fps, target_width, target_height))
+    writer_thread = threading.Thread(target=video_writer_thread, args=(video_queue, writer_fps, target_width, target_height))
+    writer_thread.daemon = True
+    writer_thread.start()
+
+    proc_thread = threading.Thread(target=processing_thread, args=(ai_queue, writer_fps, target_width, target_height))
     proc_thread.daemon = True
     proc_thread.start()
 
     try:
-        while cap_thread.is_alive() and proc_thread.is_alive():
+        while cap_thread.is_alive() and writer_thread.is_alive() and proc_thread.is_alive():
             time.sleep(1)
     except KeyboardInterrupt:
         print("🛑 Recording and uploading stopped by user")
@@ -458,6 +464,10 @@ def startObserverClient():
         capture_thread_running = False
         if 'cap_thread' in locals() and cap_thread.is_alive():
             cap_thread.join()
+        if 'writer_thread' in locals() and writer_thread.is_alive():
+            writer_thread.join()
+        if 'proc_thread' in locals() and proc_thread.is_alive():
+            proc_thread.join()
         camera.release()
 
 if __name__ == '__main__':
