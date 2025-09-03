@@ -10,6 +10,7 @@ from ultralytics import YOLO
 from collections import deque
 
 from src.cameras import list_available_cameras, get_default_camera_config
+from src.video_utils import VideoWriterFactory
 from uploader import upload_file_async, delete_old_mp4_files
 from counter import count_bees_async
 
@@ -329,14 +330,9 @@ def startObserverClient():
             output_file = f'./videos/{timestamp}.mp4'
             debug_output_file = f'./videos/{timestamp}_detect.mp4'
             
-            out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'avc1'), FPS, (target_width, target_height))
-            
-            if not out.isOpened():
-                print("⚠️ Failed to open VideoWriter with 'avc1' codec, trying 'mp4v'...")
-                out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'mp4v'), FPS, (target_width, target_height))
-                if not out.isOpened():
-                    print("❌ Fallback codec 'mp4v' also failed. Exiting.")
-                    break
+            out = VideoWriterFactory.create_writer(output_file, FPS, (target_width, target_height))
+            if not out:
+                break
 
             start_time = time.time()
             start_time_utc = datetime.datetime.utcnow()
@@ -378,16 +374,8 @@ def startObserverClient():
                 else:
                     print("🤫 No bees detected, skipping upload")
 
-            fourcc = cv2.VideoWriter_fourcc(*'avc1')
-            debug_video_writer = cv2.VideoWriter(debug_output_file, fourcc, FPS, (target_width, target_height))
-            if not debug_video_writer.isOpened():
-                print("⚠️ Failed to open VideoWriter with 'avc1' codec, trying 'mp4v'...")
-                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                debug_video_writer = cv2.VideoWriter(debug_output_file, fourcc, FPS, (target_width, target_height))
-                if not debug_video_writer.isOpened():
-                    print("❌ Fallback codec 'mp4v' also failed. No debug video will be saved.")
-                    debug_video_writer = None
-
+            debug_video_writer = VideoWriterFactory.create_writer(debug_output_file, FPS, (target_width, target_height))
+            
             count_bees_async(output_file, output_video_path=debug_output_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=debug_video_writer)
             delete_old_mp4_files()
 
