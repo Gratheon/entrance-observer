@@ -271,23 +271,57 @@ def set_detection_line():
     return jsonify(success=True)
 
 def frame_capture_thread(camera, video_queue, ai_queue):
-    """A simple thread that continuously captures frames from the camera."""
+    """Optimized frame capture thread with better performance."""
     global capture_thread_running
     print("🚀 Starting frame capture thread...")
+    frame_count = 0
+    total_read_time = 0
+    failed_reads = 0
+    
     while capture_thread_running:
+        start_read_time = time.monotonic()
         ret, frame = camera.read()
-        if ret:
+        read_duration = time.monotonic() - start_read_time
+        total_read_time += read_duration
+        frame_count += 1
+
+        if frame_count % 100 == 0:
+            avg_read_time = total_read_time / 100
+            print(f"📸 Avg frame read time (last 100 frames): {avg_read_time:.4f}s")
+            if failed_reads > 0:
+                print(f"⚠️ Failed reads in last 100 frames: {failed_reads}")
+                failed_reads = 0
+            total_read_time = 0
+
+        if ret and frame is not None:
             capture_time = time.monotonic()
+            
+            # Try to put frame in video queue (non-blocking)
             try:
-                # Put the frame and its capture time into both queues
-                video_queue.put((frame, capture_time), block=False)
-                ai_queue.put((frame, capture_time), block=False)
+                video_queue.put((frame.copy(), capture_time), block=False)
             except queue.Full:
-                # If a queue is full, we can skip a frame to avoid blocking
-                pass
+                # Drop oldest frame and add new one
+                try:
+                    video_queue.get_nowait()
+                    video_queue.put((frame.copy(), capture_time), block=False)
+                except queue.Empty:
+                    pass
+            
+            # Try to put frame in AI queue (non-blocking)
+            try:
+                ai_queue.put((frame.copy(), capture_time), block=False)
+            except queue.Full:
+                # Drop oldest frame and add new one
+                try:
+                    ai_queue.get_nowait()
+                    ai_queue.put((frame.copy(), capture_time), block=False)
+                except queue.Empty:
+                    pass
         else:
-            # If reading fails, wait a bit before trying again.
-            time.sleep(0.01)
+            failed_reads += 1
+            # If reading fails, wait a very short time before trying again
+            time.sleep(0.001)
+            
     print("🛑 Stopping frame capture thread...")
 
 def video_writer_thread(video_queue, writer_fps, target_width, target_height):
@@ -305,12 +339,18 @@ def video_writer_thread(video_queue, writer_fps, target_width, target_height):
 
         start_time = time.monotonic()
         frames_written = 0
+        total_write_time = 0
         while (time.monotonic() - start_time) < video_chunk_length:
             try:
                 # Use a short timeout to remain responsive to the capture_thread_running flag
                 frame, capture_time = video_queue.get(timeout=1)
                 resized_frame = cv2.resize(frame, (target_width, target_height))
+                
+                start_write_time = time.monotonic()
                 out.write(resized_frame, capture_time)
+                write_duration = time.monotonic() - start_write_time
+                total_write_time += write_duration
+
                 frames_written += 1
             except queue.Empty:
                 # If the queue is empty, just continue the loop until the time is up
@@ -320,7 +360,8 @@ def video_writer_thread(video_queue, writer_fps, target_width, target_height):
         
         out.release()
         actual_duration = time.monotonic() - start_time
-        print(f"💾 Video saved to {output_file} ({frames_written} frames, {actual_duration:.2f}s duration)")
+        avg_write_time = total_write_time / frames_written if frames_written > 0 else 0
+        print(f"💾 Video saved to {output_file} ({frames_written} frames, {actual_duration:.2f}s duration, avg write time: {avg_write_time:.4f}s)")
 
 def processing_thread(ai_queue, writer_fps, target_width, target_height):
     global video_frame, yolo_frame
@@ -332,6 +373,8 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height):
         
         # We'll process as many frames as we can in the chunk duration
         frames_for_counting = []
+        total_inference_time = 0
+        frames_processed = 0
         start_time = time.time()
         while (time.time() - start_time) < video_chunk_length:
             try:
@@ -339,17 +382,23 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height):
             except queue.Empty:
                 # If the queue is empty, we can wait a bit for new frames
                 continue
-
-            resized_frame = cv2.resize(frame, (target_width, target_height))
             
-            results = model.track(resized_frame, persist=True)
+            start_inference_time = time.monotonic()
+            results = model.track(frame, persist=True)
+            inference_duration = time.monotonic() - start_inference_time
+            total_inference_time += inference_duration
+            frames_processed += 1
+
             annotated_frame = results[0].plot()
 
             with frame_lock:
-                video_frame = resized_frame.copy()
+                video_frame = frame.copy()
                 yolo_frame = annotated_frame.copy()
 
-            frames_for_counting.append((resized_frame, results, capture_time))
+            frames_for_counting.append((frame, results, capture_time))
+
+        avg_inference_time = total_inference_time / frames_processed if frames_processed > 0 else 0
+        print(f"🧠 Avg inference time (last chunk): {avg_inference_time:.4f}s")
 
         start_time_utc = datetime.datetime.utcnow()
 
@@ -373,17 +422,25 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height):
         count_bees_from_frames_async(frames_for_counting, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=writer_fps, frame_shape=(target_height, target_width))
         delete_old_mp4_files()
 
-def measure_actual_fps(camera, duration_sec=5):
+def warm_up_camera(camera, num_frames=10):
+    """Reads and discards a number of frames to allow camera to stabilize."""
+    print("📷 Warming up camera...")
+    for _ in range(num_frames):
+        ret, _ = camera.read()
+        if not ret:
+            print("⚠️ Could not read from camera during warmup.")
+            return False
+    print("✅ Camera warm-up successful.")
+    return True
+
+def measure_actual_fps(camera, duration_sec=15):
     """Measures the actual frames per second of the camera."""
     calib_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
     calib_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
     print(f"Calibrating camera FPS over {duration_sec} seconds at {calib_width}x{calib_height} resolution...")
     
-    for _ in range(10):
-        ret, _ = camera.read()
-        if not ret:
-            print("⚠️ Could not read from camera during warmup.")
-            return 0
+    if not warm_up_camera(camera):
+        return 0
 
     frame_count = 0
     start_time = time.time()
@@ -438,8 +495,10 @@ def startObserverClient():
         print(f"⚠️ FPS calibration failed. Falling back to requested FPS: {FPS}")
         writer_fps = FPS
 
-    video_queue = queue.Queue(maxsize=int(writer_fps * 5))
-    ai_queue = queue.Queue(maxsize=int(writer_fps * 5))
+    # Optimize queue sizes for better performance and lower memory usage
+    # Use smaller queues to reduce latency and memory consumption
+    video_queue = queue.Queue(maxsize=max(10, int(writer_fps * 1.5)))
+    ai_queue = queue.Queue(maxsize=max(10, int(writer_fps * 1.5)))
 
     capture_thread_running = True
     cap_thread = threading.Thread(target=frame_capture_thread, args=(camera, video_queue, ai_queue))

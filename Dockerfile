@@ -61,24 +61,6 @@ RUN python3 -m pip install --no-cache-dir -v Flask==3.1
 RUN python3 -m pip install --no-cache-dir -v opencv-python-headless
 RUN python3 -m pip install --no-cache-dir -v waitress
 
-# Install GStreamer plugins for hardware-accelerated video encoding
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gstreamer1.0-omx \
-    gstreamer1.0-plugins-base \
-    gstreamer1.0-plugins-good \
-    gstreamer1.0-plugins-bad \
-    gstreamer1.0-plugins-ugly \
-    gstreamer1.0-libav \
-    gstreamer1.0-tools \
-    libgstreamer1.0-dev \
-    libgstreamer-plugins-base1.0-dev \
-    libx264-dev \
-    libavcodec-dev \
-    libavformat-dev \
-    libswscale-dev \
-    python3-gi \
-    gir1.2-gst-plugins-base-1.0 \
-    && rm -rf /var/lib/apt/lists/* && ldconfig
-    
+ 
 # Set the default command to run the application
 CMD ["python3", "src/main.py"]
