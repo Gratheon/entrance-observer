@@ -44,9 +44,18 @@ logging.getLogger('ultralytics').setLevel(logging.WARNING)
 model = YOLO(weights_path)
 
 def is_day_time():
-    """Checks if the current time is between 6 AM and 10 PM."""
+    """
+    Checks if the current time is within the configured day hours.
+    Night mode is disabled if DAY_START_HOUR and DAY_END_HOUR are the same.
+    """
+    day_start_hour = int(os.getenv("DAY_START_HOUR", 6))
+    day_end_hour = int(os.getenv("DAY_END_HOUR", 22))
+
+    if day_start_hour == day_end_hour:
+        return True
+
     current_hour = datetime.datetime.now().hour
-    return 6 <= current_hour < 22
+    return day_start_hour <= current_hour < day_end_hour
 
 def generate_frames(get_frame):
     while True:
