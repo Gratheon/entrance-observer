@@ -8,19 +8,24 @@ https://github.com/user-attachments/assets/a3243245-34a8-4626-a990-f7e34b7b8ff6
 
 ## Features
 
-- **Video capture**. Best to use 4K USB camera. Streams data into memory and then store it on disk with as 10 sec chunks
+- **Video capture**. Best to use 4K USB camera. Streams data into memory and then store it on disk with as 30 sec chunks (configureable)
 	- Tries to autodetect camera if its not found
-- **Video upload**. Uploads video chunks to gratheon web-app for playback (assuming wifi/lan is present)
-	- Uses H.264 codec for video compression (~2mb for 10 sec)
-		- Falls back to mp4 ifcodec is not available (~10mb per 10 sec)
-	- Skips upload if no bees were incoming/outgoing to avoid unnecessary traffic
-- **Bee detection** using YOLO 11 model with custom bee detection weights
-- **Incoming and outgoing bee counting**. Stats are sent to gratheon web-app for aggregate statistics
+- **Detects bees** using YOLO 11 model with custom bee detection weights.
+- **Tracks bees movements and speeds** and estimates their movement speeds. Stores tracks for potential behavioural analysis
+- **Counts incoming and outgoing bees**. Calculates net flow. Useful to estimate forager loss.
+
+- **Video upload**. Uploads video chunks to [gratheon web-app](https://github.com/Gratheon/web-app/) for playback (assuming wifi/lan is present)
+	- Uses H.264 codec for video compression if available (usually on mac)
+		- Falls back to mp4 ifcodec is not available (jetson orin nano)
+	- Skips video upload if no bees were incoming/outgoing to avoid unnecessary traffic
+
 - **Web UI** for local network access and configuration (with streaming) with a simple log of:
 	- detected bees
 	- incoming/outgoing bees
 	- max log is the past 10h
 	- sleep at night time (22:00-06:00)
+- **Telemetry** - metrics  are sent to [gratheon web-app](https://github.com/Gratheon/web-app/) for aggregate statistics
+
 
 ## Metrics
 
