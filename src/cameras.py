@@ -114,25 +114,25 @@ def initialize_camera(device, backend, width, height, fps):
         camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
         
         # Disable auto-exposure and auto-white-balance for consistent performance
-        camera.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # Manual exposure
-        camera.set(cv2.CAP_PROP_EXPOSURE, -6)  # Fast exposure setting
+        # camera.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # Manual exposure
+        # camera.set(cv2.CAP_PROP_EXPOSURE, -6)  # Fast exposure setting
         
-        # Set pixel format for better performance
-        camera.set(cv2.CAP_PROP_CONVERT_RGB, 1)
+        # # Set pixel format for better performance
+        # camera.set(cv2.CAP_PROP_CONVERT_RGB, 1)
         
-        # Optimize for speed over quality
-        camera.set(cv2.CAP_PROP_BRIGHTNESS, 120) # Default is 128
-        camera.set(cv2.CAP_PROP_CONTRAST, 95) # Default is 128
-        camera.set(cv2.CAP_PROP_SATURATION, 128) # Default is 128
-        camera.set(cv2.CAP_PROP_GAIN, 0) # Disable gain
-        camera.set(cv2.CAP_PROP_AUTOFOCUS, 0) # Disable autofocus
+        # # Optimize for speed over quality
+        # camera.set(cv2.CAP_PROP_BRIGHTNESS, 120) # Default is 128
+        # camera.set(cv2.CAP_PROP_CONTRAST, 95) # Default is 128
+        # camera.set(cv2.CAP_PROP_SATURATION, 128) # Default is 128
+        # camera.set(cv2.CAP_PROP_GAIN, 0) # Disable gain
+        # camera.set(cv2.CAP_PROP_AUTOFOCUS, 0) # Disable autofocus
         
-        # Additional performance optimizations
-        try:
-            # Try to reduce JPEG quality for better performance
-            camera.set(cv2.CAP_PROP_JPEG_QUALITY, 50)  # Lower quality = faster processing
-        except:
-            pass
+        # # Additional performance optimizations
+        # try:
+        #     # Try to reduce JPEG quality for better performance
+        #     camera.set(cv2.CAP_PROP_JPEG_QUALITY, 50)  # Lower quality = faster processing
+        # except:
+        #     pass
     
     # Verify actual settings
     actual_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
