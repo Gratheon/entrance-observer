@@ -121,9 +121,11 @@ def initialize_camera(device, backend, width, height, fps):
         camera.set(cv2.CAP_PROP_CONVERT_RGB, 1)
         
         # Optimize for speed over quality
-        camera.set(cv2.CAP_PROP_BRIGHTNESS, 128)
-        camera.set(cv2.CAP_PROP_CONTRAST, 128)
-        camera.set(cv2.CAP_PROP_SATURATION, 128)
+        camera.set(cv2.CAP_PROP_BRIGHTNESS, 120) # Default is 128
+        camera.set(cv2.CAP_PROP_CONTRAST, 95) # Default is 128
+        camera.set(cv2.CAP_PROP_SATURATION, 128) # Default is 128
+        camera.set(cv2.CAP_PROP_GAIN, 0) # Disable gain
+        camera.set(cv2.CAP_PROP_AUTOFOCUS, 0) # Disable autofocus
         
         # Additional performance optimizations
         try:
