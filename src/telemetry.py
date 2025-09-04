@@ -1,11 +1,30 @@
 import threading
 import requests
+import json
+from datetime import datetime
 
-def report_telemetry_async(beesIn, beesOut, bearer_token, hiveId, boxId, base_url):
-    telemetry_thread = threading.Thread(target=report_telemetry, args=(beesIn, beesOut, bearer_token, hiveId, boxId, base_url))
+def save_telemetry_locally(beesIn, beesOut, bees):
+    """Saves telemetry data to a local jsonl file."""
+    try:
+        timestamp = datetime.utcnow().isoformat()
+        data = {
+            "timestamp": timestamp,
+            "bees_in": beesIn,
+            "bees_out": beesOut,
+            "bees": bees,
+        }
+        with open("metrics.jsonl", "a") as f:
+            f.write(json.dumps(data) + "\n")
+        print("✅ Telemetry saved locally.")
+    except Exception as e:
+        print(f"❌ Error saving telemetry locally: {e}")
+
+def report_telemetry_async(beesIn, beesOut, bees, bearer_token, hiveId, boxId, base_url):
+    telemetry_thread = threading.Thread(target=report_telemetry, args=(beesIn, beesOut, bees, bearer_token, hiveId, boxId, base_url))
     telemetry_thread.start()
 
-def report_telemetry(beesIn, beesOut, bearer_token, hiveId, boxId, base_url):
+def report_telemetry(beesIn, beesOut, bees, bearer_token, hiveId, boxId, base_url):
+    save_telemetry_locally(beesIn, beesOut, bees)
     if not bearer_token or not boxId:
         print("Error: Please provide API_TOKEN and SECTION_ID.")
         print("Skipping telemetry upload for testing purposes.")

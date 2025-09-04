@@ -20,12 +20,12 @@ def count_bees_from_frames_async(frames, output_video_path=None, on_complete=Non
     upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(frames, output_video_path, on_complete, detection_line_coefficient, video_writer, writer_fps, frame_shape, entrance_position))
     upload_thread.start()
 
-def report_telemetry_async(beesIn, beesOut):
+def report_telemetry_async(beesIn, beesOut, bees):
     bearer_token = os.getenv("API_TOKEN")
     hiveId = os.getenv("HIVE_ID")
     boxId = os.getenv("SECTION_ID")
     base_url = os.getenv("TELEMETRY_BASE_URL", "https://telemetry.gratheon.com")
-    telemetry.report_telemetry_async(beesIn, beesOut, bearer_token, hiveId, boxId, base_url)
+    telemetry.report_telemetry_async(beesIn, beesOut, bees, bearer_token, hiveId, boxId, base_url)
 
 def countBeesAndReportTelemetry(frames, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
     start_time = time.time()
@@ -44,7 +44,7 @@ def countBeesAndReportTelemetry(frames, output_video_path=None, on_complete=None
     hiveId = os.getenv("HIVE_ID")
     boxId = os.getenv("SECTION_ID")
     base_url = os.getenv("TELEMETRY_BASE_URL", "https://telemetry.gratheon.com")
-    telemetry.report_telemetry(beesIn, beesOut, bearer_token, hiveId, boxId, base_url)
+    telemetry.report_telemetry(beesIn, beesOut, detectedBees, bearer_token, hiveId, boxId, base_url)
     
     if on_complete:
         on_complete(output_video_path, beesIn, beesOut, detectedBees)
