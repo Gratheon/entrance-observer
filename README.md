@@ -22,6 +22,31 @@ https://github.com/user-attachments/assets/a3243245-34a8-4626-a990-f7e34b7b8ff6
 	- max log is the past 10h
 	- sleep at night time (22:00-06:00)
 
+## Metrics
+
+The application collects a rich set of metrics to provide a comprehensive overview of the beehive's activity. These metrics are saved locally to `metrics.jsonl` and, if configured, sent to the Gratheon telemetry service.
+
+### Core Metrics
+
+-   **`bees_in`**: The number of bees that crossed the virtual line to enter the hive.
+-   **`bees_out`**: The number of bees that crossed the virtual line to exit the hive.
+-   **`detected_bees`**: The total number of unique bees detected in the frame during the processing period.
+
+### Derived Metrics
+
+-   **`net_flow`**: Calculated as `bees_in - bees_out`, this metric indicates the net change in the hive's population. A positive value suggests more bees are returning than leaving, while a negative value could be an early indicator of swarming or other issues.
+-   **`avg_speed_px_per_frame`**: The average speed of all tracked bees, measured in pixels per frame. This provides an insight into the general flight speed of the bees.
+-   **`p95_speed_px_per_frame`**: The 95th percentile of bee speed. This helps to understand the top speed of the fastest bees, filtering out potential outliers.
+-   **`stationary_bees_count`**: The number of bees that are considered stationary (i.e., their total movement is below a certain threshold). This can be useful for identifying guard bees or bees performing orientation flights.
+
+### Raw Track History
+
+For in-depth analysis and potential model retraining, the application also saves the raw track history of each bee to a separate `track_history.jsonl` file. Each entry in this file contains:
+
+-   **`timestamp`**: The UTC timestamp of the recording.
+-   **`frame_dimensions`**: The height and width of the video frame, which is crucial for interpreting the coordinate data.
+-   **`track_history`**: A dictionary where each key is a unique bee ID and the value is a list of `[x, y]` integer coordinates representing the bee's path.
+
 ### Notes
 - I Tried dual CSI cameras too, it could work too, but quality of optics was not sufficient (too much fish-eye)
 - Note we are not _streaming_ video to gratheon.com as we do not adjust bandwidth/video quality depending on connectivity. So reliable network connection is essential. We are uploading chunks.
