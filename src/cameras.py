@@ -169,13 +169,6 @@ def initialize_camera(device, backend, width, height, fps, properties):
         apply_camera_properties(camera, properties)
         
         set_camera_property(cv2.CAP_PROP_AUTOFOCUS, 0, "Autofocus") # Disable autofocus
-        
-        # Additional performance optimizations
-        try:
-            # Try to reduce JPEG quality for better performance
-            set_camera_property(cv2.CAP_PROP_JPEG_QUALITY, 100, "JPEG Quality")  # Lower quality = faster processing
-        except:
-            pass
     
     # Verify actual settings
     actual_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
