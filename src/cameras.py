@@ -1,6 +1,7 @@
 import platform
 import cv2
 import os
+import time
 
 def list_available_cameras():
     """List available cameras on the system"""
@@ -81,7 +82,20 @@ def get_default_camera_config():
         "backend": backend
     }
 
-def initialize_camera(device, backend, width, height, fps):
+def apply_camera_properties(camera, properties):
+    """Applies a dictionary of properties to the camera."""
+    for prop_name, value in properties.items():
+        prop = getattr(cv2, f"CAP_PROP_{prop_name.upper()}", None)
+        if prop is not None:
+            camera.set(prop, value)
+            # It's good practice to wait a bit for the setting to apply
+            time.sleep(0.1)
+            actual_value = camera.get(prop)
+            print(f"✅ {prop_name.capitalize()} set to {actual_value} (requested: {value})")
+        else:
+            print(f"⚠️ Unknown camera property: {prop_name}")
+
+def initialize_camera(device, backend, width, height, fps, properties):
     """
     Initializes the camera using the specified backend with optimized settings.
     """
@@ -113,26 +127,38 @@ def initialize_camera(device, backend, width, height, fps):
         # Critical: Set MJPEG format again after resolution to ensure it sticks
         camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
         
+        def set_camera_property(prop, value, name):
+            camera.set(prop, value)
+            time.sleep(0.1) # Give camera time to apply setting
+            actual_value = camera.get(prop)
+            # For some properties, the value might not be set exactly as requested
+            # We check if it's close enough or in a valid range
+            if abs(actual_value - value) > 0.1:
+                 # Special case for auto-exposure, where 0.25 means manual mode (often read back as 1)
+                if prop == cv2.CAP_PROP_AUTO_EXPOSURE and value == 0.25 and actual_value == 1.0:
+                    print(f"✅ {name} set to Manual Mode")
+                else:
+                    print(f"⚠️ Failed to set {name}: requested={value}, actual={actual_value}")
+            else:
+                print(f"✅ {name} set to {actual_value}")
+
         # Disable auto-exposure and auto-white-balance for consistent performance
-        # camera.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # Manual exposure
-        # camera.set(cv2.CAP_PROP_EXPOSURE, -6)  # Fast exposure setting
+        set_camera_property(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25, "Auto Exposure")  # Manual exposure
         
-        # # Set pixel format for better performance
-        # camera.set(cv2.CAP_PROP_CONVERT_RGB, 1)
+        # Set pixel format for better performance
+        set_camera_property(cv2.CAP_PROP_CONVERT_RGB, 1, "Convert RGB")
         
-        # # Optimize for speed over quality
-        # camera.set(cv2.CAP_PROP_BRIGHTNESS, 120) # Default is 128
-        # camera.set(cv2.CAP_PROP_CONTRAST, 95) # Default is 128
-        # camera.set(cv2.CAP_PROP_SATURATION, 128) # Default is 128
-        # camera.set(cv2.CAP_PROP_GAIN, 0) # Disable gain
-        # camera.set(cv2.CAP_PROP_AUTOFOCUS, 0) # Disable autofocus
+        # Apply dynamic properties
+        apply_camera_properties(camera, properties)
         
-        # # Additional performance optimizations
-        # try:
-        #     # Try to reduce JPEG quality for better performance
-        #     camera.set(cv2.CAP_PROP_JPEG_QUALITY, 50)  # Lower quality = faster processing
-        # except:
-        #     pass
+        set_camera_property(cv2.CAP_PROP_AUTOFOCUS, 0, "Autofocus") # Disable autofocus
+        
+        # Additional performance optimizations
+        try:
+            # Try to reduce JPEG quality for better performance
+            set_camera_property(cv2.CAP_PROP_JPEG_QUALITY, 100, "JPEG Quality")  # Lower quality = faster processing
+        except:
+            pass
     
     # Verify actual settings
     actual_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))

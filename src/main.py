@@ -24,6 +24,16 @@ yolo_frame = None
 frame_lock = threading.Lock()
 bee_counts_history = deque(maxlen=3600)  # Store up to last 10h. 10*60*6 entries (1 hour if updated every 10 sec)
 capture_thread_running = False
+camera_properties = {
+    "brightness": 120,
+    "contrast": 95,
+    "saturation": 128,
+    "gain": 0,
+    "exposure": -6
+}
+camera_lock = threading.Lock()
+camera_instance = None
+
 
 weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weights', 'best.pt'))
 logging.getLogger('ultralytics').setLevel(logging.WARNING)
@@ -98,6 +108,26 @@ def index():
            color: #424242; /* @color-gray-breadcrumbs-text */
            font-weight: 500;
          }
+         .controls-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #c5c5c5;
+            border-radius: 5px;
+         }
+         .control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+         }
+         .control label {
+            margin-right: 10px;
+         }
+         .control input {
+            width: 200px;
+         }
          .footer { 
            background-color: #ececec; /* @color-gray-breadcrumbs */
            border-top: 1px solid #c5c5c5; /* @color-gray-breadcrumbs-border */
@@ -143,6 +173,34 @@ def index():
                 <div id="detection-line" style="position: absolute; left: 0; width: 100%; height: 4px; background-color: red; cursor: pointer; top: {{ detection_line_coefficient * 100 }}%;"></div>
              </div>
            </div>
+            <div class="controls-container">
+                <h2>Camera Settings</h2>
+                <div class="control">
+                    <label for="brightness">Brightness</label>
+                    <input type="range" id="brightness" name="brightness" min="0" max="255" value="{{ camera_properties.brightness }}">
+                    <span id="brightness-value">{{ camera_properties.brightness }}</span>
+                </div>
+                <div class="control">
+                    <label for="contrast">Contrast</label>
+                    <input type="range" id="contrast" name="contrast" min="0" max="255" value="{{ camera_properties.contrast }}">
+                    <span id="contrast-value">{{ camera_properties.contrast }}</span>
+                </div>
+                <div class="control">
+                    <label for="saturation">Saturation</label>
+                    <input type="range" id="saturation" name="saturation" min="0" max="255" value="{{ camera_properties.saturation }}">
+                    <span id="saturation-value">{{ camera_properties.saturation }}</span>
+                </div>
+                <div class="control">
+                    <label for="gain">Gain</label>
+                    <input type="range" id="gain" name="gain" min="0" max="255" value="{{ camera_properties.gain }}">
+                    <span id="gain-value">{{ camera_properties.gain }}</span>
+                </div>
+                <div class="control">
+                    <label for="exposure">Exposure</label>
+                    <input type="range" id="exposure" name="exposure" min="-10" max="0" value="{{ camera_properties.exposure }}">
+                    <span id="exposure-value">{{ camera_properties.exposure }}</span>
+                </div>
+            </div>
          </div>
          <div style="text-align: center; padding-top: 20px; font-size: 24px; color: #424242;">
            &darr; Hive Entrance &darr;
@@ -239,6 +297,25 @@ def index():
              });
            }
          });
+
+         const controls = document.querySelectorAll('.control input');
+         controls.forEach(control => {
+             control.addEventListener('input', (e) => {
+                 const valueSpan = document.getElementById(`${e.target.id}-value`);
+                 valueSpan.textContent = e.target.value;
+             });
+             control.addEventListener('change', (e) => {
+                 const property = e.target.name;
+                 const value = e.target.value;
+                 fetch('/api/set_camera_properties', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json',
+                     },
+                     body: JSON.stringify({ [property]: value }),
+                 });
+             });
+         });
        </script>
        <div class="footer">
          <ul>
@@ -250,7 +327,21 @@ def index():
      </body>
    </html>
    """
-    return render_template_string(html, detection_line_coefficient=detection_line_coefficient)
+    return render_template_string(html, detection_line_coefficient=detection_line_coefficient, camera_properties=camera_properties)
+
+@app.route("/api/set_camera_properties", methods=['POST'])
+def set_camera_properties():
+    global camera_properties, camera_instance
+    data = request.get_json()
+    with camera_lock:
+        for key, value in data.items():
+            if key in camera_properties:
+                camera_properties[key] = int(value)
+        if camera_instance:
+            # This function will be created in cameras.py
+            from src.cameras import apply_camera_properties
+            apply_camera_properties(camera_instance, camera_properties)
+    return jsonify(success=True)
 
 @app.route("/video_feed")
 def video_feed():
@@ -500,7 +591,7 @@ def measure_actual_fps(camera, target_width, target_height, duration_sec=15):
     return fps
 
 def startObserverClient():
-    global capture_thread_running
+    global capture_thread_running, camera_instance
     FPS = int(os.getenv("FPS", 30))
     WIDTH_PX = int(os.getenv("WIDTH_PX", 640))
     HEIGHT_PX = int(os.getenv("HEIGHT_PX", 480))
@@ -520,7 +611,9 @@ def startObserverClient():
     target_width = WIDTH_PX
     target_height = HEIGHT_PX
     
-    camera = initialize_camera(device, backend, target_width, target_height, FPS)
+    with camera_lock:
+        camera_instance = initialize_camera(device, backend, target_width, target_height, FPS, camera_properties)
+        camera = camera_instance
 
     if not camera.isOpened():
         print(f"❌ Failed to open any camera.")
