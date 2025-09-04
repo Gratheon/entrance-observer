@@ -5,8 +5,7 @@ class OpenCVWriterWrapper:
     def __init__(self, writer):
         self.writer = writer
 
-    def write(self, frame, capture_time_monotonic=None):
-        # The timestamp is ignored, but the method signature is compatible
+    def write(self, frame):
         self.writer.write(frame)
 
     def release(self):

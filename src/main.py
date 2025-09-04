@@ -477,7 +477,7 @@ def video_writer_thread(video_queue, writer_fps, target_width, target_height):
                 resized_frame = cv2.resize(frame, (target_width, target_height))
                 
                 start_write_time = time.monotonic()
-                out.write(resized_frame, capture_time)
+                out.write(resized_frame)
                 write_duration = time.monotonic() - start_write_time
                 total_write_time += write_duration
 
