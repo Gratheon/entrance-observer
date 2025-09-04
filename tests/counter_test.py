@@ -14,6 +14,7 @@ def test_count_bees():
     
     frames_for_counting = []
     frame_shape = None
+    fps = cap.get(cv2.CAP_PROP_FPS)
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -30,7 +31,7 @@ def test_count_bees():
     cap.release()
     
     # ACT
-    beesIn, beesOut, detectedBees = counter.countBees(frames_for_counting, frame_shape=frame_shape)
+    beesIn, beesOut, detectedBees, _ = counter.countBees(frames_for_counting, frame_shape=frame_shape, writer_fps=fps)
 
     # ASSERT
     assert beesIn == 27, "Expected bees in the video"

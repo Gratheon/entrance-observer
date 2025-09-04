@@ -3,15 +3,38 @@ import requests
 import json
 from datetime import datetime
 
-def save_telemetry_locally(beesIn, beesOut, bees):
+def save_track_history_locally(track_history, frame_shape):
+    """Saves track history data to a local jsonl file."""
+    try:
+        timestamp = datetime.utcnow().isoformat()
+        
+        # Convert coordinates to integers and defaultdict to a regular dict
+        serializable_history = {
+            int(k): [[int(round(coord[0])), int(round(coord[1]))] for coord in v]
+            for k, v in track_history.items()
+        }
+
+        data = {
+            "timestamp": timestamp,
+            "frame_dimensions": {
+                "height": frame_shape[0],
+                "width": frame_shape[1]
+            },
+            "track_history": serializable_history,
+        }
+        with open("track_history.jsonl", "a") as f:
+            f.write(json.dumps(data) + "\n")
+        print("✅ Track history saved locally.")
+    except Exception as e:
+        print(f"❌ Error saving track history locally: {e}")
+
+def save_telemetry_locally(metrics_data):
     """Saves telemetry data to a local jsonl file."""
     try:
         timestamp = datetime.utcnow().isoformat()
         data = {
             "timestamp": timestamp,
-            "bees_in": beesIn,
-            "bees_out": beesOut,
-            "bees": bees,
+            "metrics": metrics_data,
         }
         with open("metrics.jsonl", "a") as f:
             f.write(json.dumps(data) + "\n")
@@ -19,12 +42,12 @@ def save_telemetry_locally(beesIn, beesOut, bees):
     except Exception as e:
         print(f"❌ Error saving telemetry locally: {e}")
 
-def report_telemetry_async(beesIn, beesOut, bees, bearer_token, hiveId, boxId, base_url):
-    telemetry_thread = threading.Thread(target=report_telemetry, args=(beesIn, beesOut, bees, bearer_token, hiveId, boxId, base_url))
+def report_telemetry_async(metrics_data, bearer_token, hiveId, boxId, base_url):
+    telemetry_thread = threading.Thread(target=report_telemetry, args=(metrics_data, bearer_token, hiveId, boxId, base_url))
     telemetry_thread.start()
 
-def report_telemetry(beesIn, beesOut, bees, bearer_token, hiveId, boxId, base_url):
-    save_telemetry_locally(beesIn, beesOut, bees)
+def report_telemetry(metrics_data, bearer_token, hiveId, boxId, base_url):
+    save_telemetry_locally(metrics_data)
     if not bearer_token or not boxId:
         print("Error: Please provide API_TOKEN and SECTION_ID.")
         print("Skipping telemetry upload for testing purposes.")
@@ -34,8 +57,12 @@ def report_telemetry(beesIn, beesOut, bees, bearer_token, hiveId, boxId, base_ur
     payload = {
         "boxId": boxId,
         "hiveId": hiveId,
-        "beesIn": beesIn,
-        "beesOut": beesOut,
+        "beesIn": metrics_data["bees_in"],
+        "beesOut": metrics_data["bees_out"],
+        "netFlow": metrics_data["net_flow"],
+        "avgSpeed": metrics_data["avg_speed_px_per_frame"],
+        "p95Speed": metrics_data["p95_speed_px_per_frame"],
+        "stationaryBees": metrics_data["stationary_bees_count"],
     }
 
     # Print the payload

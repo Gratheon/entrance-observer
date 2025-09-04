@@ -4,6 +4,7 @@ import cv2
 import time
 import numpy as np
 import telemetry
+import metrics
 from ultralytics import YOLO
 from dotenv import load_dotenv
 from collections import defaultdict
@@ -20,18 +21,18 @@ def count_bees_from_frames_async(frames, output_video_path=None, on_complete=Non
     upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(frames, output_video_path, on_complete, detection_line_coefficient, video_writer, writer_fps, frame_shape, entrance_position))
     upload_thread.start()
 
-def report_telemetry_async(beesIn, beesOut, bees):
+def report_telemetry_async(metrics_data):
     bearer_token = os.getenv("API_TOKEN")
     hiveId = os.getenv("HIVE_ID")
     boxId = os.getenv("SECTION_ID")
     base_url = os.getenv("TELEMETRY_BASE_URL", "https://telemetry.gratheon.com")
-    telemetry.report_telemetry_async(beesIn, beesOut, bees, bearer_token, hiveId, boxId, base_url)
+    telemetry.report_telemetry_async(metrics_data, bearer_token, hiveId, boxId, base_url)
 
 def countBeesAndReportTelemetry(frames, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
     start_time = time.time()
 
     try:
-        beesIn, beesOut, detectedBees = countBees(frames, output_video_path, detection_line_coefficient, video_writer, writer_fps, frame_shape, entrance_position)
+        beesIn, beesOut, detectedBees, final_track_history = countBees(frames, output_video_path, detection_line_coefficient, video_writer, writer_fps, frame_shape, entrance_position)
         print(f"✅ Bee counting completed: {beesIn} in, {beesOut} out, {detectedBees} detected", flush=True)
     except Exception as e:
         print(f"❌ Error during bee counting: {e}", flush=True)
@@ -40,11 +41,23 @@ def countBeesAndReportTelemetry(frames, output_video_path=None, on_complete=None
         if video_writer:
             video_writer.release()
     
+    metrics_data = {
+        "bees_in": beesIn,
+        "bees_out": beesOut,
+        "detected_bees": detectedBees
+    }
+    
+    derived_metrics = metrics.calculate_derived_metrics(final_track_history)
+    metrics_data.update(derived_metrics)
+    metrics_data["net_flow"] = beesIn - beesOut
+    
+    telemetry.save_track_history_locally(final_track_history, frame_shape)
+    
     bearer_token = os.getenv("API_TOKEN")
     hiveId = os.getenv("HIVE_ID")
     boxId = os.getenv("SECTION_ID")
     base_url = os.getenv("TELEMETRY_BASE_URL", "https://telemetry.gratheon.com")
-    telemetry.report_telemetry(beesIn, beesOut, detectedBees, bearer_token, hiveId, boxId, base_url)
+    telemetry.report_telemetry(metrics_data, bearer_token, hiveId, boxId, base_url)
     
     if on_complete:
         on_complete(output_video_path, beesIn, beesOut, detectedBees)
@@ -55,11 +68,17 @@ def countBeesAndReportTelemetry(frames, output_video_path=None, on_complete=None
 def countBees(frames, output_video_path=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
     track_history.clear()
     
+    # It's important to operate on a copy of track_history for each run
+    # to avoid issues with concurrent processing.
+    local_track_history = defaultdict(list)
+
     h, w = frame_shape
     
     if detection_line_coefficient is None:
         detection_line_coefficient = float(os.getenv("DETECTION_LINE", 0.5))
     line_y = round(h * detection_line_coefficient)
+
+    video_chunk_length = float(os.getenv("VIDEO_CHUNK_LENGTH_SEC", 30))
 
     in_counts = 0
     out_counts = 0
@@ -89,7 +108,7 @@ def countBees(frames, output_video_path=None, detection_line_coefficient=None, v
             for box, track_id in zip(boxes.xyxy.cpu(), boxes.id.int().cpu().tolist()):
                 detected_bees.add(track_id)
                 bbox_center = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
-                track = track_history[track_id]
+                track = local_track_history[track_id]
                 track.append((float(bbox_center[0]), float(bbox_center[1])))
                 if len(track) > 2:
                     if entrance_position == 'bottom':
@@ -102,7 +121,7 @@ def countBees(frames, output_video_path=None, detection_line_coefficient=None, v
                             out_counts += 1
                         elif track[-2][1] > line_y and track[-1][1] <= line_y:
                             in_counts += 1
-                if len(track) > 300:
+                if len(track) > video_chunk_length * writer_fps:  # Keep history for the length of the video chunk
                     track.pop(0)
 
     if video_writer and close_video_writer:
@@ -110,4 +129,4 @@ def countBees(frames, output_video_path=None, detection_line_coefficient=None, v
 
     print(f"📊 Counting results: {in_counts} in, {out_counts} out", flush=True)
     
-    return in_counts, out_counts, len(detected_bees)
+    return in_counts, out_counts, len(detected_bees), local_track_history
