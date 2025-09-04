@@ -5,6 +5,7 @@ services:
       network: host
     privileged: true
     network_mode: host
+    restart: always
     runtime: nvidia # Enable NVIDIA GPU support
     ipc: host
     ports:
