@@ -84,16 +84,33 @@ def get_default_camera_config():
 
 def apply_camera_properties(camera, properties):
     """Applies a dictionary of properties to the camera."""
+    prop_map = {
+        "brightness": cv2.CAP_PROP_BRIGHTNESS,
+        "contrast": cv2.CAP_PROP_CONTRAST,
+        "saturation": cv2.CAP_PROP_SATURATION,
+        "gain": cv2.CAP_PROP_GAIN,
+        "exposure": cv2.CAP_PROP_EXPOSURE,
+        "jpeg_quality": getattr(cv2, 'CAP_PROP_JPEG_QUALITY', None),
+        "white_balance_temperature": getattr(cv2, 'CAP_PROP_WHITE_BALANCE_TEMPERATURE', None),
+        "gamma": getattr(cv2, 'CAP_PROP_GAMMA', None),
+        "sharpness": getattr(cv2, 'CAP_PROP_SHARPNESS', None),
+        "backlight": getattr(cv2, 'CAP_PROP_BACKLIGHT', None),
+    }
+
     for prop_name, value in properties.items():
-        prop = getattr(cv2, f"CAP_PROP_{prop_name.upper()}", None)
+        prop = prop_map.get(prop_name)
+        
+        # Fallback for white balance temperature
+        if prop is None and prop_name == "white_balance_temperature":
+            prop = getattr(cv2, 'CAP_PROP_TEMPERATURE', None)
+
         if prop is not None:
             camera.set(prop, value)
-            # It's good practice to wait a bit for the setting to apply
             time.sleep(0.1)
             actual_value = camera.get(prop)
             print(f"✅ {prop_name.capitalize()} set to {actual_value} (requested: {value})")
         else:
-            print(f"⚠️ Unknown camera property: {prop_name}")
+            print(f"⚠️ Unknown or unsupported camera property: {prop_name}")
 
 def initialize_camera(device, backend, width, height, fps, properties):
     """

@@ -25,12 +25,16 @@ frame_lock = threading.Lock()
 bee_counts_history = deque(maxlen=3600)  # Store up to last 10h. 10*60*6 entries (1 hour if updated every 10 sec)
 capture_thread_running = False
 camera_properties = {
-    "brightness": 42,
-    "contrast": 2,
-    "saturation": 66,
+    "brightness": 120,
+    "contrast": 95,
+    "saturation": 128,
     "gain": 0,
-    "exposure": -10,
-    "jpeg_quality": 90
+    "exposure": -6,
+    "jpeg_quality": 100,
+    "white_balance_temperature": 4000,
+    "gamma": 100,
+    "sharpness": 128,
+    "backlight": 1
 }
 camera_lock = threading.Lock()
 camera_instance = None
@@ -205,6 +209,26 @@ def index():
                     <label for="jpeg_quality">JPEG Quality</label>
                     <input type="range" id="jpeg_quality" name="jpeg_quality" min="0" max="100" value="{{ camera_properties.jpeg_quality }}">
                     <span id="jpeg_quality-value">{{ camera_properties.jpeg_quality }}</span>
+                </div>
+                <div class="control">
+                    <label for="white_balance_temperature">White Balance</label>
+                    <input type="range" id="white_balance_temperature" name="white_balance_temperature" min="2000" max="6500" value="{{ camera_properties.white_balance_temperature }}">
+                    <span id="white_balance_temperature-value">{{ camera_properties.white_balance_temperature }}</span>
+                </div>
+                <div class="control">
+                    <label for="gamma">Gamma</label>
+                    <input type="range" id="gamma" name="gamma" min="1" max="500" value="{{ camera_properties.gamma }}">
+                    <span id="gamma-value">{{ camera_properties.gamma }}</span>
+                </div>
+                <div class="control">
+                    <label for="sharpness">Sharpness</label>
+                    <input type="range" id="sharpness" name="sharpness" min="0" max="255" value="{{ camera_properties.sharpness }}">
+                    <span id="sharpness-value">{{ camera_properties.sharpness }}</span>
+                </div>
+                <div class="control">
+                    <label for="backlight">Backlight Comp</label>
+                    <input type="range" id="backlight" name="backlight" min="0" max="2" value="{{ camera_properties.backlight }}">
+                    <span id="backlight-value">{{ camera_properties.backlight }}</span>
                 </div>
             </div>
          </div>
@@ -566,7 +590,7 @@ def warm_up_camera(camera, num_frames=10):
     print("✅ Camera warm-up successful.")
     return True
 
-def measure_actual_fps(camera, target_width, target_height, duration_sec=15):
+def measure_actual_fps(camera, target_width, target_height, duration_sec=5):
     """Measures the actual frames per second of the camera."""
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, target_width)
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, target_height)
