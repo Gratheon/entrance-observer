@@ -2,6 +2,7 @@ import os
 import threading
 import cv2
 import time
+import numpy as np
 import telemetry
 from ultralytics import YOLO
 from dotenv import load_dotenv
@@ -101,7 +102,7 @@ def countBees(frames, output_video_path=None, detection_line_coefficient=None, v
                             out_counts += 1
                         elif track[-2][1] > line_y and track[-1][1] <= line_y:
                             in_counts += 1
-                if len(track) > 30:
+                if len(track) > 300:
                     track.pop(0)
 
     if video_writer and close_video_writer:

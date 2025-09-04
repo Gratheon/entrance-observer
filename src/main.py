@@ -7,8 +7,10 @@ from flask import Flask, Response, render_template_string, jsonify, request
 import threading
 import logging
 from ultralytics import YOLO
-from collections import deque
+from collections import deque, defaultdict
 import queue
+import numpy as np
+import random
 
 from src.cameras import list_available_cameras, get_default_camera_config, initialize_camera
 from src.video_utils import VideoWriterFactory
@@ -37,6 +39,8 @@ camera_properties = {
 }
 camera_lock = threading.Lock()
 camera_instance = None
+track_history = defaultdict(list)
+track_colors = {}
 
 
 weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weights', 'best.pt'))
@@ -581,6 +585,23 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height):
             frames_processed += 1
 
             annotated_frame = results[0].plot()
+
+            # Draw the tracking lines
+            boxes = results[0].boxes
+            if boxes.is_track:
+                for box, track_id in zip(boxes.xyxy.cpu(), boxes.id.int().cpu().tolist()):
+                    bbox_center = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+                    track = track_history[track_id]
+                    track.append((float(bbox_center[0]), float(bbox_center[1])))
+                    if len(track) > 30:
+                        track.pop(0)
+
+                    if track_id not in track_colors:
+                        track_colors[track_id] = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+
+                    if len(track) > 1:
+                        track_np = np.array(track, dtype=np.int32).reshape((-1, 1, 2))
+                        cv2.polylines(annotated_frame, [track_np], isClosed=False, color=track_colors[track_id], thickness=2)
 
             with frame_lock:
                 video_frame = frame.copy()
