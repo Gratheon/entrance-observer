@@ -14,9 +14,9 @@ weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'we
 model = YOLO(weights_path)
 track_history = defaultdict(list)
 
-def count_bees_from_frames_async(frames, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None):
+def count_bees_from_frames_async(frames, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
     print(f"🐝 Starting bee counting for a batch of {len(frames)} frames", flush=True)
-    upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(frames, output_video_path, on_complete, detection_line_coefficient, video_writer, writer_fps, frame_shape))
+    upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(frames, output_video_path, on_complete, detection_line_coefficient, video_writer, writer_fps, frame_shape, entrance_position))
     upload_thread.start()
 
 def report_telemetry_async(beesIn, beesOut):
@@ -26,11 +26,11 @@ def report_telemetry_async(beesIn, beesOut):
     base_url = os.getenv("TELEMETRY_BASE_URL", "https://telemetry.gratheon.com")
     telemetry.report_telemetry_async(beesIn, beesOut, bearer_token, hiveId, boxId, base_url)
 
-def countBeesAndReportTelemetry(frames, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None):
+def countBeesAndReportTelemetry(frames, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
     start_time = time.time()
 
     try:
-        beesIn, beesOut, detectedBees = countBees(frames, output_video_path, detection_line_coefficient, video_writer, writer_fps, frame_shape)
+        beesIn, beesOut, detectedBees = countBees(frames, output_video_path, detection_line_coefficient, video_writer, writer_fps, frame_shape, entrance_position)
         print(f"✅ Bee counting completed: {beesIn} in, {beesOut} out, {detectedBees} detected", flush=True)
     except Exception as e:
         print(f"❌ Error during bee counting: {e}", flush=True)
@@ -51,7 +51,7 @@ def countBeesAndReportTelemetry(frames, output_video_path=None, on_complete=None
     end_time = time.time()
     print(f"⏱️ Time taken for countBeesAndReportTelemetry: {end_time - start_time:.2f} seconds", flush=True)
 
-def countBees(frames, output_video_path=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None):
+def countBees(frames, output_video_path=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
     track_history.clear()
     
     h, w = frame_shape
@@ -91,10 +91,16 @@ def countBees(frames, output_video_path=None, detection_line_coefficient=None, v
                 track = track_history[track_id]
                 track.append((float(bbox_center[0]), float(bbox_center[1])))
                 if len(track) > 2:
-                    if track[-2][1] < line_y and track[-1][1] >= line_y:
-                        in_counts += 1
-                    elif track[-2][1] > line_y and track[-1][1] <= line_y:
-                        out_counts += 1
+                    if entrance_position == 'bottom':
+                        if track[-2][1] < line_y and track[-1][1] >= line_y:
+                            in_counts += 1
+                        elif track[-2][1] > line_y and track[-1][1] <= line_y:
+                            out_counts += 1
+                    else: # entrance_position == 'top'
+                        if track[-2][1] < line_y and track[-1][1] >= line_y:
+                            out_counts += 1
+                        elif track[-2][1] > line_y and track[-1][1] <= line_y:
+                            in_counts += 1
                 if len(track) > 30:
                     track.pop(0)
 

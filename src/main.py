@@ -226,7 +226,7 @@ def index():
                 </div>
             </div>
          </div>
-         <div style="text-align: center; padding-top: 20px; font-size: 24px; color: #424242;">
+         <div id="hive-entrance-label" style="text-align: center; padding-top: 20px; font-size: 24px; color: #424242; cursor: pointer;">
            &darr; Hive Entrance &darr;
          </div>
          <div id="bee-counts-container" style="padding: 20px;">
@@ -266,6 +266,29 @@ def index():
          }
          setInterval(fetchBeeCounts, 10000);
          fetchBeeCounts();
+       </script>
+       <script>
+         const hiveEntranceLabel = document.getElementById('hive-entrance-label');
+         let entrancePosition = 'bottom';
+
+         hiveEntranceLabel.addEventListener('click', () => {
+           if (entrancePosition === 'bottom') {
+             entrancePosition = 'top';
+             hiveEntranceLabel.innerHTML = '&uarr; Hive Entrance &uarr;';
+             document.querySelector('.container').insertBefore(hiveEntranceLabel, document.querySelector('.video-container'));
+           } else {
+             entrancePosition = 'bottom';
+             hiveEntranceLabel.innerHTML = '&darr; Hive Entrance &darr;';
+             document.querySelector('.container').insertBefore(hiveEntranceLabel, document.getElementById('bee-counts-container'));
+           }
+           fetch('/api/set_entrance_position', {
+             method: 'POST',
+             headers: {
+               'Content-Type': 'application/json',
+             },
+             body: JSON.stringify({ position: entrancePosition }),
+           });
+         });
        </script>
        <script>
          const feedToggle = document.getElementById('feed-toggle');
@@ -382,6 +405,14 @@ def bee_counts():
     return jsonify(list(bee_counts_history))
 
 detection_line_coefficient = float(os.getenv("DETECTION_LINE", 0.5))
+entrance_position = 'bottom'
+
+@app.route("/api/set_entrance_position", methods=['POST'])
+def set_entrance_position():
+    global entrance_position
+    data = request.get_json()
+    entrance_position = data['position']
+    return jsonify(success=True)
 
 @app.route("/api/set_detection_line", methods=['POST'])
 def set_detection_line():
@@ -570,7 +601,7 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height):
 
         detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, writer_fps, (target_width, target_height))
         
-        count_bees_from_frames_async(frames_for_counting, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=writer_fps, frame_shape=(target_height, target_width))
+        count_bees_from_frames_async(frames_for_counting, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=writer_fps, frame_shape=(target_height, target_width), entrance_position=entrance_position)
         delete_old_mp4_files()
 
 def warm_up_camera(camera, num_frames=10):
