@@ -35,6 +35,9 @@ def countBeesAndReportTelemetry(frames, output_video_path=None, on_complete=None
     except Exception as e:
         print(f"❌ Error during bee counting: {e}", flush=True)
         return
+    finally:
+        if video_writer:
+            video_writer.release()
     
     bearer_token = os.getenv("API_TOKEN")
     hiveId = os.getenv("HIVE_ID")

@@ -469,8 +469,11 @@ def warm_up_camera(camera, num_frames=10):
     print("✅ Camera warm-up successful.")
     return True
 
-def measure_actual_fps(camera, duration_sec=15):
+def measure_actual_fps(camera, target_width, target_height, duration_sec=15):
     """Measures the actual frames per second of the camera."""
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, target_width)
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, target_height)
+    
     calib_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
     calib_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
     print(f"Calibrating camera FPS over {duration_sec} seconds at {calib_width}x{calib_height} resolution...")
@@ -526,7 +529,7 @@ def startObserverClient():
     print(f"🎯 Using resolution: {target_width}x{target_height}")
 
     # Calibrate at the target resolution to get the true sustainable FPS
-    writer_fps = measure_actual_fps(camera)
+    writer_fps = measure_actual_fps(camera, target_width, target_height)
     if writer_fps < 1:
         print(f"⚠️ FPS calibration failed. Falling back to requested FPS: {FPS}")
         writer_fps = FPS
