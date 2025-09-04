@@ -92,6 +92,8 @@ We use env vars and we load them from `.env` file for ease of management.
 |CONFIDENCE|detection confidence threshold, from 0 to 1|0.5|
 |DETECTION_LINE|coefficient for the vertical position of the counting line, from 0 to 1|0.5|
 |VIDEO_CHUNK_LENGTH_SEC|length of the video chunks in seconds. Smaller values result in more files created. Higher values in larger video file size getting uploaded and higher probability of upload as some bee may get detected coming in/out. Higher values also give more room to increase resolution/fps for best performance fit | 60 |
+|DAY_START_HOUR|The hour (0-23) when the service should start processing video. Set to DAY_END_HOUR to disable the sleep schedule.|6|
+|DAY_END_HOUR|The hour (0-23) when the service should stop processing video and sleep. Set to DAY_START_HOUR to disable the sleep schedule.|22|
 
 
 #### Listing cameras
