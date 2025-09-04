@@ -25,11 +25,12 @@ frame_lock = threading.Lock()
 bee_counts_history = deque(maxlen=3600)  # Store up to last 10h. 10*60*6 entries (1 hour if updated every 10 sec)
 capture_thread_running = False
 camera_properties = {
-    "brightness": 120,
-    "contrast": 95,
-    "saturation": 128,
+    "brightness": 42,
+    "contrast": 2,
+    "saturation": 66,
     "gain": 0,
-    "exposure": -6
+    "exposure": -10,
+    "jpeg_quality": 90
 }
 camera_lock = threading.Lock()
 camera_instance = None
@@ -199,6 +200,11 @@ def index():
                     <label for="exposure">Exposure</label>
                     <input type="range" id="exposure" name="exposure" min="-10" max="0" value="{{ camera_properties.exposure }}">
                     <span id="exposure-value">{{ camera_properties.exposure }}</span>
+                </div>
+                <div class="control">
+                    <label for="jpeg_quality">JPEG Quality</label>
+                    <input type="range" id="jpeg_quality" name="jpeg_quality" min="0" max="100" value="{{ camera_properties.jpeg_quality }}">
+                    <span id="jpeg_quality-value">{{ camera_properties.jpeg_quality }}</span>
                 </div>
             </div>
          </div>
