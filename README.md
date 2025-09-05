@@ -3,7 +3,8 @@
 Beehive entrance video processing client app.
 Intended to be deployed on edge on NVidia Jetson Orin / Jetson Nano / Mac or similar GPU-capable machines.
 
-https://github.com/user-attachments/assets/a3243245-34a8-4626-a990-f7e34b7b8ff6
+<img width="1184" height="1023" alt="Screenshot 2025-09-05 at 13 09 06" src="https://github.com/user-attachments/assets/0f2b447f-0fdb-401c-84ee-fb1d27935cb6" />
+<img width="961" height="1166" alt="Screenshot 2025-09-05 at 13 08 48" src="https://github.com/user-attachments/assets/37796d5a-e7ad-42c2-bdf2-18f58a79289a" />
 
 
 ## Features
