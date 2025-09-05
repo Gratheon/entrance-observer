@@ -682,6 +682,7 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height):
 
             frames_for_counting.append((annotated_frame, results, capture_time))
 
+        actual_duration = time.time() - start_time
         avg_inference_time = total_inference_time / frames_processed if frames_processed > 0 else 0
         print(f"🧠 Avg inference time (last chunk): {avg_inference_time:.4f}s")
 
@@ -699,9 +700,11 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height):
             else:
                 print("🤫 No bees detected, skipping upload")
 
-        detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, writer_fps, (target_width, target_height))
+        detect_video_fps = len(frames_for_counting) / actual_duration if actual_duration > 0 else writer_fps
+        print(f"📹 Writing detections video with {detect_video_fps:.2f} FPS")
+        detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, detect_video_fps, (target_width, target_height))
         
-        count_bees_from_frames_async(frames_for_counting, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=writer_fps, frame_shape=(target_height, target_width), entrance_position=entrance_position)
+        count_bees_from_frames_async(frames_for_counting, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=detect_video_fps, frame_shape=(target_height, target_width), entrance_position=entrance_position)
         delete_old_mp4_files()
 
 def warm_up_camera(camera, num_frames=10):
