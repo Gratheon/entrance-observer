@@ -99,6 +99,7 @@ We use env vars and we load them from `.env` file for ease of management.
 |VIDEO_CHUNK_LENGTH_SEC|length of the video chunks in seconds. Smaller values result in more files created. Higher values in larger video file size getting uploaded and higher probability of upload as some bee may get detected coming in/out. Higher values also give more room to increase resolution/fps for best performance fit | 60 |
 |DAY_START_HOUR|The hour (0-23) when the service should start processing video. Set to DAY_END_HOUR to disable the sleep schedule.|6|
 |DAY_END_HOUR|The hour (0-23) when the service should stop processing video and sleep. Set to DAY_START_HOUR to disable the sleep schedule.|22|
+|VIDEO_RETENTION_MINUTES|The number of minutes to retain recorded videos before deleting them. Defaults to 1440 (24 hours).|1440|
 
 
 #### Listing cameras

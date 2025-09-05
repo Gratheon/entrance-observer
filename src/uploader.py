@@ -81,10 +81,11 @@ def uploadAndRemove(output_file: str, detections_file: str, start_time_utc: date
 
 def delete_old_mp4_files():
     directory = "./videos"
-    max_age_hours = 1
+    retention_minutes = os.getenv("VIDEO_RETENTION_MINUTES", "1440")  # Default to 24 hours
+    max_age_minutes = int(retention_minutes)
     now = datetime.now()
-    max_age = timedelta(hours=max_age_hours)
-    
+    max_age = timedelta(minutes=max_age_minutes)
+
     for file_path in glob.glob(os.path.join(directory, '*.mp4')):
         file_mtime = datetime.fromtimestamp(os.path.getmtime(file_path))
         if now - file_mtime > max_age:
