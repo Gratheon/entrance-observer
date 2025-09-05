@@ -244,13 +244,22 @@ def index():
          </div>
          <div id="bee-counts-container" style="padding: 20px;">
            <h3 style="text-align: center; color: #424242; font-weight: 500;">Bee Traffic</h3>
-           <table id="bee-counts-table" style="width: 100%; border-collapse: collapse;">
+           <canvas id="traffic-chart" width="400" height="100"></canvas>
+           <h3 style="text-align: center; color: #424242; font-weight: 500;">Bee Detection</h3>
+           <canvas id="detection-chart" width="400" height="100"></canvas>
+           <h3 style="text-align: center; color: #424242; font-weight: 500;">Bee Speed</h3>
+           <canvas id="speed-chart" width="400" height="100"></canvas>
+           <table id="bee-counts-table" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
              <thead>
                <tr>
+                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Time</th>
                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Incoming</th>
                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Outgoing</th>
+                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Net Flow</th>
                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Detected</th>
-                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Time</th>
+                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Avg Speed</th>
+                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">P95 Speed</th>
+                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Stationary</th>
                </tr>
              </thead>
              <tbody>
@@ -258,7 +267,9 @@ def index():
            </table>
          </div>
        </div>
+       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
        <script>
+         let trafficChart, detectionChart, speedChart;
          function fetchBeeCounts() {
            fetch('/api/bee_counts')
              .then(response => response.json())
@@ -268,13 +279,75 @@ def index():
                data.forEach(count => {
                  const row = document.createElement('tr');
                  row.innerHTML = `
-                   <td style="border: 1px solid #ddd; padding: 8px;">${count.incoming}</td>
-                   <td style="border: 1px solid #ddd; padding: 8px;">${count.outgoing}</td>
-                   <td style="border: 1px solid #ddd; padding: 8px;">${count.detected}</td>
                    <td style="border: 1px solid #ddd; padding: 8px;">${count.time}</td>
+                   <td style="border: 1px solid #ddd; padding: 8px;">${count.bees_in}</td>
+                   <td style="border: 1px solid #ddd; padding: 8px;">${count.bees_out}</td>
+                   <td style="border: 1px solid #ddd; padding: 8px;">${count.net_flow}</td>
+                   <td style="border: 1px solid #ddd; padding: 8px;">${count.detected_bees}</td>
+                   <td style="border: 1px solid #ddd; padding: 8px;">${count.avg_speed_px_per_frame.toFixed(2)}</td>
+                   <td style="border: 1px solid #ddd; padding: 8px;">${count.p95_speed_px_per_frame.toFixed(2)}</td>
+                   <td style="border: 1px solid #ddd; padding: 8px;">${count.stationary_bees_count}</td>
                  `;
                  tableBody.insertBefore(row, tableBody.firstChild);
                });
+
+               const labels = data.map(d => d.time);
+               
+               // Data for Traffic Chart
+               const beesInData = data.map(d => d.bees_in);
+               const beesOutData = data.map(d => d.bees_out);
+               const netFlowData = data.map(d => d.net_flow);
+
+               // Data for Detection Chart
+               const detectedBeesData = data.map(d => d.detected_bees);
+               const stationaryBeesData = data.map(d => d.stationary_bees_count);
+
+               // Data for Speed Chart
+               const avgSpeedData = data.map(d => d.avg_speed_px_per_frame);
+               const p95SpeedData = data.map(d => d.p95_speed_px_per_frame);
+
+               function createOrUpdateChart(chartInstance, chartId, chartLabels, datasets) {
+                   if (chartInstance) {
+                       chartInstance.data.labels = chartLabels;
+                       datasets.forEach((dataset, index) => {
+                           chartInstance.data.datasets[index].data = dataset.data;
+                       });
+                       chartInstance.update();
+                   } else {
+                       const ctx = document.getElementById(chartId).getContext('2d');
+                       chartInstance = new Chart(ctx, {
+                           type: 'line',
+                           data: {
+                               labels: chartLabels,
+                               datasets: datasets
+                           },
+                           options: {
+                               scales: {
+                                   y: {
+                                       beginAtZero: true
+                                   }
+                               }
+                           }
+                       });
+                   }
+                   return chartInstance;
+               }
+
+               trafficChart = createOrUpdateChart(trafficChart, 'traffic-chart', labels, [
+                   { label: 'Incoming Bees', data: beesInData, borderColor: 'rgb(75, 192, 192)', tension: 0.1 },
+                   { label: 'Outgoing Bees', data: beesOutData, borderColor: 'rgb(255, 99, 132)', tension: 0.1 },
+                   { label: 'Net Flow', data: netFlowData, borderColor: 'rgb(54, 162, 235)', tension: 0.1 }
+               ]);
+
+               detectionChart = createOrUpdateChart(detectionChart, 'detection-chart', labels, [
+                   { label: 'Detected Bees', data: detectedBeesData, borderColor: 'rgb(255, 206, 86)', tension: 0.1 },
+                   { label: 'Stationary Bees', data: stationaryBeesData, borderColor: 'rgb(153, 102, 255)', tension: 0.1 }
+               ]);
+
+               speedChart = createOrUpdateChart(speedChart, 'speed-chart', labels, [
+                   { label: 'Avg Speed (px/frame)', data: avgSpeedData, borderColor: 'rgb(255, 159, 64)', tension: 0.1 },
+                   { label: 'P95 Speed (px/frame)', data: p95SpeedData, borderColor: 'rgb(75, 192, 75)', tension: 0.1 }
+               ]);
              });
          }
          setInterval(fetchBeeCounts, 10000);
@@ -614,14 +687,11 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height):
 
         start_time_utc = datetime.datetime.utcnow()
 
-        def upload_detect_file(file_path, beesIn, beesOut, detectedBees):
-            bee_counts_history.append({
-                "incoming": beesIn,
-                "outgoing": beesOut,
-                "detected": detectedBees,
-                "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            })
-            if beesIn > 0 or beesOut > 0:
+        def upload_detect_file(file_path, metrics_data):
+            metrics_data["time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            bee_counts_history.append(metrics_data)
+            
+            if metrics_data["bees_in"] > 0 or metrics_data["bees_out"] > 0:
                 print(f"☁️ Uploading debug file: {file_path}")
                 # The original `output_file` is not available in this thread.
                 # We pass the detections file path for both arguments to prevent a crash.
