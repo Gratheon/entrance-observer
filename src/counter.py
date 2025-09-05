@@ -99,8 +99,8 @@ def countBees(frames, output_video_path=None, detection_line_coefficient=None, v
 
     for i, (frame, results, capture_time) in enumerate(frames):
         if video_writer:
-            annotated_frame = results[0].plot()
-            resized_annotated_frame = cv2.resize(annotated_frame, (w, h))
+            resized_annotated_frame = cv2.resize(frame, (w, h))
+            cv2.line(resized_annotated_frame, (0, line_y), (w, line_y), (0, 0, 255), 2)
             video_writer.write(resized_annotated_frame)
 
         boxes = results[0].boxes

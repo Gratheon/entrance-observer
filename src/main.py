@@ -680,7 +680,7 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height):
                 video_frame = frame.copy()
                 yolo_frame = annotated_frame.copy()
 
-            frames_for_counting.append((frame, results, capture_time))
+            frames_for_counting.append((annotated_frame, results, capture_time))
 
         avg_inference_time = total_inference_time / frames_processed if frames_processed > 0 else 0
         print(f"🧠 Avg inference time (last chunk): {avg_inference_time:.4f}s")
