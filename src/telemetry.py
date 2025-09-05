@@ -2,10 +2,25 @@ import threading
 import requests
 import json
 from datetime import datetime
+import os
+
+def _ensure_telemetry_dir():
+    """Ensures the telemetry directory exists."""
+    telemetry_dir = "/app/telemetry"
+    print(f"ℹ️ Ensuring telemetry directory exists at: {telemetry_dir}")
+    if not os.path.exists(telemetry_dir):
+        print(f"⚠️ Telemetry directory not found. Creating it...")
+        os.makedirs(telemetry_dir)
+    return telemetry_dir
 
 def save_track_history_locally(track_history, frame_shape):
-    """Saves track history data to a local jsonl file."""
+    """Saves track history data to a local jsonl file with daily rotation."""
     try:
+        telemetry_dir = _ensure_telemetry_dir()
+        date_str = datetime.utcnow().strftime('%Y-%m-%d')
+        file_path = os.path.join(telemetry_dir, f"track_history_{date_str}.jsonl")
+        print(f"📝 Attempting to write track history to: {file_path}")
+        
         timestamp = datetime.utcnow().isoformat()
         
         # Convert coordinates to integers and defaultdict to a regular dict
@@ -22,23 +37,28 @@ def save_track_history_locally(track_history, frame_shape):
             },
             "track_history": serializable_history,
         }
-        with open("track_history.jsonl", "a") as f:
+        with open(file_path, "a") as f:
             f.write(json.dumps(data) + "\n")
-        print("✅ Track history saved locally.")
+        print(f"✅ Track history saved locally to {file_path}.")
     except Exception as e:
         print(f"❌ Error saving track history locally: {e}")
 
 def save_telemetry_locally(metrics_data):
-    """Saves telemetry data to a local jsonl file."""
+    """Saves telemetry data to a local jsonl file with daily rotation."""
     try:
+        telemetry_dir = _ensure_telemetry_dir()
+        date_str = datetime.utcnow().strftime('%Y-%m-%d')
+        file_path = os.path.join(telemetry_dir, f"metrics_{date_str}.jsonl")
+        print(f"📝 Attempting to write telemetry to: {file_path}")
+
         timestamp = datetime.utcnow().isoformat()
         data = {
             "timestamp": timestamp,
             "metrics": metrics_data,
         }
-        with open("metrics.jsonl", "a") as f:
+        with open(file_path, "a") as f:
             f.write(json.dumps(data) + "\n")
-        print("✅ Telemetry saved locally.")
+        print(f"✅ Telemetry saved locally to {file_path}.")
     except Exception as e:
         print(f"❌ Error saving telemetry locally: {e}")
 

@@ -17,6 +17,7 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=all
     volumes:
       - ./videos:/app/videos # Persist the videos
+      - ./telemetry:/app/telemetry # Persist the telemetry data
       - /tmp:/tmp
       - /usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra
       - /usr/lib/aarch64-linux-gnu/tegra-egl:/usr/lib/aarch64-linux-gnu/tegra-egl
