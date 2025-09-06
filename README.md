@@ -13,6 +13,8 @@ https://github.com/user-attachments/assets/179273c2-4683-4879-bcb9-0aa2abe75953
 
 - **Video capture**. Best to use 4K USB camera. Streams data into memory and then store it on disk with as 30 sec chunks (configureable)
 	- Tries to autodetect camera if its not found
+	- Runs calibration of camera bandwidth to ensure stable FPS in output videos as we cannot dynamically change FPS after video encoding has started.
+	Tested with 1280x720 resolution @ 15FPS on USB2 using Jetson Orin Nano
 - **Detects bees** using YOLO 11 model with custom bee detection weights.
 - **Tracks bees movements and speeds** and estimates their movement speeds. Stores tracks for potential behavioural analysis
 - **Counts incoming and outgoing bees**. Calculates net flow. Useful to estimate forager loss.
@@ -26,7 +28,8 @@ https://github.com/user-attachments/assets/179273c2-4683-4879-bcb9-0aa2abe75953
 	- detected bees
 	- incoming/outgoing bees
 	- max log is the past 10h
-	- sleep at night time (22:00-06:00)
+	- sleep at night time (22:00-06:00) to avoid loading the system and network when bees are not visible
+	- stores settings in data/settings.json for persistance if you need to restart docker container or reload/re-visit WebUI
 - **Telemetry** - metrics  are sent to [gratheon web-app](https://github.com/Gratheon/web-app/) for aggregate statistics
 
 
@@ -79,11 +82,11 @@ pip install -r requirements.txt
 - Open service web ui (see URL section below)
 
 ### Tuning
-- Once service runs, make sure its detection speed is below 10 sec video segment. Otherwise you risk of having detection being slower than recording, thus crashing the service. Ex. in logs:
+- Once service runs, make sure its detection speed is below `VIDEO_CHUNK_LENGTH_SEC` (30 sec) video segment. Otherwise you risk of having detection being slower than recording, thus crashing the service. Ex. in logs:
 ```
-Time taken for countBeesAndReportTelemetry: 7.31 seconds
+Time taken for countBeesAndReportTelemetry: 28.31 seconds
 ```
-- Reduce width/height or FPS if detection is too slow
+
 - Check wether videos are uploaded to the web-app and are accessible for playback there.
 
 
