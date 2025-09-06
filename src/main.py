@@ -3,6 +3,7 @@ import time
 import datetime
 import cv2
 import platform
+import json
 from flask import Flask, Response, render_template_string, jsonify, request
 import threading
 import logging
@@ -39,6 +40,8 @@ camera_properties = {
 }
 camera_lock = threading.Lock()
 camera_instance = None
+detection_line_coefficient = 0.5
+entrance_position = 'bottom'
 track_history = defaultdict(list)
 track_colors = {}
 
@@ -355,7 +358,14 @@ def index():
        </script>
        <script>
          const hiveEntranceLabel = document.getElementById('hive-entrance-label');
-         let entrancePosition = 'bottom';
+         let entrancePosition = '{{ entrance_position }}';
+
+         if (entrancePosition === 'top') {
+             hiveEntranceLabel.innerHTML = '&uarr; Hive Entrance &uarr;';
+             document.querySelector('.container').insertBefore(hiveEntranceLabel, document.querySelector('.video-container'));
+         } else {
+             hiveEntranceLabel.innerHTML = '&darr; Hive Entrance &darr;';
+         }
 
          hiveEntranceLabel.addEventListener('click', () => {
            if (entrancePosition === 'bottom') {
@@ -460,7 +470,7 @@ def index():
      </body>
    </html>
    """
-    return render_template_string(html, detection_line_coefficient=detection_line_coefficient, camera_properties=camera_properties)
+    return render_template_string(html, detection_line_coefficient=detection_line_coefficient, camera_properties=camera_properties, entrance_position=entrance_position)
 
 @app.route("/api/set_camera_properties", methods=['POST'])
 def set_camera_properties():
@@ -474,6 +484,7 @@ def set_camera_properties():
             # This function will be created in cameras.py
             from src.cameras import apply_camera_properties
             apply_camera_properties(camera_instance, camera_properties)
+    save_settings()
     return jsonify(success=True)
 
 @app.route("/video_feed")
@@ -490,14 +501,12 @@ def video_feed_yolo():
 def bee_counts():
     return jsonify(list(bee_counts_history))
 
-detection_line_coefficient = float(os.getenv("DETECTION_LINE", 0.5))
-entrance_position = 'bottom'
-
 @app.route("/api/set_entrance_position", methods=['POST'])
 def set_entrance_position():
     global entrance_position
     data = request.get_json()
     entrance_position = data['position']
+    save_settings()
     return jsonify(success=True)
 
 @app.route("/api/set_detection_line", methods=['POST'])
@@ -505,6 +514,7 @@ def set_detection_line():
     global detection_line_coefficient
     data = request.get_json()
     detection_line_coefficient = data['coefficient']
+    save_settings()
     return jsonify(success=True)
 
 def frame_capture_thread(camera, video_queue, ai_queue):
@@ -750,6 +760,7 @@ def measure_actual_fps(camera, target_width, target_height, duration_sec=5):
 
 def startObserverClient():
     global capture_thread_running, camera_instance
+    load_settings()
     FPS = int(os.getenv("FPS", 30))
     WIDTH_PX = int(os.getenv("WIDTH_PX", 640))
     HEIGHT_PX = int(os.getenv("HEIGHT_PX", 480))
@@ -818,6 +829,30 @@ def startObserverClient():
         if 'proc_thread' in locals() and proc_thread.is_alive():
             proc_thread.join()
         camera.release()
+
+def save_settings():
+    settings = {
+        "camera_properties": camera_properties,
+        "detection_line_coefficient": detection_line_coefficient,
+        "entrance_position": entrance_position
+    }
+    settings_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
+    os.makedirs(settings_dir, exist_ok=True)
+    settings_path = os.path.join(settings_dir, 'settings.json')
+    with open(settings_path, 'w') as f:
+        json.dump(settings, f, indent=4)
+
+def load_settings():
+    global camera_properties, detection_line_coefficient, entrance_position
+    try:
+        settings_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'settings.json')
+        with open(settings_path, 'r') as f:
+            settings = json.load(f)
+            camera_properties.update(settings.get("camera_properties", camera_properties))
+            detection_line_coefficient = settings.get("detection_line_coefficient", detection_line_coefficient)
+            entrance_position = settings.get("entrance_position", entrance_position)
+    except FileNotFoundError:
+        save_settings()
 
 if __name__ == '__main__':
     observer_thread = threading.Thread(target=startObserverClient)

@@ -16,6 +16,7 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
     volumes:
+      - ./data:/app/data # Persist the settings
       - ./videos:/app/videos # Persist the videos
       - ./telemetry:/app/telemetry # Persist the telemetry data
       - /tmp:/tmp

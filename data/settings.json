@@ -1,0 +1,15 @@
+{
+    "camera_properties": {
+        "brightness": 96,
+        "contrast": 30,
+        "saturation": 28,
+        "gain": 0,
+        "exposure": -6,
+        "white_balance_temperature": 4000,
+        "gamma": 78,
+        "sharpness": 128,
+        "backlight": 1
+    },
+    "detection_line_coefficient": 0.55,
+    "entrance_position": "top"
+}
