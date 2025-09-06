@@ -182,3 +182,7 @@ The video processing pipeline is designed to be robust and efficient, handling b
 ### Video Processing Workflow
 
 The application uses OpenCV for both video capture and encoding. The `cv2.VideoCapture` function is used to interface with the camera hardware, and the `cv2.VideoWriter` function is used to encode the video. This approach was chosen for its simplicity and reliability across different platforms.
+
+## See also
+- https://github.com/BeeAlarmed/BeeAlarmed
+- http://github.com/Mjrovai/Bee-Counting/
