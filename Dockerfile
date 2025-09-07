@@ -46,20 +46,12 @@ RUN apt-get update && apt-get install -y \
 
 
 # Copy the application files into the container
-COPY . .
-COPY img ./img
+COPY requirements.jetson.txt .
 
 # Install the Python dependencies from requirements.jetson.txt
-#RUN python3 -m pip install --no-cache-dir -v --index-url=https://pypi.org/simple --trusted-host pypi.org -r requirements.jetson.txt
+RUN python3 -m pip install --no-cache-dir -v --index-url=https://pypi.org/simple --trusted-host pypi.org -r requirements.jetson.txt
 
-RUN python3 -m pip install --no-cache-dir -v requests-toolbelt
-RUN python3 -m pip install --no-cache-dir -v ultralytics==8.3
-RUN python3 -m pip install --no-cache-dir -v "shapely>=2.0"
-RUN python3 -m pip install --no-cache-dir -v "lapx>=0.5"
-RUN python3 -m pip install --no-cache-dir -v python-dotenv==1.0
-RUN python3 -m pip install --no-cache-dir -v Flask==3.1
-RUN python3 -m pip install --no-cache-dir -v opencv-python-headless
-RUN python3 -m pip install --no-cache-dir -v waitress
+COPY . .
 
  
 # Set the default command to run the application

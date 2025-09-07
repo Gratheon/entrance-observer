@@ -1,0 +1,30 @@
+# Git and OS-specific files
+.git
+.DS_Store
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Large data and media directories that should not be in the image
+videos/
+remote-videos/
+runs/
+telemetry/
+
+# Documentation and research materials
+research-paper/
+
+# Testing and training notebooks
+tests/
+tests_integration/
+training-notebook/
+
+# Environment files and local configurations
+.env
+example.env
+*.env
+
+# IDE/Editor specific files
+.vscode/
+.idea/

@@ -5,3 +5,4 @@ lapx>=0.5
 python-dotenv==1.0
 Flask==3.1
 opencv-python-headless
+waitress
