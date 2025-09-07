@@ -62,10 +62,10 @@ The `entrance-observer` application is a Python-based software package that runs
 The overall system architecture is composed of several microservices that work together to collect, process, and display the data from the beehive. The following diagram illustrates the flow of data and the interactions between the different components:
 
 ```mermaid
-flowchart TD
+flowchart LR
     subgraph "Edge Device (Beehive)"
-        Camera[Camera] --> EntranceObserver(entrance-observer);
-        EntranceObserver -- "Bee Detection & Tracking" --> EntranceObserver;
+        Camera[🎥 Camera] --"stream MJPEG frames"--> EntranceObserver(entrance-observer);
+        EntranceObserver -- "Store metrics and tracks <br /> Store video files <br />Periodically delete old video files" --> SSD;
     end
 
     subgraph "Cloud Infrastructure"
@@ -84,9 +84,10 @@ flowchart TD
         WebApp -- "Display Grafana Dashboards" --> Grafana;
     end
 
-    subgraph "User"
-        Beekeeper[Beekeeper] -- "View Data & Videos" --> WebApp;
-    end
+    
+    Beekeeper[Beekeeper] -- "View Data & Videos" --> WebApp;
+    Beekeeper[Beekeeper] -- "Setup entrance observer" --> EntranceObserver;
+
 ```
 
 The video processing pipeline is built using OpenCV. It captures frames from the camera, resizes them to a manageable resolution, and then passes them to two separate queues: one for video writing and one for AI processing. This multi-threaded approach ensures that the video capture process is not blocked by the computationally intensive AI processing.
@@ -140,7 +141,7 @@ During the setup process, several hardware and software challenges were encounte
 - The Wi-Fi signal at the apiary was not strong enough for the Jetson Orin Nano to maintain a stable connection, so a TP-Link Wi-Fi extender was installed to boost the signal.
 - On the software side, installing PyTorch with GPU support on the Jetson Orin Nano proved to be a significant hurdle. To overcome the PyTorch dependency issues, a Docker-based approach was adopted, using the official Ultralytics Docker image. While this solved the dependency issues, it also meant that a native Python UI could not be used. Consequently, a web-based UI was developed to provide a way to preview the results and configure the system.
 - Furthermore, initial attempts on September 3rd to implement a high-performance, GPU-accelerated video capture pipeline using GStreamer were unsuccessful. This effort was hampered by persistent "Argus" errors related to the camera drivers and the discovery that the Jetson Orin Nano's hardware does not include a dedicated h264 encoder chip. This limitation prevented efficient, high-resolution video compression on the device. Consequently, this approach was abandoned in favor of a less efficient, purely software-based video capture method using OpenCV, which contributed to the constraints on frame rate and resolution. This experience suggests that alternative hardware, such as an Apple Mac Mini or a newer NVIDIA Jetson model with more robust multimedia encoding capabilities, could be a more viable option for future iterations.
-- **Docker Build Failures and Disk Space Exhaustion:** A significant challenge was encountered during the Docker build process on the Jetson Orin Nano. The build would consistently fail with a "no space left on device" error. This was traced back to the `COPY . .` instruction in the `Dockerfile`, which was attempting to copy the entire project directory, including gigabytes of recorded video files (`videos/`, `remote-videos/`) and model training artifacts (`runs/`), into the Docker image. This bloated the build context to over 27GB, exceeding the available disk space. The issue was resolved by creating a `.dockerignore` file in the project's root directory. This file explicitly excludes large, non-essential directories from the build context, dramatically reducing its size and allowing the Docker image to be built successfully. This experience highlights the critical importance of managing the Docker build context, especially on resource-constrained edge devices.
+- Docker Build Failures and Disk Space Exhaustion: A significant challenge was encountered during the Docker build process on the Jetson Orin Nano. The build would consistently fail with a "no space left on device" error. This was traced back to the `COPY . .` instruction in the `Dockerfile`, which was attempting to copy the entire project directory, including gigabytes of recorded video files (`videos/`, `remote-videos/`), into the Docker image. This bloated the build context to over 27GB, exceeding the available disk space. The issue was resolved by creating a `.dockerignore` file in the project's root directory. 
 ![](./Screenshot%202025-09-07%20at%2021.18.40.png)
 
 
