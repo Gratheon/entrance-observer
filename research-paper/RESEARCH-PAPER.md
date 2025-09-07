@@ -59,7 +59,10 @@ The following table details the components used to build the `entrance-observer`
 
 The `entrance-observer` application is a Python-based software package that runs on the edge device. It is responsible for capturing video, processing it in real-time, and uploading the results to the cloud. The application is built using a modular architecture, with different components responsible for different tasks.
 
-The overall system architecture is composed of several microservices that work together to collect, process, and display the data from the beehive. The following diagram illustrates the flow of data and the interactions between the different components:
+Logs of service startup:
+![](./Screenshot%202025-09-07%20at%2021.42.52.png)
+
+The overall system architecture is composed of several microservices that work together to collect, process, and display the data from the beehive. However `entrance-observer` is self-sufficient and can collect and visualize data without cloud services. The following diagram illustrates the flow of data and the interactions between the different components:
 
 ```mermaid
 flowchart LR
@@ -107,6 +110,7 @@ Bee detection and tracking is performed using a YOLOv8 model. The model has been
 
 The application also provides a local web UI, which is built using Flask. The web UI allows the user to view a live video feed from the camera, monitor the bee traffic statistics, and adjust the camera settings.
 
+Graphs of metrics in entrance-observer UI:
 ![](./Screenshot%202025-09-07%20at%2015.39.46.png)
 
 
@@ -121,6 +125,7 @@ The Gratheon web application is a cloud-based platform that provides a centraliz
 
 The web application is designed to be a powerful tool for beekeepers, providing them with the information they need to make informed decisions about the management of their colonies.
 
+Gratheon web-app showing hive management along with entrance section (box) and tied to it stream playbacks. Modular configuration allows to have multiple observable hive entrances, which is not so common.
 ![](./Screenshot%202025-09-07%20at%2019.08.42.png)
 
 
