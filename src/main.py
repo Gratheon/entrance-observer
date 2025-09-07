@@ -12,6 +12,7 @@ from collections import deque, defaultdict
 import queue
 import numpy as np
 import random
+from scipy.spatial.distance import pdist, squareform
 
 from src.cameras import list_available_cameras, get_default_camera_config, initialize_camera
 from src.video_utils import VideoWriterFactory
@@ -263,6 +264,7 @@ def index():
                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Avg Speed</th>
                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">P95 Speed</th>
                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Stationary</th>
+                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Interactions</th>
                </tr>
              </thead>
              <tbody>
@@ -290,6 +292,7 @@ def index():
                    <td style="border: 1px solid #ddd; padding: 8px;">${count.avg_speed_px_per_frame.toFixed(2)}</td>
                    <td style="border: 1px solid #ddd; padding: 8px;">${count.p95_speed_px_per_frame.toFixed(2)}</td>
                    <td style="border: 1px solid #ddd; padding: 8px;">${count.stationary_bees_count}</td>
+                   <td style="border: 1px solid #ddd; padding: 8px;">${count.bee_interactions}</td>
                  `;
                  tableBody.insertBefore(row, tableBody.firstChild);
                });
@@ -304,6 +307,7 @@ def index():
                // Data for Detection Chart
                const detectedBeesData = data.map(d => d.detected_bees);
                const stationaryBeesData = data.map(d => d.stationary_bees_count);
+               const interactionsData = data.map(d => d.bee_interactions);
 
                // Data for Speed Chart
                const avgSpeedData = data.map(d => d.avg_speed_px_per_frame);
@@ -344,7 +348,8 @@ def index():
 
                detectionChart = createOrUpdateChart(detectionChart, 'detection-chart', labels, [
                    { label: 'Detected Bees', data: detectedBeesData, borderColor: 'rgb(255, 206, 86)', tension: 0.1 },
-                   { label: 'Stationary Bees', data: stationaryBeesData, borderColor: 'rgb(153, 102, 255)', tension: 0.1 }
+                   { label: 'Stationary Bees', data: stationaryBeesData, borderColor: 'rgb(153, 102, 255)', tension: 0.1 },
+                   { label: 'Interactions', data: interactionsData, borderColor: 'rgb(255, 99, 132)', tension: 0.1 }
                ]);
 
                speedChart = createOrUpdateChart(speedChart, 'speed-chart', labels, [
@@ -653,6 +658,7 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
         frames_for_counting = []
         total_inference_time = 0
         frames_processed = 0
+        total_interactions = 0
         start_time = time.time()
         while (time.time() - start_time) < video_chunk_length:
             try:
@@ -669,8 +675,22 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
 
             annotated_frame = results[0].plot()
 
-            # Draw the tracking lines
+            # Interaction detection
             boxes = results[0].boxes
+            if boxes.is_track and len(boxes.xyxy) > 1:
+                coords = np.array([((box[0] + box[2]) / 2, (box[1] + box[3]) / 2) for box in boxes.xyxy.cpu()])
+                dist_matrix = squareform(pdist(coords))
+                close_pairs = np.argwhere((dist_matrix > 0) & (dist_matrix < 40)) # 40px threshold
+                
+                for i, j in close_pairs:
+                    if i < j:
+                        total_interactions += 1
+                        x1, y1 = coords[i]
+                        x2, y2 = coords[j]
+                        cv2.circle(annotated_frame, (int(x1), int(y1)), 20, (0, 255, 0), 2)
+                        cv2.circle(annotated_frame, (int(x2), int(y2)), 20, (0, 255, 0), 2)
+
+            # Draw the tracking lines
             if boxes.is_track:
                 for box, track_id in zip(boxes.xyxy.cpu(), boxes.id.int().cpu().tolist()):
                     bbox_center = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
@@ -714,7 +734,7 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
         print(f"📹 Writing detections video with {detect_video_fps:.2f} FPS")
         detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, detect_video_fps, (detect_video_width, detect_video_height))
         
-        count_bees_from_frames_async(frames_for_counting, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=detect_video_fps, frame_shape=(detect_video_height, detect_video_width), entrance_position=entrance_position)
+        count_bees_from_frames_async(frames_for_counting, total_interactions, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=detect_video_fps, frame_shape=(detect_video_height, detect_video_width), entrance_position=entrance_position)
         delete_old_mp4_files()
 
 def warm_up_camera(camera, num_frames=10):

@@ -107,6 +107,7 @@ Bee detection and tracking is performed using a YOLOv8 model. The model has been
 *   **`avg_speed_px_per_frame`**: The average speed of all tracked bees, calculated as the mean Euclidean distance (in pixels) traveled by each bee between consecutive frames. This metric serves as a proxy for the overall activity level on the landing board.
 *   **`p95_speed_px_per_frame`**: The 95th percentile of bee speeds. This metric is more robust to outliers than the average and may better represent the speed of actively foraging bees.
 *   **`stationary_bees_count`**: The number of bees that are considered stationary. A bee is flagged as stationary if the total distance it travels within the 30-second video chunk is below a predefined threshold (10 pixels), indicating behaviors such as guarding or resting.
+*   **`bee_interactions`**: The number of times bees come into close proximity with each other (within a 40-pixel threshold). This metric can be used to identify a variety of social behaviors, including guarding, food exchange (trophallaxis), or defensive actions against intruders.
 
 The application also provides a local web UI, which is built using Flask. The web UI allows the user to view a live video feed from the camera, monitor the bee traffic statistics, and adjust the camera settings.
 

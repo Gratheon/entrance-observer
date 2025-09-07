@@ -16,9 +16,9 @@ weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'we
 model = YOLO(weights_path)
 track_history = defaultdict(list)
 
-def count_bees_from_frames_async(frames, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
+def count_bees_from_frames_async(frames, total_interactions, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
     print(f"🐝 Starting bee counting for a batch of {len(frames)} frames", flush=True)
-    upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(frames, output_video_path, on_complete, detection_line_coefficient, video_writer, writer_fps, frame_shape, entrance_position))
+    upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(frames, total_interactions, output_video_path, on_complete, detection_line_coefficient, video_writer, writer_fps, frame_shape, entrance_position))
     upload_thread.start()
 
 def report_telemetry_async(metrics_data):
@@ -28,7 +28,7 @@ def report_telemetry_async(metrics_data):
     base_url = os.getenv("TELEMETRY_BASE_URL", "https://telemetry.gratheon.com")
     telemetry.report_telemetry_async(metrics_data, bearer_token, hiveId, boxId, base_url)
 
-def countBeesAndReportTelemetry(frames, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
+def countBeesAndReportTelemetry(frames, total_interactions, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
     start_time = time.time()
 
     try:
@@ -44,7 +44,8 @@ def countBeesAndReportTelemetry(frames, output_video_path=None, on_complete=None
     metrics_data = {
         "bees_in": beesIn,
         "bees_out": beesOut,
-        "detected_bees": detectedBees
+        "detected_bees": detectedBees,
+        "bee_interactions": total_interactions
     }
     
     derived_metrics = metrics.calculate_derived_metrics(final_track_history)

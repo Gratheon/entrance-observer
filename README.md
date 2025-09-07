@@ -51,6 +51,7 @@ The application collects a rich set of metrics to provide a comprehensive overvi
 -   **`avg_speed_px_per_frame`**: The average speed of all tracked bees, measured in pixels per frame. This provides an insight into the general flight speed of the bees.
 -   **`p95_speed_px_per_frame`**: The 95th percentile of bee speed. This helps to understand the top speed of the fastest bees, filtering out potential outliers.
 -   **`stationary_bees_count`**: The number of bees that are considered stationary (i.e., their total movement is below a certain threshold). This can be useful for identifying guard bees or bees performing orientation flights.
+-   **`bee_interactions`**: The number of times bees come into close proximity with each other. This can be used to identify a variety of behaviors, including guarding, food exchange (trophallaxis), or simple collisions.
 
 ### Raw Track History
 
