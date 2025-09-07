@@ -96,14 +96,13 @@ The video processing pipeline is built using OpenCV. It captures frames from the
 
 #### Metrics
 
-Bee detection and tracking is performed using a YOLOv8 model. The model has been pre-trained on a large dataset of bee images and is able to detect and track individual bees with a high degree of accuracy. The application uses the tracking information to calculate a rich set of metrics, including:
+Bee detection and tracking is performed using a YOLOv8 model. The model has been pre-trained on a large dataset of bee images and is able to detect and track individual bees with a high degree of accuracy. The application uses the tracking information to calculate a rich set of metrics over 30-second intervals, including:
 
-*   **`bees_in`**: The number of bees entering the hive.
-*   **`bees_out`**: The number of bees exiting the hive.
-*   **`net_flow`**: The difference between `bees_in` and `bees_out`.
-*   **`avg_speed_px_per_frame`**: The average speed of the bees.
-*   **`p95_speed_px_per_frame`**: The 95th percentile of bee speed.
-*   **`stationary_bees_count`**: The number of bees that are not moving.
+*   **`bees_in` & `bees_out`**: These metrics are determined using a virtual horizontal line placed across the video frame. A bee is counted as "out" or "in" when the center of its tracked bounding box crosses this line. The direction of crossing determines whether the bee is entering or exiting. The system's logic can be inverted based on camera placement (e.g., above or below the entrance).
+*   **`net_flow`**: The difference between `bees_in` and `bees_out`, indicating the net change in the number of bees in the hive over the interval.
+*   **`avg_speed_px_per_frame`**: The average speed of all tracked bees, calculated as the mean Euclidean distance (in pixels) traveled by each bee between consecutive frames. This metric serves as a proxy for the overall activity level on the landing board.
+*   **`p95_speed_px_per_frame`**: The 95th percentile of bee speeds. This metric is more robust to outliers than the average and may better represent the speed of actively foraging bees.
+*   **`stationary_bees_count`**: The number of bees that are considered stationary. A bee is flagged as stationary if the total distance it travels within the 30-second video chunk is below a predefined threshold (10 pixels), indicating behaviors such as guarding or resting.
 
 The application also provides a local web UI, which is built using Flask. The web UI allows the user to view a live video feed from the camera, monitor the bee traffic statistics, and adjust the camera settings.
 
@@ -160,6 +159,21 @@ Data collection began on September 4th and is ongoing, with the goal of capturin
 The raw video files are periodically synchronized from the Jetson Orin Nano to a remote machine for backup and further analysis using a shell script that leverages `rsync`. This script runs in a continuous loop, ensuring that the video data is efficiently and reliably transferred over the Wi-Fi network.
 
 
+Example of metrics dataset in JSONL format:
+```
+{"timestamp": "2025-09-06T05:03:54.564032", "metrics": {"bees_in": 0, "bees_out": 0, "detected_bees": 37, "avg_speed_px_per_frame": 3.39, "p95_speed_px_per_frame": 6.43, "stationary_bees_count": 4, "net_flow": 0}}
+{"timestamp": "2025-09-06T05:04:24.770983", "metrics": {"bees_in": 0, "bees_out": 0, "detected_bees": 26, "avg_speed_px_per_frame": 4.7, "p95_speed_px_per_frame": 9.65, "stationary_bees_count": 2, "net_flow": 0}}
+{"timestamp": "2025-09-06T05:04:54.738219", "metrics": {"bees_in": 0, "bees_out": 0, "detected_bees": 41, "avg_speed_px_per_frame": 3.82, "p95_speed_px_per_frame": 7.99, "stationary_bees_count": 6, "net_flow": 0}}
+{"timestamp": "2025-09-06T05:05:24.636856", "metrics": {"bees_in": 0, "bees_out": 0, "detected_bees": 30, "avg_speed_px_per_frame": 3.51, "p95_speed_px_per_frame": 8.82, "stationary_bees_count": 1, "net_flow": 0}}
+```
+
+
+Example of a single entry (tracks of individual bees per frame within 30 sec video chunk) of tracks dataset in JSONL format (~40-50MB per day):
+```
+{"timestamp": "2025-09-06T05:01:54.546608", "frame_dimensions": {"height": 720, "width": 1280}, "track_history": {"38": [[1150, 45], [1156, 44], [1160, 43], [1162, 42], [1165, 41], [1170, 41], [1172, 44], [1175, 37], [1182, 40], [1188, 40]], "40": [[1099, 49], [1098, 49], [1099, 49], [1099, 49], [1098, 48], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1099, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 50], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1094, 49], [1094, 49], [1094, 49], [1094, 49], [1094, 49], [1094, 49], [1095, 49], [1097, 49], [1097, 49], [1097, 50], [1098, 50], [1099, 51], [1100, 51], [1101, 51], [1102, 49], [1104, 48], [1102, 48], [1103, 47], [1103, 46], [1104, 44], [1104, 44], [1103, 45], [1103, 44], [1103, 44], [1103, 45], [1102, 45], [1101, 46], [1101, 46], [1102, 46], [1102, 45], [1102, 46]], "44": [[1162, 25], [1163, 25], [1163, 25], [1160, 23], [1157, 23], [1158, 21], [1158, 22], [1156, 22], [1153, 23], [1153, 25], [1152, 22], [1151, 21], [1150, 20], [1149, 26], [1148, 29], [1145, 27], [1140, 27], [1143, 26], [1145, 26], [1144, 33], [1146, 32], [1148, 32], [1147, 31], [1144, 31], [1143, 30], [1145, 32], [1145, 33], [1146, 34], [1145, 33], [1145, 33], [1143, 31], [1141, 32], [1142, 32], [1150, 37], [1147, 36], [1147, 36], [1144, 37]], "46": [[1133, 33], [1136, 34], [1140, 34], [1143, 35], [1146, 34], [1148, 34], [1151, 33], [1153, 33], [1150, 32], [1149, 32], [1149, 31], [1149, 30], [1150, 30], [1150, 31], [1150, 31], [1151, 31], [1152, 33], [1153, 34], [1154, 34], [1155, 34], [1156, 34], [1157, 35], [1159, 35], [1160, 35], [1161, 35], [1164, 35], [1164, 35], [1165, 35], [1167, 35], [1170, 35], [1172, 34], [1175, 35], [1177, 36], [1180, 36], [1182, 36], [1184, 36], [1187, 36]], "48": [[473, 20], [474, 19], [473, 19], [473, 19], [474, 19], [474, 19], [474, 19], [474, 18], [474, 18], [474, 19], [473, 19], [471, 19], [472, 19], [472, 19], [473, 19], [474, 20], [473, 20], [472, 20], [472, 21], [473, 22], [472, 22], [472, 22], [472, 21], [472, 21], [471, 21], [471, 21], [471, 20], [471, 21], [471, 21], [472, 21], [471, 20], [471, 20], [470, 19], [470, 20], [470, 20], [471, 19], [472, 19], [472, 20], [474, 19], [474, 19], [475, 19], [475, 19], [474, 20], [475, 20], [476, 20], [474, 21], [474, 20], [473, 20], [473, 19], [474, 20], [473, 20], [474, 22]], "50": [[755, 70], [755, 78]], "51": [[737, 131], [739, 130], [736, 135], [739, 137]], "52": [[510, 26], [514, 26]], "53": [[557, 22], [559, 23], [561, 23], [568, 22], [572, 22], [575, 23], [580, 24], [583, 24], [587, 24], [589, 24], [591, 23], [594, 23], [595, 23], [597, 22], [599, 22], [601, 22], [602, 22], [603, 21], [604, 21], [605, 21], [606, 22], [607, 21], [608, 20], [611, 20], [615, 20], [617, 21], [620, 20], [622, 20], [624, 19], [625, 18], [629, 18], [633, 19], [634, 18], [632, 18], [632, 18], [633, 17], [633, 17], [634, 17], [634, 17], [635, 17], [636, 18], [635, 18], [636, 18], [640, 18], [642, 18], [643, 20], [645, 20], [646, 20], [648, 21], [648, 21], [650, 22], [651, 22], [652, 21], [655, 22], [659, 21], [663, 21], [668, 22], [674, 21], [678, 21], [679, 20], [679, 20], [680, 20], [682, 20], [683, 20], [683, 19], [685, 18], [688, 17], [688, 17], [691, 18], [692, 19], [693, 19], [696, 19], [696, 19], [696, 19], [694, 19], [693, 20], [693, 20], [692, 22], [692, 22], [695, 21], [697, 20], [700, 19], [703, 19], [705, 18], [711, 20], [714, 19], [716, 20], [721, 20], [724, 20], [725, 20], [723, 19], [720, 20], [719, 19], [717, 20], [716, 21], [715, 23], [714, 24], [718, 32], [718, 38], [717, 42], [715, 47], [711, 53], [710, 53], [709, 54], [707, 54], [705, 54], [703, 54], [701, 55], [699, 55], [696, 56], [692, 56], [687, 57], [684, 57], [682, 57]], "55": [[743, 81]]}}
+```
+
+
 #### 4.2.2 Correlating data with weather and plant blooming factors
 In addition to the video data, historical weather data for the apiary's location is being collected from the Open-Meteo API (`archive-api.open-meteo.com`). This data includes a wide range of meteorological variables, such as solar radiation, wind speed and gust, cloud cover, precipitation, atmospheric pressure, and air pollution (PM2.5 and PM10).
 
@@ -186,6 +200,7 @@ The video datasets collected during this research are publicly available at [htt
 	- Zoom in done at 12:00 EEST of landing board area (23cm wide). 
 	- 1280x720px. 30 min chunks. 15FPS.  
 	- file names are in UTC timestamps.
+    - [Drone expulsion observed](https://drive.google.com/drive/folders/1x_O1DcHekXz6F_1MtNITWYVwDGQfYRa9?usp=drive_link)
 
 
 ### 4.2.4. AI Model Training
@@ -238,6 +253,8 @@ A significant drop in bee activity was observed around 13:15 UTC. While the exac
 
 Work was completed to integrate Grafana dashboards into the web application. This involved configuring the data sources to pull bee traffic metrics and weather data, allowing for the direct correlation and visualization of these two datasets. This integration is a key step in enabling long-term analysis beyond the 24-hour limit of the local data storage on the `entrance-observer` device.
 
+- Fixed **telemetry-api** to accept new set of metrics and configured grafana to visualize it
+
 **September 7, 2025:**
 
 A significant adjustment was made to the experimental setup to enhance the potential for future Varroa mite detection.
@@ -264,7 +281,11 @@ The results will be presented through a combination of statistical summaries and
 
 The findings from this study are expected to have several practical implications for beekeepers. By quantifying the relationship between bee behavior and the environment, we can establish a baseline for normal colony activity under various conditions. This baseline will be crucial for the development of an effective anomaly detection system. The ultimate goal is to create a system that automatically identifies significant events and notifies the beekeeper, enabling them to intervene only when necessary.
 
-Initial observations have already demonstrated the system's potential for behavioral analysis. During the data collection period, two distinct events were recorded that would be difficult to capture without continuous video surveillance. First, the seasonal expulsion of drones from the hive was observed, a key indicator of the colony's preparation for winter. Second, several instances of intruder bees attempting to enter the hive were documented, with defender bees successfully intercepting and repelling them. The ability to automatically detect and catalog such events is a primary objective, as it provides direct insights into colony defensiveness, resource competition, and seasonal cycles.
+Initial observations have already demonstrated the system's potential for behavioral analysis. For instance, on September 7th, the system recorded the seasonal expulsion of drones. The video footage captured numerous drones being denied entry to the hive by worker bees, which were observed actively blocking, dragging, and even attacking the drones' wings. This complex social behavior, a key indicator of the colony's preparation for winter, is precisely the type of event that can only be reliably captured and analyzed through continuous video monitoring. Additionally, several instances of intruder bees attempting to enter the hive were documented, with defender bees successfully intercepting and repelling them. The ability to automatically detect and catalog such events is a primary objective, as it provides direct insights into colony defensiveness, resource competition, and seasonal cycles.
+
+Drone congestion on top of the plexiglass, mostly immobile.
+![](./20250907_141040.jpg)
+
 
 Furthermore, the detailed analysis of forager traffic will provide insights into pollination efficiency. By understanding how environmental factors influence foraging, beekeepers can make more informed decisions about hive placement and management to maximize pollination services.
 
