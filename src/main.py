@@ -620,7 +620,7 @@ def video_writer_thread(video_queue, writer_fps, target_width, target_height):
         avg_write_time = total_write_time / frames_written if frames_written > 0 else 0
         print(f"💾 Video saved to {output_file} ({frames_written} frames, {actual_duration:.2f}s duration, avg write time: {avg_write_time:.4f}s)")
 
-def processing_thread(ai_queue, writer_fps, target_width, target_height):
+def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_video_width, detect_video_height):
     global video_frame, yolo_frame
     while capture_thread_running:
         if not is_day_time():
@@ -712,9 +712,9 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height):
 
         detect_video_fps = len(frames_for_counting) / actual_duration if actual_duration > 0 else writer_fps
         print(f"📹 Writing detections video with {detect_video_fps:.2f} FPS")
-        detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, detect_video_fps, (target_width, target_height))
+        detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, detect_video_fps, (detect_video_width, detect_video_height))
         
-        count_bees_from_frames_async(frames_for_counting, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=detect_video_fps, frame_shape=(target_height, target_width), entrance_position=entrance_position)
+        count_bees_from_frames_async(frames_for_counting, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=detect_video_fps, frame_shape=(detect_video_height, detect_video_width), entrance_position=entrance_position)
         delete_old_mp4_files()
 
 def warm_up_camera(camera, num_frames=10):
@@ -764,6 +764,8 @@ def startObserverClient():
     FPS = int(os.getenv("FPS", 30))
     WIDTH_PX = int(os.getenv("WIDTH_PX", 640))
     HEIGHT_PX = int(os.getenv("HEIGHT_PX", 480))
+    DETECT_VIDEO_WIDTH = int(os.getenv("DETECT_VIDEO_WIDTH", 320))
+    DETECT_VIDEO_HEIGHT = int(os.getenv("DETECT_VIDEO_HEIGHT", 240))
 
     print(f"🖥️ Running on {platform.system()}")
     available_cameras = list_available_cameras()
@@ -810,7 +812,7 @@ def startObserverClient():
     writer_thread.daemon = True
     writer_thread.start()
 
-    proc_thread = threading.Thread(target=processing_thread, args=(ai_queue, writer_fps, target_width, target_height))
+    proc_thread = threading.Thread(target=processing_thread, args=(ai_queue, writer_fps, target_width, target_height, DETECT_VIDEO_WIDTH, DETECT_VIDEO_HEIGHT))
     proc_thread.daemon = True
     proc_thread.start()
 

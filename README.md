@@ -108,6 +108,9 @@ We use env vars and we load them from `.env` file for ease of management.
 |DAY_START_HOUR|The hour (0-23) when the service should start processing video. Set to DAY_END_HOUR to disable the sleep schedule.|6|
 |DAY_END_HOUR|The hour (0-23) when the service should stop processing video and sleep. Set to DAY_START_HOUR to disable the sleep schedule.|22|
 |VIDEO_RETENTION_MINUTES|The number of minutes to retain recorded videos before deleting them. Defaults to 1440 (24 hours).|1440|
+|DETECT_VIDEO_WIDTH|Width of the preview video with bee detections. Smaller resolutions save storage space and network load. Note that this is not affecting model detection size, only video output|320|
+|DETECT_VIDEO_HEIGHT|Height of the preview video with bee detections.|240|
+|DETECT_VIDEO_RETENTION_MINUTES|The number of minutes to retain preview videos before deleting them. Defaults to 10 minutes.|10|
 
 
 #### Listing cameras
