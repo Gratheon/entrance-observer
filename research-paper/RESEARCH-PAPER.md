@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Traditional beekeeping practices rely on manual, intrusive, and time-consuming inspections to monitor colony health, a process that is both inefficient and stressful for the bees. This paper presents a practical methodology for non-invasive beehive monitoring through real-time data collection and metric aggregation in the cloud for long-term analysis. The system, called the `entrance-observer`, uses an NVIDIA Jetson Orin Nano and a 4K USB camera to continuously record and analyze video of the hive entrance. A YOLOv8n-based AI model processes the video in real-time, detecting and tracking individual bees to collect a rich set of metrics, including forager traffic and individual bee tracks. Our methodology introduces the analysis of bee movement speed on the landing board as a key metric, providing a novel proxy for colony health and foraging intensity. This data is uploaded to a cloud-based web application for long-term observation, enabling comparison with other colonies and correlation with external factors like weather and flora blooming. The breakthrough of this methodology lies in its ability to move beyond simple bee counting, providing nuanced data that can be used to detect complex behaviors such as orientation flights, pollination activity, swarming, and robbing behavior by bees from other hives. This provides beekeepers with actionable insights into colony health, with a particular focus on assessing pollination efficiency, forager loss, and creating a foundational video dataset for future Varroa mite detection models. The paper details the system architecture, the experimental methodology, and preliminary findings from a deployment in a suburban apiary in Tallinn, Estonia. The `entrance-observer` system offers a practical and scalable solution to some of the most pressing challenges in modern beekeeping, with the potential to improve colony health, increase productivity, and make beekeeping more sustainable. 
+Traditional beekeeping relies on manual inspections that are inefficient and stressful for bees. This paper introduces the `entrance-observer`, a non-invasive system for monitoring honey bee colonies using computer vision. Deployed on an NVIDIA Jetson Orin Nano with a 4K camera, the system uses a YOLOv8n model to analyze video of the hive entrance in real-time. It tracks individual bees to gather metrics on forager traffic and introduces bee movement speed as a novel proxy for colony health and foraging intensity. Data is aggregated in the cloud, allowing for long-term analysis and correlation with environmental factors like weather. The system moves beyond simple bee counting to provide nuanced data on complex behaviors such as orientation flights, swarming, and robbing, offering beekeepers actionable insights into pollination efficiency and forager loss. Furthermore, it creates a foundational video dataset for developing future Varroa mite detection models. This paper details the system's architecture, methodology, and preliminary findings from a deployment in Tallinn, Estonia, presenting a practical and scalable solution to key challenges in modern, sustainable beekeeping.
 
 
 ## 1. Introduction
@@ -25,7 +25,7 @@ The application of technology to beekeeping, often referred to as "precision bee
 
 Computer vision has emerged as a powerful tool for non-invasive beehive monitoring. Early work focused on tracking marked bees or using RFID tags, but these methods are intrusive. More recent approaches have focused on tracking unmarked bees. For example, Rodriguez et al. [1] developed a system using convolutional neural networks (CNNs) and Part Affinity Fields (PAFs) for pose estimation, allowing for accurate tracking and pollen detection. Marstaller et al. [2] proposed "DeepBees," a multi-task CNN architecture for genus identification, pollen detection, pose estimation, and classification of bees.
 
-A major focus of computer vision research in beekeeping has been the detection of the Varroa destructor mite. Traditional methods are intrusive and harmful to bees. Non-invasive approaches have explored the use of hyperspectral imaging to improve the contrast between mites and bees [3], and the use of object detectors like YOLOv8 and SSD for mite detection [4]. Bilik et al. [4] found that training a model to detect "infected bees" as a class was more effective than detecting the mites themselves.
+A major focus of computer vision research in beekeeping has been the detection of the Varroa destructor mite. Traditional methods are intrusive and harmful to bees. Non-invasive approaches have explored the use of hyperspectral imaging to improve the contrast between mites and bees [3], and the use of object detectors like YOLOv8 and SSD for mite detection. Bilik et al. [4] found that training a model to detect "infected bees" as a class was more effective than detecting the mites themselves.
 
 The system presented in this paper builds upon this existing body of work, but with a specific focus on providing a practical and easy-to-use solution for beekeepers. Unlike many previous systems, which have been primarily research-focused, the `entrance-observer` is designed to be a practical tool that can be deployed in real-world apiaries. It utilizes a state-of-the-art YOLOv8 model for bee detection and tracking, and is specifically designed to address the key challenges of forager loss, pollination efficiency, and Varroa mite detection.
 
@@ -50,7 +50,7 @@ The following table details the components used to build the `entrance-observer`
 | **Connectivity** | Waveshare AC8265 Wireless NIC for Jetson Orin Nano | €22.92 |
 | **Enclosure** | Acrylic Clear Case for NVIDIA Jetson Nano | €11.36 |
 | **Camera Mount** | Security Wall Mount with 1/4 Screw Head | $9.59 |
-| 3d printed cover|||
+| **3D-Printed Enclosure Cover** | Custom-designed protective cover | Self-printed |
 | **Total** | | **~$461 + €101.51** |
 
 
@@ -71,7 +71,7 @@ flowchart TD
     subgraph "Cloud Infrastructure"
         GateVideoStream[gate-video-stream];
         TelemetryAPI[telemetry-api];
-        EntranceObserver -- "Upload 10s Video Chunk" --> GateVideoStream;
+        EntranceObserver -- "Upload Video Chunks" --> GateVideoStream;
         EntranceObserver -- "Send Bee Traffic Metrics" --> TelemetryAPI;
         GateVideoStream -- "Store Video for Playback (1-month TTL)" --> S3[(S3)];
         GateVideoStream -- "Store Video Metadata" --> MySQLDB[(MySQL)];
@@ -135,12 +135,23 @@ The experiment was conducted in a suburban apiary located in Tallinn, Estonia (P
 
 The `entrance-observer` device was installed at the hive entrance, with the camera positioned above the entrance to provide a clear, top-down view of the bees. The camera was mounted on a "Security Camera Mount Bracket for Camera with 1/4 Screw Head Wall Mount," which allowed for precise and stable positioning. The NVIDIA Orin Nano was housed in a wooden enclosure on top of the hive, physically separated from the bees to avoid any disturbance. Power was supplied to the device via an extension cord connected to a standard 220V household outlet.
 
-During the setup process, several hardware and software challenges were encountered. On the hardware side, the NVIDIA Jetson Orin Nano did not provide sufficient power to the Mokose 4K camera over USB3. An attempt to use an external powered USB hub resulted in the camera and several USB ports on the Jetson Orin Nano being damaged due to an incorrect voltage setting (12V instead of 5V). As a result, a backup camera had to be used, connected to the single remaining USB-C port, which limited the video capture to USB2 speeds. This hardware failure constrained the video resolution to 1280x720 and the frame rate to 15 FPS. Additionally, the Wi-Fi signal at the apiary was not strong enough for the Jetson Orin Nano to maintain a stable connection, so a TP-Link Wi-Fi extender was installed to boost the signal.
+#### Challenges
+During the setup process, several hardware and software challenges were encountered. 
+- On the hardware side, the NVIDIA Jetson Orin Nano did not provide sufficient power to the Mokose 4K camera over USB3. An attempt to use an external powered USB hub resulted in the camera and several USB ports on the Jetson Orin Nano being damaged due to an incorrect voltage setting (12V instead of 5V). As a result, a backup camera had to be used, connected to the single remaining USB-C port, which limited the video capture to USB2 speeds. This hardware failure constrained the video resolution to 1280x720 and the frame rate to 15 FPS. 
+- The Wi-Fi signal at the apiary was not strong enough for the Jetson Orin Nano to maintain a stable connection, so a TP-Link Wi-Fi extender was installed to boost the signal.
+- On the software side, installing PyTorch with GPU support on the Jetson Orin Nano proved to be a significant hurdle. To overcome the PyTorch dependency issues, a Docker-based approach was adopted, using the official Ultralytics Docker image. While this solved the dependency issues, it also meant that a native Python UI could not be used. Consequently, a web-based UI was developed to provide a way to preview the results and configure the system.
+- Furthermore, initial attempts on September 3rd to implement a high-performance, GPU-accelerated video capture pipeline using GStreamer were unsuccessful. This effort was hampered by persistent "Argus" errors related to the camera drivers and the discovery that the Jetson Orin Nano's hardware does not include a dedicated h264 encoder chip. This limitation prevented efficient, high-resolution video compression on the device. Consequently, this approach was abandoned in favor of a less efficient, purely software-based video capture method using OpenCV, which contributed to the constraints on frame rate and resolution. This experience suggests that alternative hardware, such as an Apple Mac Mini or a newer NVIDIA Jetson model with more robust multimedia encoding capabilities, could be a more viable option for future iterations.
 
+#### Remote access
+For connectivity, the system initially relied on a local area network (LAN) over WiFi for remote access via SSH and a web interface. This was later upgraded to Tailscale, a commercial VPN solution, which enabled secure remote monitoring and video file downloads from any location, facilitating off-site system checks and data retrieval.
 
-On the software side, installing PyTorch with GPU support on the Jetson Orin Nano proved to be a significant hurdle. Furthermore, initial attempts on September 3rd to implement a high-performance, GPU-accelerated video capture pipeline using GStreamer were unsuccessful. This effort was hampered by persistent "Argus" errors related to the camera drivers and the discovery that the Jetson Orin Nano's hardware does not include a dedicated h264 encoder chip. This limitation prevented efficient, high-resolution video compression on the device. Consequently, this approach was abandoned in favor of a less efficient, purely software-based video capture method using OpenCV, which contributed to the constraints on frame rate and resolution. This experience suggests that alternative hardware, such as an Apple Mac Mini or a newer NVIDIA Jetson model with more robust multimedia encoding capabilities, could be a more viable option for future iterations.
+Remote desktop access was also explored using VNC (Virtual Network Computing). While previous experiments with a Jetson Nano (a different device) had been successful using RealVNC, this approach failed with the Jetson Orin Nano. A connection could be established, but no graphical user interface was displayed, rendering it unusable for remote control. Future iterations may explore web-based VNC solutions like noVNC, inspired by its successful implementation in other robotic remote lab environments [6].
 
-To overcome the PyTorch dependency issues, a Docker-based approach was adopted, using the official Ultralytics Docker image. While this solved the dependency issues, it also meant that a native Python UI could not be used. Consequently, a web-based UI was developed to provide a way to preview the results and configure the system. For connectivity, the system initially relied on a local area network (LAN) for remote access via SSH and a web interface. This was later upgraded to Tailscale, a commercial VPN solution, which enabled secure remote monitoring and video file downloads from any location, facilitating off-site system checks and data retrieval.
+Jetson Nano VNC:
+![](./Screenshot%202025-09-07%20at%2020.18.55.png)
+
+Jetson Orin Nano VNC:
+![](./Screenshot%202025-09-07%20at%2020.16.17.png)
 
 ### 4.2. Data Collection
 
@@ -149,36 +160,41 @@ Data collection began on September 4th and is ongoing, with the goal of capturin
 The raw video files are periodically synchronized from the Jetson Orin Nano to a remote machine for backup and further analysis using a shell script that leverages `rsync`. This script runs in a continuous loop, ensuring that the video data is efficiently and reliably transferred over the Wi-Fi network.
 
 
-#### 4.2.1 Correlating data with weather and plant blooming factors
+#### 4.2.2 Correlating data with weather and plant blooming factors
 In addition to the video data, historical weather data for the apiary's location is being collected from the Open-Meteo API (`archive-api.open-meteo.com`). This data includes a wide range of meteorological variables, such as solar radiation, wind speed and gust, cloud cover, precipitation, atmospheric pressure, and air pollution (PM2.5 and PM10).
 
 ![](./Screenshot%202025-09-07%20at%2016.40.04.png)
 ![](./Screenshot%202025-09-07%20at%2016.43.21.png)
 ![](./Screenshot%202025-09-07%20at%2016.45.41.png)
 
-### 4.2.2. Dataset Availability
+### 4.2.3. Dataset Availability
 
 The video datasets collected during this research are publicly available at [https://gratheon.com/research/Datasets](https://gratheon.com/research/Datasets). The collection includes the following:
 
-**2025, September 5th:**
-*   **Duration:** Approximately 4 hours (11:30 to 16:30).
-*   **Setup:** Camera zoomed on the landing board (~40cm wide).
-*   **Specifications:** 1280x720px resolution, 15 FPS, recorded in 30-minute chunks.
-*   **Total Size:** ~25GB.
-*   **File Naming:** Filenames are UTC timestamps.
+- [September 04](https://drive.google.com/drive/folders/1BY7RrQdQI-6iaSzx4-CVES0kwVlpzX2u?usp=drive_link). 
+	- some chunks have pairs with `_detect.mp4` suffixes, showing yolov8 model detections.
+	- 5-25mb per chunk. mp4
+- [September 05](https://drive.google.com/drive/folders/12oV370f8HqrZsuXUU9mLWeT9NAs8HcO2?usp=drive_link) (~mostly continuous 8h of the same hive. Time of day - 11:30  til 20:00). Sunny weather.
+	- Zoom at landing board ~ 40cm wide
+	- ~ 25GB in total
+	- 1280x720px. 30 min chunks. 15FPS. 5-25mb per chunk. mp4
+	- file names are in UTC timestamps.
+	- [related metrics in jsonl format](https://drive.google.com/file/d/18b2aKTxrS1K9YpQciDybXwDlNYuEE4yh/view?usp=drive_link)
+	- [related individual bee tracks in jsonl format](https://drive.google.com/file/d/1J6I2KOeUa4dns7OmXidvc6Oqc0VF2goC/view?usp=drive_link)
+- September 6th. Sunny weather.
+- September 7th. Sunny weather with clouds and gust after 16:00
+	- Zoom in done at 12:00 EEST of landing board area (23cm wide). 
+	- 1280x720px. 30 min chunks. 15FPS.  
+	- file names are in UTC timestamps.
 
-**2025, September 7th onwards:**
-*   **Setup:** Camera zoomed on the landing board area (~23cm wide) for higher detail.
-*   **Specifications:** 1280x720px resolution, 15 FPS, recorded in 30-minute chunks.
-*   **File Naming:** Filenames are UTC timestamps.
 
-### 4.2.1. AI Model Training
+### 4.2.4. AI Model Training
 
 The bee detection model was trained using the YOLOv8n architecture, chosen for its optimal balance of speed and accuracy on edge devices like the NVIDIA Jetson Orin Nano. The training was conducted in the Google Colab environment, leveraging its cloud-based GPU resources (NVIDIA T4).
 
 The model was trained on the "Bees on Hive Landing Boards" dataset, which was sourced from Roboflow. The dataset consists of 14,199 training images, 1,353 validation images, and 676 test images. The training data was augmented with three outputs per training example, using techniques such as rotation (between -15° and +15°), brightness adjustments (between -15% and +15%), and exposure adjustments (between -10% and +10%) to improve the model's robustness.
 
-After 25 epochs of training, the model achieved a mean Average Precision (mAP50-95) of 0.77 on the validation set, demonstrating a high of accuracy in detecting bees. The initial weights for the YOLOv8n model were adapted from the 'Counting bees with the LABRADOR board' project [36], which provided a strong foundation for our bee detection model.
+After 25 epochs of training, the model achieved a mean Average Precision (mAP50-95) of 0.77 on the validation set, demonstrating a high of accuracy in detecting bees. The initial weights for the YOLOv8n model were adapted from the 'Counting bees with the LABRADOR board' project [7], which provided a strong foundation for our bee detection model.
 
 From empirical observations, model quality is good when running detections on homogeneous surface with only bees being present. 
 
@@ -272,7 +288,7 @@ While the current system is not yet capable of mite detection, the video dataset
 
 [1] Rodriguez, I. F., Chan, J., Alvarez Rios, M., Branson, K., Agosto-Rivera, J. L., Giray, T., & Mégret, R. (2022). Automated Video Monitoring of Unmarked and Marked Honey Bees at the Hive Entrance. *Frontiers in Computer Science*, 3, 769338. [Online]. Available: https://gratheon.com/research/papers/%E2%AD%90%EF%B8%8F%20Automated%20Video%20Monitoring%20of%20Unmarked%20and%20Marked%20Honey%20Bees%20at%20the%20Hive%20Entrance
 
-[2] Marstaller, J., Tausch, F., & Stock, S. (209). DeepBees – Building and Scaling Convolutional Neuronal Nets For Fast and Large-scale Visual Monitoring of Bee Hives. In *Proceedings of the IEEE/CVF International Conference on Computer Vision Workshops*. [Online]. Available: https://gratheon.com/research/papers/%E2%AD%90%EF%B8%8F%20DeepBees%20%E2%80%93%20Building%20and%20Scaling%20Convolutional%20Neuronal%20Nets%20For%20Fast%20and%20Large-scale%20Visual%20Monitoring%20of%20Bee%20Hives
+[2] Marstaller, J., Tausch, F., & Stock, S. (2019). DeepBees – Building and Scaling Convolutional Neuronal Nets For Fast and Large-scale Visual Monitoring of Bee Hives. In *Proceedings of the IEEE/CVF International Conference on Computer Vision Workshops*. [Online]. Available: https://gratheon.com/research/papers/%E2%AD%90%EF%B8%8F%20DeepBees%20%E2%80%93%20Building%20and%20Scaling%20Convolutional%20Neuronal%20Nets%20For%20Fast%20and%20Large-scale%20Visual%20Monitoring%20of%20Bee%20Hives
 
 [3] Bielik, S., & Bilík, Š. (2025). Towards Varroa destructor mite detection using a narrow spectra illumination. *arXiv preprint arXiv:2504.06099*. [Online]. Available: https://gratheon.com/research/papers/Towards%20Varroa%20destructor%20mite%20detection%20using%20a%20narrow%20spectra%20illumination
 
@@ -280,4 +296,6 @@ While the current system is not yet capable of mite detection, the video dataset
 
 [5] Kulyukin, V. (2021). Audio, Image, Video, and Weather Datasets for Continuous Electronic Beehive Monitoring. *Applied Sciences*, 11(10), 4632. [Online]. Available: https://gratheon.com/research/papers/Audio,%20Image,%20Video,%20and%20Weather%20Datasets%20for%20Continuous%20Electronic%20Beehive%20Monitoring
 
-[36] Reis, J. A., & Ferreira Filho, J. A. (2023). Counting bees with the LABRADOR board. *GitHub repository*. Retrieved from https://github.com/Mjrovai/Bee-Counting/
+[6] Krūmiņš, D., Schumann, S., Vunder, V., Põlluäär, R., Laht, K., Raudmäe, R., Aabloo, A., & Kruusamäe, K. (2024). Open Remote Web Lab for Learning Robotics and ROS With Physical and Simulated Robots in an Authentic Developer Environment. *IEEE Transactions on Learning Technologies*, 17.
+
+[7] Reis, J. A., & Ferreira Filho, J. A. (2023). Counting bees with the LABRADOR board. *GitHub repository*. Retrieved from https://github.com/Mjrovai/Bee-Counting/
