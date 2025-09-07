@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Traditional beekeeping relies on manual inspections that are inefficient and stressful for bees. This paper introduces the `entrance-observer`, a non-invasive system for monitoring honey bee colonies using computer vision. Deployed on an NVIDIA Jetson Orin Nano with a 4K camera, the system uses a YOLOv8n model to analyze video of the hive entrance in real-time. It tracks individual bees to gather metrics on forager traffic and introduces bee movement speed as a novel proxy for colony health and foraging intensity. Data is aggregated in the cloud, allowing for long-term analysis and correlation with environmental factors like weather. The system moves beyond simple bee counting to provide nuanced data on complex behaviors such as orientation flights, swarming, and robbing, offering beekeepers actionable insights into pollination efficiency and forager loss. Furthermore, it creates a foundational video dataset for developing future Varroa mite detection models. This paper details the system's architecture, methodology, and preliminary findings from a deployment in Tallinn, Estonia, presenting a practical and scalable solution to key challenges in modern, sustainable beekeeping.
+Traditional beekeeping relies on manual inspections that are inefficient and stressful for bees. This paper introduces the `entrance-observer`, a non-invasive computer vision system for monitoring honey bee colonies. Deployed on an NVIDIA Jetson Orin Nano, the system uses a YOLOv8n model to analyze 4K video of the hive entrance in real-time. It tracks individual bees to gather metrics on forager traffic and introduces bee movement speed as a novel proxy for colony health. Data is aggregated in the cloud for long-term analysis and correlation with environmental factors. The system provides nuanced data on complex behaviors such as orientation flights, swarming, and robbing, offering beekeepers actionable insights into pollination efficiency and forager loss. Furthermore, it creates a foundational video dataset for developing future Varroa mite detection models. This paper details the system's architecture, methodology, and preliminary findings, presenting a practical and scalable solution to key challenges in modern beekeeping.
 
 
 ## 1. Introduction
@@ -238,6 +238,10 @@ The second stage of the analysis focuses on correlating the bee traffic data wit
 *   **Time-Series Analysis:** The bee traffic data will be treated as a time series to identify and model temporal patterns, such as diurnal cycles. This analysis will also be instrumental in establishing a baseline for normal activity, which is a prerequisite for anomaly detection.
 *   **Regression Analysis:** Multiple regression models will be developed to predict bee activity levels based on a combination of weather variables. This will help to identify the most significant environmental drivers of foraging behavior.
 
+In addition to statistical analysis, we use visualization techniques to explore the spatial patterns of bee movement. A heatmap of bee traffic on the landing board was be generated from the `track_history` data. This visualization reveals the most frequented areas, providing insights into the bees' preferred paths and loitering zones. 
+
+The heatmap for the data collected on September 6th is shown below.
+![Bee traffic heatmap for September 6th](./heatmap-09-06.png)
 
 Grafana dashboard view of hive metrics (stored in mysql) of 7th of September. Time is in EEST. White areas in the timeline are related to system restarts due to full disk and due to maintenance and solving missing detected bees metric not being delivered to the cloud.
 ![Grafana](./Screenshot%202025-09-07%20at%2015.46.46.png)
@@ -300,7 +304,29 @@ Furthermore, the detailed analysis of forager traffic will provide insights into
 
 While the current focus is on the relationship between bee traffic and weather, the high-resolution data being collected will also serve as a valuable resource for future research. The detailed bee tracks, for example, could be used to train models to differentiate between different types of flights (e.g., foraging, orientation, cleansing) or to detect subtle behavioral changes that may be indicative of stress or disease. This rich dataset is a critical first step towards the ultimate goal of developing a comprehensive, non-invasive beehive monitoring system that can provide beekeepers with a deep understanding of their colonies' health and productivity.
 
-## 6. Conclusion
+## 6. Future Work
+
+The `entrance-observer` system provides a robust foundation for non-invasive beehive monitoring, but the true potential of this technology lies in expanding its analytical capabilities. Our future work is structured around two key pillars: enhancing detection metrics and improving the hardware and software platform.
+
+### 6.1. Enhancing Detection Metrics
+
+The immediate priority is to move beyond bee counting and basic motion analysis to the detection of specific, high-value indicators of colony health and activity. This involves training and deploying more sophisticated computer vision models capable of identifying:
+
+*   **Varroa Mites:** The detection of Varroa mites on bees is the most critical next step. This will require a high-resolution video dataset and a model trained to identify these small parasites. The ability to automatically quantify mite infestation levels would be a significant breakthrough for beekeepers, enabling targeted and timely treatments.
+*   **Pollen-Carrying Bees:** Identifying bees returning to the hive with pollen is a direct indicator of foraging success and resource availability. This metric can provide valuable insights into pollination efficiency and the impact of environmental factors on foraging.
+*   **Queen and Drones:** Differentiating the queen and drones from worker bees will allow for the monitoring of key colony events, such as the queen's mating flights and the seasonal expulsion of drones.
+
+### 6.2. Hardware and System Improvements
+
+To support these enhanced detection capabilities, several hardware and system improvements are necessary:
+
+*   **Upgraded Camera and GPU:** A 4K camera with a high frame rate (60 FPS) is essential for capturing the fine details required for mite detection. This must be paired with a more powerful GPU to handle the increased computational load of running multiple, complex models in real-time.
+*   **Weatherproof Enclosure:** A robust, weatherproof enclosure with integrated LED lighting is needed to ensure consistent image quality and protect the hardware from the elements.
+*   **Developer-Friendly Platform:** Given the challenges encountered with the Jetson Orin, we are considering a more developer-friendly platform, such as a Mac Mini, to accelerate development and deployment.
+
+The video dataset collected in this study is a critical first step towards these goals. By laying the groundwork for advanced parasite detection and behavioral analysis, we are moving towards a future where technology can help beekeepers manage their colonies more effectively and sustainably.
+
+## 7. Conclusion
 
 This paper has presented a practical methodology for monitoring beehive entrances using a powerful combination of computer vision and IoT technology for real-time data collection and cloud-based analysis. The `entrance-observer` system, built on an NVIDIA Jetson Orin Nano and a 4K USB camera, provides a non-invasive way to collect high-resolution data on bee behavior. The accompanying Gratheon web application offers a user-friendly platform for visualizing and analyzing this data for long-term observation and comparison.
 
@@ -308,13 +334,11 @@ The system is designed to address some of the most pressing challenges in modern
 
 While the data collection for this study is still ongoing, the preliminary results are promising. The system has already demonstrated its ability to detect subtle changes in bee behavior, and the planned analysis of the relationship between bee activity and weather data is expected to yield valuable insights.
 
-It is important to acknowledge the limitations of the current system. As pointed out by beekeepers, the practical value of simply counting bees is limited. The true potential of this technology lies in its ability to detect parasites and other threats. The current camera resolution and frame rate, constrained by the hardware failure described in Section 4.1, may not be sufficient for reliable Varroa mite detection. Furthermore, the identification of individual unmarked bees remains a significant challenge. The YOLOv8n model itself, while generally robust, exhibits limitations in accurately tracking individuals during periods of high bee density or when bees are partially occluded (e.g., under plexiglass). Maintaining consistent tracking IDs for bees moving at sharp angles also remains an area for improvement.
+It is important to acknowledge the limitations of the current system. The practical value of simply counting bees is limited. The true potential of this technology lies in its ability to detect parasites and other threats. The current camera resolution and frame rate may not be sufficient for reliable Varroa mite detection. Furthermore, the identification of individual unmarked bees remains a significant challenge.
 
-Future work will focus on addressing these limitations. The immediate priority is to improve the hardware setup. Ideally, this would involve a 4K camera capable of capturing video at 60 FPS to discern fine details, paired with a GPU powerful enough for real-time detection of multiple distinct entities such as Varroa mites, drones, the queen, and bees carrying pollen. A protective, weatherproof camera case with integrated LED lighting would also be necessary to ensure consistent image quality regardless of external conditions. Given the challenges encountered with flashing and software installation on the Jetson Orin, switching to a more developer-friendly platform like a Mac Mini is being considered.
+The future work outlined in this paper, focused on enhancing detection metrics, represents a clear path towards overcoming these limitations. The ultimate goal is to create a system that is not just a "toy" for researchers, but a practical and affordable tool that can make a real difference to the health and productivity of bee colonies.
 
-While the current system is not yet capable of mite detection, the video dataset being collected is a crucial first step towards training such a model. The true potential of this technology lies in its ability to detect parasites and other threats, and the current methodology lays the groundwork for that future. The long-term vision is to create a comprehensive and fully automated beehive monitoring system that can not only detect parasites but also provide beekeepers with the tools to manage their colonies more effectively. The ultimate goal is to create a system that is not just a "toy" for researchers, but a practical and affordable tool that can make a real difference to the health and productivity of bee colonies.
-
-## 7. References
+## 8. References
 
 [1] Rodriguez, I. F., Chan, J., Alvarez Rios, M., Branson, K., Agosto-Rivera, J. L., Giray, T., & Mégret, R. (2022). Automated Video Monitoring of Unmarked and Marked Honey Bees at the Hive Entrance. *Frontiers in Computer Science*, 3, 769338. [Online]. Available: https://gratheon.com/research/papers/%E2%AD%90%EF%B8%8F%20Automated%20Video%20Monitoring%20of%20Unmarked%20and%20Marked%20Honey%20Bees%20at%20the%20Hive%20Entrance
 

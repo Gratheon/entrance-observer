@@ -152,6 +152,16 @@ docker compose up --build
 
 
 
+## Heatmap generation
+After running entrance analysis for a day and getting telemetry and tracks information stored in telemetry folder, you can run landing board heatmap generation script to see which areas of the landing board are visited the most.
+
+```
+python heatmap_generator.py telemetry/track_history_2025-09-07.jsonl -o heatmap-09-07.png
+```
+
+![](./img/heatmap-09-06.png)
+
+
 ## Development
 
 ### Unit tests
