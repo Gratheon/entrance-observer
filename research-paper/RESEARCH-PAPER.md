@@ -180,6 +180,11 @@ The model was trained on the "Bees on Hive Landing Boards" dataset, which was so
 
 After 25 epochs of training, the model achieved a mean Average Precision (mAP50-95) of 0.77 on the validation set, demonstrating a high of accuracy in detecting bees. The initial weights for the YOLOv8n model were adapted from the 'Counting bees with the LABRADOR board' project [36], which provided a strong foundation for our bee detection model.
 
+From empirical observations, model quality is good when running detections on homogeneous surface with only bees being present. 
+
+However in more complex scenes, it is prone to have false positive detections, for example when running app from Mac OSX:
+![](./Screenshot%202025-09-07%20at%2019.14.07.png)
+
 ### 4.3. Data Analysis
 
 The data analysis pipeline is designed to provide both real-time insights and in-depth, long-term scientific investigation. The process begins at the edge, where the `entrance-observer` application processes video in 30-second chunks, as configured by the `VIDEO_CHUNK_LENGTH_SEC` environment variable. For each chunk, the system calculates the bee traffic metrics described in Section 3.2.1. These metrics are then transmitted to the Gratheon web application's telemetry API.
