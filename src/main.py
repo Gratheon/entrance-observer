@@ -687,8 +687,9 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
                         total_interactions += 1
                         x1, y1 = coords[i]
                         x2, y2 = coords[j]
-                        cv2.circle(annotated_frame, (int(x1), int(y1)), 20, (0, 255, 0), 2)
-                        cv2.circle(annotated_frame, (int(x2), int(y2)), 20, (0, 255, 0), 2)
+                        cv2.circle(annotated_frame, (int(x1), int(y1)), 5, (0, 255, 255), -1)
+                        cv2.circle(annotated_frame, (int(x2), int(y2)), 5, (0, 255, 255), -1)
+                        cv2.line(annotated_frame, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
 
             # Draw the tracking lines
             if boxes.is_track:
