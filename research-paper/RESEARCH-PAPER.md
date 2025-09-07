@@ -112,14 +112,17 @@ The application also provides a local web UI, which is built using Flask. The we
 
 #### 3.3.2. Gratheon web application
 
-The Gratheon web application is a cloud-based platform that provides a centralized location for storing, visualizing, and analyzing the data from the `entrance-observer` devices. The web application provides a user-friendly interface that allows beekeepers to:
+The Gratheon web application is a cloud-based platform that provides a centralized location for storing, visualizing, and analyzing the data from the `entrance-observer` devices. The web application provides a user-friendly interface (including a mobile app) that allows beekeepers to:
 
 *   View video playback from their hives.
 *   Monitor the bee traffic statistics in real-time.
-*   Analyze historical data to identify trends and anomalies.
+*   Analyze historical data to identify trends and anomalies
 *   Receive alerts and notifications about important events, such as a sudden drop in forager activity or a potential hornet attack.
 
 The web application is designed to be a powerful tool for beekeepers, providing them with the information they need to make informed decisions about the management of their colonies.
+
+![](./Screenshot%202025-09-07%20at%2019.08.42.png)
+
 
 ## 4. Methodology
 ### 4.1. Experimental Setup
