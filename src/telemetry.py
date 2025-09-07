@@ -83,6 +83,7 @@ def report_telemetry(metrics_data, bearer_token, hiveId, boxId, base_url):
         "avgSpeed": metrics_data["avg_speed_px_per_frame"],
         "p95Speed": metrics_data["p95_speed_px_per_frame"],
         "stationaryBees": metrics_data["stationary_bees_count"],
+        "detectedBees": metrics_data["detected_bees"],
     }
 
     # Print the payload
