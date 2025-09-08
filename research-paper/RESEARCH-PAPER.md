@@ -262,7 +262,11 @@ Grafana dashboard view of hive metrics (stored in mysql) of 7th of September. Ti
 ![Grafana](./Screenshot%202025-09-07%20at%2015.46.46.png)
 
 Details connecting grafana to backend GraphQL API that uses telemetry-api. Notice using sending currently selected time range as arguments and parsing output
-![](./Screenshot%202025-09-07%20at%2015.53.40.png)
+![](./Screenshot%202025-09-08%20at%2023.30.08.png)
+
+
+Beehive activity metrics in Grafana for September 8th (time in UI is in EEST):
+![](./Screenshot%202025-09-08%20at%2023.23.52.png)
 
 Based on these analyses, we will test several specific hypotheses, including:
 1.  There is a significant positive correlation between ambient temperature (above a certain threshold) and the number of outgoing bees (`bees_out`).
@@ -298,6 +302,10 @@ After changing focus (September 7):
 *   **Landing Board Construction Improvement:** The physical construction of the entrance was improved to ensure more accurate forager counts. It was observed that bees could bypass the main entrance through small gaps between the landing board and the aluminum guide frames. These gaps were sealed using additional plexiglass, compelling all bees to pass through the monitored entrance gate.
 
 *   **Implications for Data Consistency:** It is acknowledged that these changes will significantly alter the bee traffic metrics (e.g., `bees_in`, `bees_out`, `avg_speed_px_per_frame`). The data collected from this point forward will not be directly comparable to the data from September 4-6. This highlights a critical consideration for deploying such systems across multiple hives: maintaining a consistent camera setup (zoom, focus, and angle) is essential for meaningful comparative analysis between colonies.
+
+**September 8, 2025:**
+- Second half of the day is sunny, which seems to correlated with bees activity
+
 
 ## 5. Results and Discussion
 
