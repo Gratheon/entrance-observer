@@ -7,6 +7,8 @@ Intended to be deployed on edge on NVidia Jetson Orin / Jetson Nano / Mac or sim
 
 https://github.com/user-attachments/assets/179273c2-4683-4879-bcb9-0aa2abe75953
 
+https://github.com/user-attachments/assets/c298b395-58aa-4de6-8e91-35d7c27c9b87
+
 
 
 ## Features
