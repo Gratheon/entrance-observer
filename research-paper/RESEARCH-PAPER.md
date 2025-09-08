@@ -339,6 +339,16 @@ To support these enhanced detection capabilities, several hardware and system im
 *   **Weatherproof Enclosure:** A robust, weatherproof enclosure with integrated LED lighting is needed to ensure consistent image quality and protect the hardware from the elements.
 *   **Developer-Friendly Platform:** Given the challenges encountered with the Jetson Orin, we are considering a more developer-friendly platform, such as a Mac Mini, to accelerate development and deployment.
 
+### 6.3. Advanced Model Architectures and Pose Estimation
+
+While YOLOv8n provides a strong baseline for real-time detection, future work will explore more advanced model architectures to enhance the system's analytical depth. The goal is to move towards open-ended detection that can identify a wider range of objects and behaviors without extensive retraining for each new class.
+
+One promising direction is the use of transformer-based models. Research such as BeeNet [16] has demonstrated that a combination of CNNs for feature extraction and a transformer encoder-decoder architecture can achieve high accuracy in fine-grained classification tasks, including bee species identification and health monitoring. However, it is worth noting that the authors of the BeeNet paper did not provide a public code repository, which makes it difficult to verify their findings and build upon their work. Nevertheless, the paper provides a valuable theoretical framework for the application of transformer-based models to bee monitoring. Adopting a similar approach could allow the `entrance-observer` to learn more complex visual features and perform more nuanced classifications, such as identifying different castes of bees or subtle indicators of disease.
+
+Furthermore, to gain a deeper understanding of bee-to-bee interactions and individual movement, we plan to integrate pose estimation. By tracking the keypoints of a bee's body, we can more accurately determine its orientation and direction of movement. This would significantly improve the accuracy of metrics like `bees_in` and `bees_out` and provide a richer dataset for analyzing complex social behaviors like trophallaxis or guarding. An initial exploration of this concept was conducted using the `beepose` library [17], and while the library is now outdated, it serves as a proof-of-concept for the value of pose estimation in this domain. We are also aware of the `apic-bee-pose-dataset` [19], but its license does not permit commercial use, which is a consideration for the future development of the `entrance-observer` system.
+
+Finally, we will continue to evaluate the rapidly evolving landscape of object detection models optimized for edge devices. Models such as YOLOv10, which offers NMS-free training for lower latency, and RT-DETR, an end-to-end DETR variant, present compelling alternatives that could further improve the efficiency and accuracy of the `entrance-observer` on hardware like the NVIDIA Jetson series. We also performed preliminary experiments with Large Language and Vision Assistant (LLaVA) models [18], but found that their empirical precision for the specific task of bee detection was not as high as that of convolutional networks like YOLO.
+
 The video dataset collected in this study is a critical first step towards these goals. By laying the groundwork for advanced parasite detection and behavioral analysis, we are moving towards a future where technology can help beekeepers manage their colonies more effectively and sustainably.
 
 ## 7. Conclusion
@@ -384,3 +394,11 @@ The future work outlined in this paper, focused on enhancing detection metrics, 
 [14] Mégret, R., Rodriguez, I. F., Claudio Ford, I., Acuña, E., Agosto-Rivera, J. L., & Giray, T. (2019). LabelBee: a web platform for large-scale semi-automated analysis of honeybee behavior from video. In *Proceedings of Artificial Intelligence for Data Discovery and Reuse (AIDR’19)*.
 
 [15] Sledevičius, T., & Matuzevičius, D. (2024). Labeled dataset for bee detection and direction estimation on entrance to beehive. *Data in Brief*, 52, 110060.
+
+[16] Yoo, J., Siddiqua, R., Liu, X., Ahmed, K. A., & Hossain, M. Z. (2023). BeeNet: An End-To-End Deep Network For Bee Surveillance. *Procedia Computer Science*, 222, 415-424.
+
+[17] Pereira, P. (2020). *beepose*. GitHub repository. Retrieved from https://github.com/piperod/beepose
+
+[18] Liu, H., Li, C., Wu, Q., & Lee, Y. J. (2023). Visual Instruction Tuning. *arXiv preprint arXiv:2304.08485*.
+
+[19] Apic.ai. (2021). *apic-bee-pose-dataset*. GitHub repository. Retrieved from https://github.com/apic-ai/apic-bee-pose-dataset
