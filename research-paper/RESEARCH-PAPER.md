@@ -126,8 +126,9 @@ Bee detection and tracking is performed using a YOLOv8 model. The model has been
 
 The application also provides a local web UI, which is built using Flask. The web UI allows the user to view a live video feed from the camera, monitor the bee traffic statistics, and adjust the camera settings.
 
-Graphs of metrics in entrance-observer UI:
-![](./Screenshot%202025-09-07%20at%2015.39.46.png)
+Graphs of metrics in entrance-observer UI from september 9:
+
+![](./Screenshot%202025-09-09%20at%2020.40.54.png)
 
 
 #### 3.3.2. Gratheon web application
@@ -254,20 +255,33 @@ The second stage of the analysis focuses on correlating the bee traffic data wit
 *   **Time-Series Analysis:** The bee traffic data will be treated as a time series to identify and model temporal patterns, such as diurnal cycles. This analysis will also be instrumental in establishing a baseline for normal activity, which is a prerequisite for anomaly detection.
 *   **Regression Analysis:** Multiple regression models will be developed to predict bee activity levels based on a combination of weather variables. This will help to identify the most significant environmental drivers of foraging behavior.
 
+#### Spatial heatmap analysis
 In addition to statistical analysis, we use visualization techniques to explore the spatial patterns of bee movement. A heatmap of bee traffic on the landing board was be generated from the `track_history` data. This visualization reveals the most frequented areas, providing insights into the bees' preferred paths and loitering zones. 
 
-The heatmap for the data collected on September 6th is shown below.
-![Bee traffic heatmap for September 6th](./heatmap-09-06.png)
+The heatmasp for the track data collected on September 6th and 9th as examples are shown below. Notice that there are clearly visible hot spots (highlighted in yellow) of stationary bees, we're assuming these are defenders, spread out and positioned in the landing area.
 
-Grafana dashboard view of hive metrics (stored in mysql) of 7th of September. Time is in EEST. White areas in the timeline are related to system restarts due to full disk and due to maintenance and solving missing detected bees metric not being delivered to the cloud.
-![Grafana](./Screenshot%202025-09-07%20at%2015.46.46.png)
+The aluminium-glass construction designed to prolong bee movement for better counting and tracking also shows some of the inefficiencies - bees avoid cold metal, and they do spend too much time on top of the glass falsely assuming they can enter somewhere on top.
+
+Thery also are present adjacent to hive entrance angles (highlighted in blue) where partial entry under aluminium frame was possible too at the beginning on 6th of september and later on 9th when they collectively cleared out the entrance.
+
+They also tend to like to be in the corners, possibly because it offers some area of protection from the wind or potential preditors.
+
+Also notice that glass border is also noticeable, because bees could move on it upside-down and flip on the other side.
+
+![](./heatmap-09-06.png)
+![](./heatmap-09-09.png)
+
+
+#### Grafana UI for correlation detection
+
+
+Beehive activity metrics (stored in mysql, queried via graphql API through telemetry-api) in Grafana for September 8th (time in UI is in EEST):
+![](./Screenshot%202025-09-08%20at%2023.23.52.png)
+
+
 
 Details connecting grafana to backend GraphQL API that uses telemetry-api. Notice using sending currently selected time range as arguments and parsing output
 ![](./Screenshot%202025-09-08%20at%2023.30.08.png)
-
-
-Beehive activity metrics in Grafana for September 8th (time in UI is in EEST):
-![](./Screenshot%202025-09-08%20at%2023.23.52.png)
 
 Based on these analyses, we will test several specific hypotheses, including:
 1.  There is a significant positive correlation between ambient temperature (above a certain threshold) and the number of outgoing bees (`bees_out`).

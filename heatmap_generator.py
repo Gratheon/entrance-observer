@@ -25,8 +25,9 @@ def generate_heatmap(track_file_path, output_file_path):
                 print("Error: Frame dimensions not found in the first line of the track history file.")
                 return
             
-            height = frame_dimensions["height"]
-            width = frame_dimensions["width"]
+            #"height": 720, "width": 1280
+            height = 720; #frame_dimensions["height"]
+            width = 1280; #frame_dimensions["width"]
             print(f"Frame dimensions: {width}x{height}")
             
             heatmap = np.zeros((height, width), dtype=np.float32)
