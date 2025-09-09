@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Traditional beekeeping relies on manual inspections that are inefficient and stressful for bees. This paper introduces the `entrance-observer`, a non-invasive computer vision system for monitoring honey bee colonies. Deployed on an NVIDIA Jetson Orin Nano, the system uses a YOLOv8n model to analyze 4K video of the hive entrance in real-time. It tracks individual bees to gather metrics on forager traffic and introduces bee movement speed as a novel proxy for colony health. Data is aggregated in the cloud for long-term analysis and correlation with environmental factors. The system provides nuanced data on complex behaviors such as orientation flights, swarming, and robbing, offering beekeepers actionable insights into pollination efficiency and forager loss. Furthermore, it creates a foundational video dataset for developing future Varroa mite detection models. This paper details the system's architecture, methodology, and preliminary findings, presenting a practical and scalable solution to key challenges in modern beekeeping.
+Traditional beekeeping relies on manual inspections that are inefficient and stressful for bees. This paper introduces the **entrance-observer**, a non-invasive computer vision system for monitoring honey bee colonies. Deployed on an NVIDIA Jetson Orin Nano, the system uses a YOLOv8n model to analyze 4K video of the hive entrance in real-time. It tracks individual bees to gather metrics on forager traffic and introduces bee movement speed as a novel proxy for colony health. Data is aggregated in the cloud for long-term analysis and correlation with environmental factors. The system provides nuanced data on complex behaviors such as orientation flights, swarming, and robbing, offering beekeepers actionable insights into pollination efficiency and forager loss. Furthermore, it creates a foundational video dataset for developing future drone bee, bee pose, bee interaction and potentially varroa mite-infected bee detection models. This paper details the system's architecture, methodology, and preliminary findings, presenting a practical and scalable solution to key challenges in modern beekeeping.
 
 
 ## 1. Introduction
@@ -11,13 +11,19 @@ Honey bees (Apis mellifera) are essential for global food security, yet beekeepe
 
 The limitations of existing methods highlight the need for more advanced, non-invasive monitoring solutions. The ability to automatically detect parasites like Varroa mites and other threats at an early stage would be a significant breakthrough for beekeepers, enabling them to apply targeted treatments only when necessary, thereby reducing chemical use and improving colony health. Furthermore, detailed monitoring of forager traffic can provide valuable information about pollination efficiency and the impact of environmental stressors, such as pesticides. This research focuses on solving several key problems for beekeepers through continuous video analysis:
 
+*   **Foraging Activity Analysis:** Correlating forager traffic with weather and environmental conditions to assess colony productivity and growth through regular orientation flights.
+*   **Pest and Predator Attacks:** Identifying attacks from hornets, wasps, or robbing bees from other hives.
 *   **Seasonal Behavior Tracking:** Monitoring events like the seasonal expulsion of drones from the hive.
 *   **Swarming Prevention:** Early detection of pre-swarming behaviors to prevent colony loss.
-*   **Pest and Predator Attacks:** Identifying attacks from hornets, wasps, or robbing bees from other hives.
-*   **Queen Health Monitoring:** Observing the queen's initial mating and orientation flights.
-*   **Foraging Activity Analysis:** Correlating forager traffic with weather and environmental conditions to assess colony productivity.
+*   **Queen Health Monitoring:** Observing the swarm queen's initial mating flights.
 
-This paper presents a practical methodology for beehive entrance monitoring that aims to address these challenges. We have developed a scalable system called the `entrance-observer`, which uses a camera and an AI model running on an edge device to continuously analyze bee activity. The `entrance-observer` is available as open-source software under the AGPL license at https://github.com/Gratheon/entrance-observer/. The system is designed not only to count bee traffic but also to analyze movement dynamics, such as movement speed on the landing board, as a novel indicator of colony status. This serves as a platform for developing more advanced diagnostic tools, with a primary focus on the detection of Varroa mites and other parasites. This paper details the system's architecture, the methodology for its deployment and data collection, and discusses its potential to become a valuable tool for modern, sustainable beekeeping.
+This paper presents a practical methodology for beehive entrance monitoring that aims to address these challenges. We have developed a scalable system called the `entrance-observer`, which uses a camera and an AI model running on an edge device to continuously analyze bee activity. The `entrance-observer` is available as open-source software under the AGPL license at https://github.com/Gratheon/entrance-observer/. The system is designed not only to count bee traffic but also to analyze movement dynamics. We introduce bee movement speed on the landing board as a novel proxy for colony health, hypothesizing that a colony's activity level, represented by speed, is a sensitive indicator influenced by a wide array of factors. These include environmental conditions (e.g., sun presence, wind, humidity), resource availability (e.g., pollen), and internal or external stressors (e.g., Varroa mite infestation, pesticide exposure, hornet attacks, hive congestion). This serves as a platform for developing more advanced diagnostic tools, with a primary focus on the detection of Varroa mites and other parasites. This paper details the system's architecture, the methodology for its deployment and data collection, and discusses its potential to become a valuable tool for modern, sustainable beekeeping.
+
+### 1.1. Context: Smart Manufacturing in Beekeeping
+
+The principles of Smart Manufacturing, which involve the deep integration of digital and physical processes for automated, data-driven production, are increasingly relevant beyond traditional factory settings. This paradigm can be extended to agriculture and apiculture, creating a vision for "Smart Beekeeping." As outlined by us before [21], a fully integrated smart apiary would combine various technologies—such as in-hive sensors for temperature and humidity, robotics for automated frame extraction, and cloud-based SaaS platforms for data analysis—to create a highly efficient and responsive beekeeping operation.
+
+In this context, the `entrance-observer` system serves as a critical component: a non-invasive, real-time data acquisition module. It functions as the "eyes" of the smart hive, providing the continuous, event-driven data on bee behavior that is essential for the higher-level monitoring, forecasting, and automation central to the Smart Manufacturing concept. This paper focuses on the development and validation of this key vision-based module, which lays the groundwork for its integration into a larger, fully automated beekeeping ecosystem.
 
 ## 2. Related Work
 
@@ -40,6 +46,8 @@ Some systems combine vision with other sensors in a hardware-centric design. The
 Another notable project is "BeeAlarmed" by Hickert [11], which also uses a Jetson Nano for vision-based analysis. The system uses a CNN to classify bees into several categories, including those carrying pollen, infested with Varroa mites, or exhibiting cooling behaviors. However, the "BeeAlarmed" hardware relies on a controlled, enclosed setup that funnels bees "under a roof" across a pane with a uniform green background and artificial lighting. This intrusive design, while simplifying the classification task, is sensitive to background and lighting variations and does not capture behavior in a natural context. In contrast, the `entrance-observer` is designed to be robust in natural, uncontrolled lighting conditions, tolerating shadows and changing sunlight. Furthermore, while "BeeAlarmed" focuses on static classification, the `entrance-observer` introduces novel dynamic metrics, such as the speed and interaction of bees on the landing board, offering a different and complementary dimension of behavioral analysis.
 
 Beyond real-time monitoring systems, a significant area of research has focused on creating platforms to facilitate the large-scale annotation and analysis of video data. A key example is LabelBee [13], a web-based platform designed for the collaborative, semi-automated annotation of honeybee behavior. LabelBee provides a suite of tools for researchers to manually and automatically label events, track tagged individuals using AprilTags, and build high-quality datasets. This "human-in-the-loop" approach is invaluable for training and validating the complex models needed for behavior recognition. While systems like LabelBee are essential for the research and development phase, they differ from the `entrance-observer` in their primary function. LabelBee is a post-processing and analysis tool for creating datasets, whereas the `entrance-observer` is an edge-computing system designed for real-time, autonomous monitoring and data collection in a production apiary environment.
+
+While the `entrance-observer` focuses on aggregate metrics of bee traffic and behavior, another significant challenge in vision-based monitoring is the long-term re-identification of individual unmarked bees. Research by Chan et al. (2022) has shown that this can be achieved by training deep learning models on large datasets. They demonstrated that self-supervised learning, using short-term tracks of bees as training data, is highly effective for building models that can re-identify individuals over multiple days. This highlights the potential of large-scale video datasets, like the one generated by `entrance-observer`, to serve as a foundation for developing such advanced capabilities.
 
 The `entrance-observer` system presented in this paper builds upon this body of vision-based work but with a key distinction: it is designed to be completely non-invasive, practical, and easy to deploy. By monitoring the unmodified hive entrance, it captures more authentic behavioral data. It utilizes a state-of-the-art YOLOv8 model to address the key challenges of forager loss, pollination efficiency, and Varroa mite detection, aiming to be a practical tool for real-world apiaries.
 
@@ -115,7 +123,7 @@ entrance-observer video screenshot with Yolo model detections, entrance detectio
 
 #### Metrics
 
-Bee detection and tracking is performed using a YOLOv8 model. The model has been pre-trained on a large dataset of bee images and is able to detect and track individual bees with a high degree of accuracy. The application uses the tracking information to calculate a rich set of metrics over 30-second intervals, including:
+Bee detection and tracking is performed using a YOLOv8 model. The model has been pre-trained on a large dataset of bee images and is able to detect and track individual bees with a high degree of accuracy. The tracker assigns a temporary ID to each bee, allowing its movement to be followed throughout a single 30-second video chunk. It is important to note that these track IDs are not persistent and are reset with each new video chunk. The application uses this short-term tracking information to calculate a rich set of metrics over 30-second intervals, including:
 
 *   **`bees_in` & `bees_out`**: These metrics are determined using a virtual horizontal line placed across the video frame. A bee is counted as "out" or "in" when the center of its tracked bounding box crosses this line. The direction of crossing determines whether the bee is entering or exiting. The system's logic can be inverted based on camera placement (e.g., above or below the entrance).
 *   **`net_flow`**: The difference between `bees_in` and `bees_out`, indicating the net change in the number of bees in the hive over the interval.
@@ -228,6 +236,8 @@ The video datasets collected during this research are publicly available at [htt
 	- file names are in UTC timestamps.
     - [Drone expulsion observed](https://drive.google.com/drive/folders/1x_O1DcHekXz6F_1MtNITWYVwDGQfYRa9?usp=drive_link)
 
+This collection of annotated video and corresponding metrics serves as a valuable resource for the research community. It can be used not only to replicate the findings of this study but also as a foundational dataset for training and validating new models. Potential applications include improving bee detection precision under diverse conditions (e.g., varying zoom levels, lighting, and shade) and developing classifiers to distinguish between different bee activities, such as flying versus walking.
+
 
 ### 4.2.4. AI Model Training
 
@@ -283,10 +293,10 @@ Beehive activity metrics (stored in mysql, queried via graphql API through telem
 Details connecting grafana to backend GraphQL API that uses telemetry-api. Notice using sending currently selected time range as arguments and parsing output
 ![](./Screenshot%202025-09-08%20at%2023.30.08.png)
 
-Based on these analyses, we will test several specific hypotheses, including:
-1.  There is a significant positive correlation between ambient temperature (above a certain threshold) and the number of outgoing bees (`bees_out`).
-2.  Increased wind speed is significantly correlated with a decrease in overall bee traffic.
-3.  Solar radiation is a primary predictor of foraging activity, explaining a significant portion of the variance in `net_flow`.
+Based on these analyses, we will test several specific hypotheses. We posit that bee movement speed and overall traffic are complex variables influenced by multiple factors. Our primary hypotheses include:
+1.  **Environmental Drivers:** There is a significant positive correlation between ambient temperature (above a certain threshold), solar radiation, and the number of outgoing bees (`bees_out`). Conversely, increased wind speed, humidity, and precipitation are significantly correlated with a decrease in overall bee traffic.
+2.  **Colony Stressors:** The presence of stressors such as Varroa mite infestation, pesticide exposure, or predator attacks (e.g., hornets) will lead to a measurable decrease in the average and 95th percentile of bee movement speed (`avg_speed_px_per_frame` and `p95_speed_px_per_frame`).
+3.  **Internal Hive Conditions:** Factors such as hive placement, orientation, and insufficient internal space (congestion) will correlate with changes in landing board activity, potentially affecting `stationary_bees_count` and `bee_interactions`.
 
 Finally, we will develop a strategy for anomaly detection based on statistical deviations from the established baseline of normal activity. An anomaly will be defined as a data point that falls outside a specified number of standard deviations from the predicted value, given the time of day and prevailing weather conditions. This will enable the system to flag unusual events that may require the beekeeper's attention.
 
@@ -352,11 +362,12 @@ The `entrance-observer` system provides a robust foundation for non-invasive bee
 
 ### 6.1. Enhancing Detection Metrics
 
-The immediate priority is to move beyond bee counting and basic motion analysis to the detection of specific, high-value indicators of colony health and activity. This involves training and deploying more sophisticated computer vision models capable of identifying:
+The immediate priority is to move beyond bee counting and basic motion analysis to the detection of specific, high-value indicators of colony health and social behavior. This involves training and deploying more sophisticated computer vision models capable of identifying:
 
 *   **Varroa Mites:** The detection of Varroa mites on bees is the most critical next step. This will require a high-resolution video dataset and a model trained to identify these small parasites. The ability to automatically quantify mite infestation levels would be a significant breakthrough for beekeepers, enabling targeted and timely treatments.
 *   **Pollen-Carrying Bees:** Identifying bees returning to the hive with pollen is a direct indicator of foraging success and resource availability. This metric can provide valuable insights into pollination efficiency and the impact of environmental factors on foraging.
 *   **Queen and Drones:** Differentiating the queen and drones from worker bees will allow for the monitoring of key colony events, such as the queen's mating flights and the seasonal expulsion of drones.
+*   **Social Interactions:** Developing models to recognize and quantify social behaviors is a key area for future research. This includes detecting defensive actions against intruders, observing food exchange (trophallaxis), identifying hive "bearding" (bees congregating outside the entrance due to heat or overcrowding), and monitoring fanning behavior for hive ventilation.
 
 ### 6.2. Hardware and System Improvements
 
@@ -375,6 +386,10 @@ One promising direction is the use of transformer-based models. Research such as
 Furthermore, to gain a deeper understanding of bee-to-bee interactions and individual movement, we plan to integrate pose estimation. By tracking the keypoints of a bee's body, we can more accurately determine its orientation and direction of movement. This would significantly improve the accuracy of metrics like `bees_in` and `bees_out` and provide a richer dataset for analyzing complex social behaviors like trophallaxis or guarding. An initial exploration of this concept was conducted using the `beepose` library [17], and while the library is now outdated, it serves as a proof-of-concept for the value of pose estimation in this domain. We are also aware of the `apic-bee-pose-dataset` [19], but its license does not permit commercial use, which is a consideration for the future development of the `entrance-observer` system.
 
 Finally, we will continue to evaluate the rapidly evolving landscape of object detection models optimized for edge devices. Models such as YOLOv10, which offers NMS-free training for lower latency, and RT-DETR, an end-to-end DETR variant, present compelling alternatives that could further improve the efficiency and accuracy of the `entrance-observer` on hardware like the NVIDIA Jetson series. We also performed preliminary experiments with Large Language and Vision Assistant (LLaVA) models [18], but found that their empirical precision for the specific task of bee detection was not as high as that of convolutional networks like YOLO.
+
+A primary goal for future work is to move from tracking bee populations to re-identifying individual bees over extended periods. The extensive `track_history` dataset generated by our system is ideally suited for this task. Following the methodology proposed by Chan et al. [20], we plan to use this data to train a re-identification model using self-supervised contrastive learning. This would enable us to track the foraging lifetime of individual bees, measure forager loss with high precision, and gain deeper insights into the division of labor within the colony.
+
+Furthermore, we plan to explore multimodal analysis by integrating audio data with the existing video stream. The distinct sound produced by drones, for example, could be used in conjunction with video to create a more robust drone detection system. Combining these data streams could lead to the development of models that capture a richer, more dynamic understanding of hive activity.
 
 The video dataset collected in this study is a critical first step towards these goals. By laying the groundwork for advanced parasite detection and behavioral analysis, we are moving towards a future where technology can help beekeepers manage their colonies more effectively and sustainably.
 
@@ -429,3 +444,7 @@ The future work outlined in this paper, focused on enhancing detection metrics, 
 [18] Liu, H., Li, C., Wu, Q., & Lee, Y. J. (2023). Visual Instruction Tuning. *arXiv preprint arXiv:2304.08485*.
 
 [19] Apic.ai. (2021). *apic-bee-pose-dataset*. GitHub repository. Retrieved from https://github.com/apic-ai/apic-bee-pose-dataset
+
+[20] Chan, J., Carrión, H., Mégret, R., Rivera, J. L. A., & Giray, T. (2022). Honeybee Re-identification in Video: New Datasets and Impact of Self-supervision. In *Proceedings of the 17th International Joint Conference on Computer Vision, Imaging and Computer Graphics Theory and Applications (VISIGRAPP 2022)* (Vol. 5, pp. 517-525).
+
+[21] Kekshin, V., Kurapov, A., & Kuts, V. (2025). Integration of Beekeeping with the Concept of Smart Manufacturing. *EasyChair Preprint no. 15936*.
