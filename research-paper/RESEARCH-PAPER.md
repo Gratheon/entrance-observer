@@ -110,7 +110,8 @@ flowchart LR
 The video processing pipeline is built using OpenCV. It captures frames from the camera, resizes them to a manageable resolution, and then passes them to two separate queues: one for video writing and one for AI processing. This multi-threaded approach ensures that the video capture process is not blocked by the computationally intensive AI processing.
 
 
-![entrance-observer detection video screenshot with tracks, detected bees and a ruler for reference of zoom](./Screenshot%202025-09-07%20at%2013.04.17.png)
+entrance-observer video screenshot with Yolo model detections, entrance detection line and bee movement tracks. A ruler added for reference of the zoom level
+![](./Screenshot%202025-09-07%20at%2013.04.17.png)
 
 #### Metrics
 
