@@ -279,33 +279,19 @@ Finally, we will develop a strategy for anomaly detection based on statistical d
 ### 4.4. Experimental Log
 
 **September 5, 2025:**
-
-A significant drop in bee activity was observed around 13:15 UTC. While the exact cause is unconfirmed due to a lack of detailed log data for that specific event, it is hypothesized that this may have been caused by a sudden increase in cloud cover. This event highlights the system's ability to detect subtle changes in colony behavior that might otherwise go unnoticed and underscores the need for continuous data collection to capture and analyze more of these non-linear dynamics.
+- System running and collecting data.
 
 **September 6, 2025:**
-
-Work was completed to integrate Grafana dashboards into the web application. This involved configuring the data sources to pull bee traffic metrics and weather data, allowing for the direct correlation and visualization of these two datasets. This integration is a key step in enabling long-term analysis beyond the 24-hour limit of the local data storage on the `entrance-observer` device.
-
-- Fixed **telemetry-api** to accept new set of metrics and configured grafana to visualize it
+- Work was completed to integrate Grafana dashboards into the web application.
+- Fixed **telemetry-api** to accept new set of metrics and configured Grafana to visualize them.
 
 **September 7, 2025:**
-
-A significant adjustment was made to the experimental setup to enhance the potential for future Varroa mite detection.
-
-*   **Camera Field of View Adjustment:** The camera's varifocal lens was adjusted to provide a closer view of the hive entrance. Previously, the field of view covered the entire landing board, approximately 40 cm in width. The new configuration narrows the field of view to approximately 23 cm, focusing on the 14 cm gap between the two aluminum frames that form the primary entrance gate. This change is intended to increase the pixel density per bee, a critical factor for identifying small objects like Varroa mites. This adjustment marks the beginning of a new data collection phase aimed at creating a high-resolution video dataset specifically for training a mite detection model.
-
-Before (September 5-6):
-![](./Screenshot%202025-09-07%20at%2013.38.02.png)
-
-After changing focus (September 7):
-![](./Screenshot%202025-09-07%20at%2012.28.20.png)
-
-*   **Landing Board Construction Improvement:** The physical construction of the entrance was improved to ensure more accurate forager counts. It was observed that bees could bypass the main entrance through small gaps between the landing board and the aluminum guide frames. These gaps were sealed using additional plexiglass, compelling all bees to pass through the monitored entrance gate.
-
-*   **Implications for Data Consistency:** It is acknowledged that these changes will significantly alter the bee traffic metrics (e.g., `bees_in`, `bees_out`, `avg_speed_px_per_frame`). The data collected from this point forward will not be directly comparable to the data from September 4-6. This highlights a critical consideration for deploying such systems across multiple hives: maintaining a consistent camera setup (zoom, focus, and angle) is essential for meaningful comparative analysis between colonies.
+- **Camera Field of View Adjustment:** The camera's varifocal lens was adjusted to narrow the field of view from ~40 cm to ~23 cm to increase pixel density per bee for future mite detection experiments.
+- **Landing Board Construction Improvement:** Gaps near the entrance were sealed to ensure more accurate forager counts.
+- **Note on Data Consistency:** It is acknowledged that these changes will significantly alter the bee traffic metrics. Data collected from this point forward is not directly comparable to the data from September 4-6.
 
 **September 8, 2025:**
-- Second half of the day is sunny, which seems to correlated with bees activity
+- System running and collecting data.
 
 
 ## 5. Results and Discussion
@@ -320,12 +306,26 @@ The findings from this study are expected to have several practical implications
 
 ### 5.1. Behavioral Observations
 
-Initial observations have already demonstrated the system's potential for behavioral analysis. On September 6th, a significant increase in bee presence was noted around 13:20, which is characteristic of orientation flights for young bees. Although this event occurred before Grafana integration was complete, analysis of the raw metrics revealed a sharp spike in the `detected_bees` count, reaching 672 at 12:34 UTC. This demonstrates that even without sophisticated visualization tools, the `detected_bees` metric can serve as a powerful indicator for identifying large-scale events like orientation flights, where a high volume of bees congregates at the hive entrance.
+Initial observations have already demonstrated the system's potential for detailed behavioral analysis. The following are specific events captured by the system:
 
-On September 7th, the system recorded the seasonal expulsion of drones. The video footage captured numerous drones being denied entry to the hive by worker bees, which were observed actively blocking, dragging, and even attacking the drones' wings. This complex social behavior, a key indicator of the colony's preparation for winter, is precisely the type of event that can only be reliably captured and analyzed through continuous video monitoring. Additionally, several instances of intruder bees attempting to enter the hive were documented, with defender bees successfully intercepting and repelling them. The ability to automatically detect and catalog such events is a primary objective, as it provides direct insights into colony defensiveness, resource competition, and seasonal cycles.
+#### Orientation Flights
+On September 6th, a significant increase in bee presence was noted around 13:20, which is characteristic of orientation flights for young bees. Although this event occurred before Grafana integration was complete, analysis of the raw metrics revealed a sharp spike in the `detected_bees` count, reaching 672 at 12:34 UTC. This demonstrates that the `detected_bees` metric can serve as a powerful indicator for identifying large-scale events where a high volume of bees congregates at the hive entrance.
 
-Drone congestion on top of the plexiglass, mostly immobile.
+#### Hive Defense and Robbing Attempts
+The system documented several instances of hive defense. For example, on September 5th, video footage [1757061346.mp4](https://drive.google.com/file/d/1XlvomCMDlMO597fmywlT0nY95bIqBYCt/view?usp=drive_link) captured a clear instance of two guard bees intercepting an intruder and physically "escorting" it away from the entrance. The ability to automatically detect and catalog such events provides direct insights into colony defensiveness and resource competition.
+
+![](./Screenshot%202025-09-09%20at%2018.22.04.png)
+
+#### Seasonal Drone Expulsion
+On September 7th, the system recorded the seasonal expulsion of drones. The video footage captured numerous drones being denied entry to the hive by worker bees, which were observed actively blocking, dragging, and even attacking the drones' wings. This complex social behavior is a key indicator of the colony's preparation for winter and is precisely the type of event that can only be reliably captured through continuous video monitoring.
+
+Drone congestion on top of the plexiglass, mostly immobile. In next days, dead drones were seen on the landing board.
 ![](./20250907_141040.jpg)
+
+
+
+#### Cooperative Behavior
+On September 9th, a unique instance of social behavior was captured. A bee was observed struggling at approximately 13:45, apparently entangled in a blade of grass near the entrance. Several other bees were recorded approaching the distressed bee, seemingly assisting in its efforts to get free. This type of cooperative behavior, while known to exist, is difficult to capture and quantify. The ability of the `entrance-observer` to record such nuanced interactions highlights its value not just for tracking traffic, but for documenting complex social dynamics that could be correlated with overall colony health and cohesion.
 
 
 Furthermore, the detailed analysis of forager traffic will provide insights into pollination efficiency. By understanding how environmental factors influence foraging, beekeepers can make more informed decisions about hive placement and management to maximize pollination services.
