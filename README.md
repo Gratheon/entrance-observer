@@ -37,7 +37,7 @@ https://github.com/user-attachments/assets/c298b395-58aa-4de6-8e91-35d7c27c9b87
 
 ## Metrics
 
-<img width="961" height="1166" alt="Screenshot 2025-09-05 at 13 08 48" src="https://github.com/user-attachments/assets/37796d5a-e7ad-42c2-bdf2-18f58a79289a" />
+![](./img/Screenshot%202025-09-09%20at%2020.40.54.png)
 
 The application collects a rich set of metrics to provide a comprehensive overview of the beehive's activity. These metrics are saved locally to `metrics.jsonl` and, if configured, sent to the Gratheon telemetry service.
 
