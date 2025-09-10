@@ -219,22 +219,50 @@ In addition to the video data, historical weather data for the apiary's location
 
 The video datasets collected during this research are publicly available at [https://gratheon.com/research/Datasets](https://gratheon.com/research/Datasets). The collection includes the following:
 
+
+#### Dataset type 1
+Zoom at landing board ~ 40cm wide. Camera placed on **third** hive section
+
 - [September 04](https://drive.google.com/drive/folders/1BY7RrQdQI-6iaSzx4-CVES0kwVlpzX2u?usp=drive_link). 
 	- some chunks have pairs with `_detect.mp4` suffixes, showing yolov8 model detections.
 	- 5-25mb per chunk. mp4
-- [September 05](https://drive.google.com/drive/folders/12oV370f8HqrZsuXUU9mLWeT9NAs8HcO2?usp=drive_link) (~mostly continuous 8h of the same hive. Time of day - 11:30  til 20:00). Sunny weather.
-	- Zoom at landing board ~ 40cm wide
+- [September 05](https://drive.google.com/drive/folders/12oV370f8HqrZsuXUU9mLWeT9NAs8HcO2?usp=drive_link) 
+	- Dataset duration ~8h (11:30 - 20:00 EEST)
+	- Sunny weather.
 	- ~ 25GB in total
 	- 1280x720px. 30 min chunks. 15FPS. 5-25mb per chunk. mp4
 	- file names are in UTC timestamps.
-	- [related metrics in jsonl format](https://drive.google.com/file/d/18b2aKTxrS1K9YpQciDybXwDlNYuEE4yh/view?usp=drive_link)
-	- [related individual bee tracks in jsonl format](https://drive.google.com/file/d/1J6I2KOeUa4dns7OmXidvc6Oqc0VF2goC/view?usp=drive_link)
-- September 6th. Sunny weather.
-- September 7th. Sunny weather with clouds and gust after 16:00
-	- Zoom in done at 12:00 EEST of landing board area (23cm wide). 
+	- [metrics in jsonl format](https://drive.google.com/file/d/18b2aKTxrS1K9YpQciDybXwDlNYuEE4yh/view?usp=drive_link)
+	- [bee tracks in jsonl format](https://drive.google.com/file/d/1J6I2KOeUa4dns7OmXidvc6Oqc0VF2goC/view?usp=drive_link)
+- [September 6th](https://drive.google.com/drive/folders/1TQxpUFSc13xWLE_0gA4BkzPv8amcFyc-?usp=drive_link). Sunny weather. 
+	- Dataset duration ~8h (8:00-15:36, 19:35-20:35 EEST)
+	- ~13:20 a flight pattern is seen
+	- [metrics in jsonl](https://drive.google.com/file/d/1oHRftj_zvbZXd8vKCcTIg9VRGoslf4vy/view?usp=drive_link)
+	- [bee tracks in jsonl](https://drive.google.com/file/d/1SibnVr5I8ifYLJlxiqiWBpNWbBxm7lEl/view?usp=drive_link)
+
+
+
+#### Dataset type 2
+**New zoom level** of landing board area (23cm wide). Camera placed on **third** hive section
+
+- [September 7th](https://drive.google.com/drive/folders/1E8p_d_rdb_Mq2IjoOyw4OVaWrs37xj2s?usp=drive_link)
+	- Dataset duration ~ 3h (12:00-15:05 EEST)
 	- 1280x720px. 30 min chunks. 15FPS.  
-	- file names are in UTC timestamps.
-    - [Drone expulsion observed](https://drive.google.com/drive/folders/1x_O1DcHekXz6F_1MtNITWYVwDGQfYRa9?usp=drive_link)
+	- Sunny weather with clouds and gust after 16:00
+	- [metrics](https://drive.google.com/file/d/1vzIe7SRJP_jarai9jqNIVPac8l6efrQv/view?usp=drive_link)
+	- [tracks](https://drive.google.com/file/d/1ij0A15NC2XDdUy3ghvZ6GYT_458uqzZn/view?usp=drive_link)
+- September 8th
+	- [metrics](https://drive.google.com/file/d/1Uz0I-nzvRPiNe1QH-PK1XcPpCMrfV2NY/view?usp=drive_link)
+	- [tracks](https://drive.google.com/file/d/1o9Z6c7-JunYptKTGUFV7aJqYdjkKKYUr/view?usp=drive_link)
+- September 9th
+
+#### Dataset type 3
+Camera placed on **second** hive section (closer), changed zoom, **removed the glass** and aluminium boundaries, added stones instead.
+Counting line moved closer to the hive entrance.
+
+- September 10th
+![](./Screenshot%202025-09-10%20at%2009.11.23.png)
+
 
 This collection of annotated video and corresponding metrics serves as a valuable resource for the research community. It can be used not only to replicate the findings of this study but also as a foundational dataset for training and validating new models. Potential applications include improving bee detection precision under diverse conditions (e.g., varying zoom levels, lighting, and shade) and developing classifiers to distinguish between different bee activities, such as flying versus walking.
 
