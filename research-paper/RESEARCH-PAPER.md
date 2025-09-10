@@ -374,6 +374,9 @@ On September 7th, the system recorded the seasonal expulsion of drones. The vide
 Drone congestion on top of the plexiglass, mostly immobile. In next days, dead drones were seen on the landing board.
 ![](./20250907_141040.jpg)
 
+#### Wasps
+On 10th of September in `1757487957.mp4` at ~10:05 a wasp is seen freely entering the hive
+![](./Screenshot%202025-09-10%20at%2010.14.26.png)
 
 
 #### Cooperative Behavior
