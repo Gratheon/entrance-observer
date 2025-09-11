@@ -383,6 +383,9 @@ On 10th of September in `1757487957.mp4` at ~10:05 a wasp is seen freely enterin
 
 
 #### Cooperative Behavior
+On September 8th at 16:42 multiple bees are seen moving dying drone away from the entrance, down the landing board
+![](./Screenshot%202025-09-11%20at%2017.59.04.png)
+
 On September 9th, a unique instance of social behavior was captured. A bee was observed struggling at approximately 13:45, apparently entangled in a blade of grass near the entrance. Several other bees were recorded approaching the distressed bee, seemingly assisting in its efforts to get free. This type of cooperative behavior, while known to exist, is difficult to capture and quantify. The ability of the `entrance-observer` to record such nuanced interactions highlights its value not just for tracking traffic, but for documenting complex social dynamics that could be correlated with overall colony health and cohesion.
 
 
