@@ -345,8 +345,8 @@ Finally, we will develop a strategy for anomaly detection based on statistical d
 - **Landing Board Construction Improvement:** Gaps near the entrance were sealed to ensure more accurate forager counts.
 - **Note on Data Consistency:** It is acknowledged that these changes will significantly alter the bee traffic metrics. Data collected from this point forward is not directly comparable to the data from September 4-6.
 
-**September 8, 2025:**
-- System running and collecting data.
+**September 10, 2025:**
+- Camera placed on second hive section (closer), changed zoom, removed glass and aluminium boundaries, added stones instead
 
 
 ## 5. Results and Discussion
@@ -364,7 +364,11 @@ The findings from this study are expected to have several practical implications
 Initial observations have already demonstrated the system's potential for detailed behavioral analysis. The following are specific events captured by the system:
 
 #### Orientation Flights
-On September 6th, a significant increase in bee presence was noted around 13:20, which is characteristic of orientation flights for young bees. Although this event occurred before Grafana integration was complete, analysis of the raw metrics revealed a sharp spike in the `detected_bees` count, reaching 672 at 12:34 UTC. This demonstrates that the `detected_bees` metric can serve as a powerful indicator for identifying large-scale events where a high volume of bees congregates at the hive entrance.
+On September 8th, a significant increase in bee presence, speed and in/out metrics was noted around 16:00-18:00, which is characteristic of orientation flights for young bees, this was confirmed when watching the video playback with bees flying above the landing board for these 2 hours. Although this event occurred before Grafana integration was complete, analysis of the raw metrics revealed a sharp spike in the `detected_bees` count, reaching 672 at 12:34 UTC. This demonstrates that the `detected_bees` metric can serve as a powerful indicator for identifying large-scale events where a high volume of bees congregates at the hive entrance.
+
+![](./Screenshot%202025-09-11%20at%2018.12.46.png)
+![](./Screenshot%202025-09-11%20at%2018.20.42.png)
+
 
 #### Hive Defense and Robbing Attempts
 The system documented several instances of hive defense. For example, on September 5th, video footage [1757061346.mp4](https://drive.google.com/file/d/1XlvomCMDlMO597fmywlT0nY95bIqBYCt/view?usp=drive_link) captured a clear instance of two guard bees intercepting an intruder and physically "escorting" it away from the entrance. The ability to automatically detect and catalog such events provides direct insights into colony defensiveness and resource competition.
@@ -377,15 +381,16 @@ On September 7th, the system recorded the seasonal expulsion of drones. The vide
 Drone congestion on top of the plexiglass, mostly immobile. In next days, dead drones were seen on the landing board.
 ![](./20250907_141040.jpg)
 
+On September 8th at 16:42 multiple bees are seen moving dying drone away from the entrance, down the landing board
+![](./Screenshot%202025-09-11%20at%2017.59.04.png)
+
+
 #### Wasps
 On 10th of September in `1757487957.mp4` at ~10:05 a wasp is seen freely entering the hive
 ![](./Screenshot%202025-09-10%20at%2010.14.26.png)
 
 
 #### Cooperative Behavior
-On September 8th at 16:42 multiple bees are seen moving dying drone away from the entrance, down the landing board
-![](./Screenshot%202025-09-11%20at%2017.59.04.png)
-
 On September 9th, a unique instance of social behavior was captured. A bee was observed struggling at approximately 13:45, apparently entangled in a blade of grass near the entrance. Several other bees were recorded approaching the distressed bee, seemingly assisting in its efforts to get free. This type of cooperative behavior, while known to exist, is difficult to capture and quantify. The ability of the `entrance-observer` to record such nuanced interactions highlights its value not just for tracking traffic, but for documenting complex social dynamics that could be correlated with overall colony health and cohesion.
 
 
