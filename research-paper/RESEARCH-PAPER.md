@@ -316,8 +316,12 @@ Notice that after September 9th repositioning of the camera and removal of the g
 #### Grafana UI for correlation detection
 
 
-Beehive activity metrics (stored in mysql, queried via graphql API through telemetry-api) in Grafana for September 8th (time in UI is in EEST):
-![](./Screenshot%202025-09-08%20at%2023.23.52.png)
+Beehive activity metrics (stored in mysql, queried via graphql API through telemetry-api) in Grafana for September 7-9th:
+
+![](./Screenshot%202025-09-11%20at%2018.36.37.png)
+
+Weather conditions at the same time:
+![](./Screenshot%202025-09-11%20at%2018.40.40.png)
 
 
 
