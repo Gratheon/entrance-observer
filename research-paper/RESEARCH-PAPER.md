@@ -309,6 +309,9 @@ Also notice that glass border is also noticeable, because bees could move on it 
 ![](./heatmap-09-06.png)
 ![](./heatmap-09-09.png)
 
+Notice that after September 9th repositioning of the camera and removal of the glass and aluminium boundaries, how the heatmap changed. Bees position themselves right at the entrance for best control under the protection of the hive. Also notice how placement is not symmetrical, we believe this is due to the fact that bees flight routes go to the left. So heatmap analysis can give a hint which area bees are landing from the most. The stone contours being visible again seems to prove that bees either take shelter from the wind or feel safer from preditors while having a wall or a roof behind them. Notice also how hot spots of statical bees are also present in this image too.
+
+![](./heatmap-09-10.png)
 
 #### Grafana UI for correlation detection
 
