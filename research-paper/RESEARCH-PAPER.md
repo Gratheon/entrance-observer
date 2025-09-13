@@ -388,6 +388,10 @@ On September 7th, the system recorded the seasonal expulsion of drones. The vide
 Drone congestion on top of the plexiglass, mostly immobile. In next days, dead drones were seen on the landing board.
 ![](./20250907_141040.jpg)
 
+On September 9 in video `1757415965.mp4`, a worker bee is seen riding a drone on what it seems like agression, attacking its wing. We assume this is a tactic of the colony to conserve honey resources by causing drones to exit the hive and die from starvation.
+![](./Screenshot%202025-09-13%20at%2020.41.06.png)
+
+
 
 #### Removal of dead bees
 On September 8th at 16:42 and on September 10th at 11:55, multiple bees are seen moving dying drone away from the entrance, down the landing board which is also a cooperating behaviour
