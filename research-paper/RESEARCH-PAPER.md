@@ -72,8 +72,11 @@ The following table details the components used to build the `entrance-observer`
 | **Connectivity** | Waveshare AC8265 Wireless NIC for Jetson Orin Nano | €22.92 |
 | **Enclosure** | Acrylic Clear Case for NVIDIA Jetson Nano | €11.36 |
 | **Camera Mount** | Security Wall Mount with 1/4 Screw Head | $9.59 |
-| **3D-Printed Enclosure Cover** | Custom-designed protective cover | Self-printed |
+| **3D-Printed Camera Cover** | Custom-designed protective cover | ~€5 |
 | **Total** | | **~$461 + €101.51** |
+
+We made a custom cover for the camera to protect electrical USB contacts from the rain and UV rays. We used Ender V3 3d printer and Tinkercad. Internal grooves allow USB wire to be kept inside and have mounting accessing the camera.
+![](./Screenshot%202025-09-13%20at%2012.30.27.png)
 
 
 ### 3.3. Software
@@ -425,8 +428,9 @@ The immediate priority is to move beyond bee counting and basic motion analysis 
 To support these enhanced detection capabilities, several hardware and system improvements are necessary:
 
 *   **Upgraded Camera and GPU:** A 4K camera with a high frame rate (60 FPS) is essential for capturing the fine details required for mite detection. This must be paired with a more powerful GPU to handle the increased computational load of running multiple, complex models in real-time.
-*   **Weatherproof Enclosure:** A robust, weatherproof enclosure with integrated LED lighting is needed to ensure consistent image quality and protect the hardware from the elements.
-*   **Developer-Friendly Platform:** Given the challenges encountered with the Jetson Orin, we are considering a more developer-friendly platform, such as a Mac Mini, to accelerate development and deployment.
+*   **Weatherproof Enclosure:** A robust, weatherproof enclosure with integrated LED lighting is needed to ensure consistent image quality and protect the hardware from the elements. We want to test two approaches - having device as part of the vertical hive, or have it only in front of the hive. Design decision here depends on ease of installation, maintenance and aesthetic look.
+*   **Developer-Friendly Platform:** Given the challenges encountered with the Jetson Orin, we are considering a more developer-friendly platform, such as a Mac Mini, to accelerate development and deployment. This could allow us to have 60FPS video and multiple AI models running the inference
+* Alternative budget 
 
 ### 6.3. Advanced Model Architectures and Pose Estimation
 
@@ -435,6 +439,8 @@ While YOLOv8n provides a strong baseline for real-time detection, future work wi
 One promising direction is the use of transformer-based models. Research such as BeeNet [16] has demonstrated that a combination of CNNs for feature extraction and a transformer encoder-decoder architecture can achieve high accuracy in fine-grained classification tasks, including bee species identification and health monitoring. However, it is worth noting that the authors of the BeeNet paper did not provide a public code repository, which makes it difficult to verify their findings and build upon their work. Nevertheless, the paper provides a valuable theoretical framework for the application of transformer-based models to bee monitoring. Adopting a similar approach could allow the `entrance-observer` to learn more complex visual features and perform more nuanced classifications, such as identifying different castes of bees or subtle indicators of disease.
 
 Furthermore, to gain a deeper understanding of bee-to-bee interactions and individual movement, we plan to integrate pose estimation. By tracking the keypoints of a bee's body, we can more accurately determine its orientation and direction of movement. This would significantly improve the accuracy of metrics like `bees_in` and `bees_out` and provide a richer dataset for analyzing complex social behaviors like trophallaxis or guarding. An initial exploration of this concept was conducted using the `beepose` library [17], and while the library is now outdated, it serves as a proof-of-concept for the value of pose estimation in this domain. We are also aware of the `apic-bee-pose-dataset` [19], but its license does not permit commercial use, which is a consideration for the future development of the `entrance-observer` system.
+
+For this purpose, we will leverage state-of-the-art animal pose estimation toolkits such as **SLEAP** (Pereira et al., 2022), **DeepLabCut** (Mathis et al., 2018), and **DeepPoseKit** (Graving et al., 2019). These frameworks have proven to be highly effective for tracking multiple body parts on a variety of species. However, integrating these powerful models into the `entrance-observer` presents a significant challenge. Running a pose estimation model in real-time on an edge device like the Jetson Orin Nano, which already dedicates a substantial portion of its limited computational resources to the YOLOv8n detection model, will require careful optimization to avoid performance bottlenecks. Furthermore, it is important to note that models and their underlying technologies can become outdated very quickly. Attempting to use older toolkits that rely on obsolete libraries, such as TensorFlow 1.x, can be challenging or even impossible to run on a native machine without containerization solutions like Docker.
 
 Finally, we will continue to evaluate the rapidly evolving landscape of object detection models optimized for edge devices. Models such as YOLOv10, which offers NMS-free training for lower latency, and RT-DETR, an end-to-end DETR variant, present compelling alternatives that could further improve the efficiency and accuracy of the `entrance-observer` on hardware like the NVIDIA Jetson series. We also performed preliminary experiments with Large Language and Vision Assistant (LLaVA) models [18], but found that their empirical precision for the specific task of bee detection was not as high as that of convolutional networks like YOLO.
 
