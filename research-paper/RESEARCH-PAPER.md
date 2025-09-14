@@ -301,20 +301,40 @@ From empirical observations, model quality is good when running detections on ho
 However in more complex scenes, it is prone to have false positive detections, for example when running app from Mac OSX:
 ![](./Screenshot%202025-09-07%20at%2019.14.07.png)
 
-### 4.2.5 Bee Pose Model Training
 
-To gain a deeper understanding of bee-to-bee interactions and individual movement, we integrated pose estimation. By tracking the keypoints of a bee's body, we can more accurately determine its orientation and direction of movement. This significantly improves the accuracy of metrics like `bees_in` and `bees_out` and provides a richer dataset for analyzing complex social behaviors like trophallaxis or guarding.
+Traning notebook is available at https://github.com/Gratheon/entrance-observer/tree/main/training-notebook
 
-We evaluated several state-of-the-art animal pose estimation toolkits, including **SLEAP** (Pereira et al., 2022), **DeepLabCut** (Mathis et al., 2018), and **DeepPoseKit** (Graving et al., 2019). These frameworks have proven to be highly effective for tracking multiple body parts on a variety of species. After evaluation, we trained a model using **DeepLabCut**. An initial exploration of this concept was also conducted using the `beepose` library [17], and while the library is now outdated, it served as a proof-of-concept for the value of pose estimation in this domain. We are also aware of the `apic-bee-pose-dataset` [19], but its license does not permit commercial use, which was a consideration during our evaluation.
+Weights at https://github.com/Gratheon/entrance-observer/tree/main/weights
 
-Integrating these powerful models into the `entrance-observer` presented a significant challenge. Running a pose estimation model in real-time on an edge device like the Jetson Orin Nano, which already dedicates a substantial portion of its limited computational resources to the YOLOv8n detection model, required careful optimization to avoid performance bottlenecks. Furthermore, it is important to note that models and their underlying technologies can become outdated very quickly. Attempting to use older toolkits that rely on obsolete libraries, such as TensorFlow 1.x, can be challenging or even impossible to run on a native machine without containerization solutions like Docker.
 
-The following are the results from our model training:
+### 4.2.5 Bee Pose Model Training and Evaluation
+
+To gain a deeper understanding of bee-to-bee interactions and individual movement, we evaluated pose estimation models. The hypothesis is that by tracking the keypoints of a bee's body, we can more accurately determine its orientation and direction of movement. This significantly improves the accuracy of metrics like `bees_in` and `bees_out` and provides a richer dataset for analyzing complex social behaviors like trophallaxis or guarding.
+
+We did quick checks of several state-of-the-art animal pose estimation toolkits, including **SLEAP** (Pereira et al., 2022), **DeepLabCut** (Mathis et al., 2018), and **DeepPoseKit** (Graving et al., 2019). These frameworks have proven to be highly effective for tracking multiple body parts on a variety of species.  An initial exploration of this concept was also conducted using the `beepose` library [17], used by **LabelBee** (Rodriguez et al., 2019) project [14]. While the library is now outdated, it served as a proof-of-concept for the value of pose estimation in this domain. We are also aware of the work done by api.ai team with `apic-bee-pose-dataset` [19], but their model is closed and dataset is not quite reuseable due to license and due to very high zoom level and detailed 32 keypoint-skeleton.
+
+
+After evaluation, we trained a model using **DeepLabCut**. We defined 13-keypoint skeleton where `thorax` connected most of the nodes:
+```
+multianimalbodyparts:
+- head
+- thorax
+- abdomen
+- antenna-left
+- antenna-right
+- fore-leg-left
+- fore-leg-right
+- mid-leg-left
+- mid-leg-right
+- hind-leg-left
+- hind-leg-right
+- wing-left
+- wing-right
+```
+
+The following are the results from our model training on OSX:
 
 ```
-Epoch 197/200 (lr=1e-05), train loss 0.00264
-Epoch 198/200 (lr=1e-05), train loss 0.00289
-Epoch 199/200 (lr=1e-05), train loss 0.00278
 Training for epoch 200 done, starting evaluation
 Epoch 200/200 (lr=1e-05), train loss 0.00241, valid loss 0.00294
 Model performance:
@@ -323,6 +343,34 @@ Model performance:
   metrics/test.mAP:           69.38
   metrics/test.mAR:           76.67
 ```
+
+
+Inference results of keypoints on a fresh video:
+![](./Screenshot%202025-09-14%20at%2017.48.12.png)
+
+### Pose integration challenges
+Integrating this model into the `entrance-observer` presents significant challenges. 
+
+1. Stability. DeepLabCut library inference did not work properly out of the box and did generate fatal errors. Visualization with skeleton also seems to connect different bees, we suspect the problem is in the way identities are stored internally as columns and how drawing of keypoints is implemented.
+
+2. Inference time. Preliminary testing on Macbook shows that inferencing a 30 sec video takes over 2 minutes, thus making performance ~ 3 FPS.
+
+```
+Video metadata: 
+  Overall # of frames:    451
+  Duration of video [s]:  30.03
+  fps:                    15.02
+  resolution:             w=1280, h=720
+
+Running pose prediction with batch size 8
+100%|█████████████████████████████████████████████████| 451/451 [02:06<00:00,  3.56it/s]
+Processing...  /Users/artjom/git/models-beepose2/test.mp4
+Loading From /Users/artjom/git/models-beepose2/testDLC_Resnet50_GratheonBeePoseSep13shuffle1_snapshot_best-170.h5
+100%|████████████████████████████████████████████████| 
+ ```
+
+3. Limited resources. Running pose estimation on Jetson Orin Nano, which already dedicates a substantial portion of its limited computational resources to the YOLOv8n detection model, requires careful optimization to avoid performance bottlenecks. 
+
 
 ### 4.3. Data Analysis
 
@@ -396,6 +444,10 @@ Finally, we will develop a strategy for anomaly detection based on statistical d
 **September 10, 2025:**
 - Camera placed on second hive section (closer), changed zoom, removed glass and aluminium boundaries, added stones instead
 
+**September 14,2025**
+- First half of the day system did not send telemetry, likely because of disk space
+- Trained and evaluated bee pose model
+
 
 ## 5. Results and Discussion
 
@@ -422,6 +474,8 @@ On September 8th, a significant increase in bee presence, speed and in/out metri
 The system documented several instances of hive defense. For example, on September 5th, video footage [1757061346.mp4](https://drive.google.com/file/d/1XlvomCMDlMO597fmywlT0nY95bIqBYCt/view?usp=drive_link) captured a clear instance of two guard bees intercepting an intruder and physically "escorting" it away from the entrance. The ability to automatically detect and catalog such events provides direct insights into colony defensiveness and resource competition.
 
 ![](./Screenshot%202025-09-09%20at%2018.22.04.png)
+
+On september 14th, after two days of rainy and cloudy weather, an increased amount of bees was seen outside. Some were attacked by defenders. Compared to orientation flights, this time not much flying was seen. 
 
 #### Seasonal Drone Expulsion
 On September 7th, the system recorded the seasonal expulsion of drones. The video footage captured numerous drones being denied entry to the hive by worker bees, which were observed actively blocking, dragging, and even attacking the drones' wings. This complex social behavior is a key indicator of the colony's preparation for winter and is precisely the type of event that can only be reliably captured through continuous video monitoring.
@@ -477,12 +531,11 @@ To support these enhanced detection capabilities, several hardware and system im
 *   **Developer-Friendly Platform:** Given the challenges encountered with the Jetson Orin, we are considering a more developer-friendly platform, such as a Mac Mini, to accelerate development and deployment. This could allow us to have 60FPS video and multiple AI models running the inference
 * Alternative budget 
 
-### 6.3. Advanced Model Architectures and Pose Estimation
+### 6.3. Advanced Model Architectures
 
 While YOLOv8n provides a strong baseline for real-time detection, future work will explore more advanced model architectures to enhance the system's analytical depth. The goal is to move towards open-ended detection that can identify a wider range of objects and behaviors without extensive retraining for each new class.
 
 One promising direction is the use of transformer-based models. Research such as BeeNet [16] has demonstrated that a combination of CNNs for feature extraction and a transformer encoder-decoder architecture can achieve high accuracy in fine-grained classification tasks, including bee species identification and health monitoring. However, it is worth noting that the authors of the BeeNet paper did not provide a public code repository, which makes it difficult to verify their findings and build upon their work. Nevertheless, the paper provides a valuable theoretical framework for the application of transformer-based models to bee monitoring. Adopting a similar approach could allow the `entrance-observer` to learn more complex visual features and perform more nuanced classifications, such as identifying different castes of bees or subtle indicators of disease.
-
 
 Finally, we will continue to evaluate the rapidly evolving landscape of object detection models optimized for edge devices. Models such as YOLOv10, which offers NMS-free training for lower latency, and RT-DETR, an end-to-end DETR variant, present compelling alternatives that could further improve the efficiency and accuracy of the `entrance-observer` on hardware like the NVIDIA Jetson series. We also performed preliminary experiments with Large Language and Vision Assistant (LLaVA) models [18], but found that their empirical precision for the specific task of bee detection was not as high as that of convolutional networks like YOLO.
 
@@ -539,6 +592,7 @@ The future work outlined in this paper, focused on enhancing detection metrics, 
 [16] Yoo, J., Siddiqua, R., Liu, X., Ahmed, K. A., & Hossain, M. Z. (2023). BeeNet: An End-To-End Deep Network For Bee Surveillance. *Procedia Computer Science*, 222, 415-424.
 
 [17] Pereira, P. (2020). *beepose*. GitHub repository. Retrieved from https://github.com/piperod/beepose
+https://github.com/jachansantiago/plotbee
 
 [18] Liu, H., Li, C., Wu, Q., & Lee, Y. J. (2023). Visual Instruction Tuning. *arXiv preprint arXiv:2304.08485*.
 
