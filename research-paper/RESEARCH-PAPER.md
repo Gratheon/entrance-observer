@@ -157,6 +157,25 @@ Gratheon web-app showing hive management along with entrance section (box) and t
 ![](./Screenshot%202025-09-07%20at%2019.08.42.png)
 
 
+### 3.4. System Performance and Resource Utilization
+
+To evaluate the real-world performance of the `entrance-observer` on the edge device, we collected resource utilization data using the `tegrastats` utility on the NVIDIA Jetson Orin Nano. The following table summarizes the key performance metrics recorded while the system was actively processing video, running the YOLOv8n model, and streaming data.
+
+| Metric | Value | Description |
+| --- | --- | --- |
+| **Total Power Consumption** | ~6.9 W | Average power draw for the entire Jetson Orin Nano board (VDD_IN). |
+| **CPU/GPU Power** | ~2.05 W | Combined power consumption of the CPU and GPU (VDD_CPU_GPU_CV). |
+| **RAM Usage** | ~4.2 GB / 7.6 GB | Memory utilization, approximately 55% of the total available RAM. |
+| **GPU Utilization** | Variable (4% - 99%) | The GPU load fluctuated based on the complexity of the scene and number of bees. |
+| **CPU Temperature** | ~57.5 °C | The core CPU temperature remained stable under continuous operation. |
+
+The performance data reveals that the Jetson Orin Nano operates efficiently, with a total power consumption of approximately 6.9 watts. This low power draw makes it suitable for long-term deployment in an apiary, where it could potentially be powered by a solar panel and battery system. The CPU temperature remained well within safe operating limits at around 57.5°C, indicating that the passive cooling of the developer kit is sufficient for this workload and no additional thermal management is required.
+
+The RAM usage of ~4.2 GB indicates that the 8GB model of the Jetson Orin Nano is a suitable choice, providing enough memory for the operating system, the `entrance-observer` application, and the AI model, with some headroom for future enhancements. The variable GPU utilization, which occasionally peaked at 99%, underscores the computational demands of real-time object detection. 
+
+GPU peak loads are most likely caused by the AI inference process (`model.track()` in `src/main.py`), which runs in a dedicated processing thread. The system's multithreaded architecture effectively isolates I/O-bound tasks like disk writing and network uploads, preventing them from impacting the GPU-intensive inference task.
+
+
 ## 4. Methodology
 ### 4.1. Experimental Setup
 
@@ -200,14 +219,13 @@ Example of metrics dataset in JSONL format:
 ```
 {"timestamp": "2025-09-06T05:03:54.564032", "metrics": {"bees_in": 0, "bees_out": 0, "detected_bees": 37, "avg_speed_px_per_frame": 3.39, "p95_speed_px_per_frame": 6.43, "stationary_bees_count": 4, "net_flow": 0}}
 {"timestamp": "2025-09-06T05:04:24.770983", "metrics": {"bees_in": 0, "bees_out": 0, "detected_bees": 26, "avg_speed_px_per_frame": 4.7, "p95_speed_px_per_frame": 9.65, "stationary_bees_count": 2, "net_flow": 0}}
-{"timestamp": "2025-09-06T05:04:54.738219", "metrics": {"bees_in": 0, "bees_out": 0, "detected_bees": 41, "avg_speed_px_per_frame": 3.82, "p95_speed_px_per_frame": 7.99, "stationary_bees_count": 6, "net_flow": 0}}
-{"timestamp": "2025-09-06T05:05:24.636856", "metrics": {"bees_in": 0, "bees_out": 0, "detected_bees": 30, "avg_speed_px_per_frame": 3.51, "p95_speed_px_per_frame": 8.82, "stationary_bees_count": 1, "net_flow": 0}}
+
 ```
 
 
 Example of a single entry (tracks of individual bees per frame within 30 sec video chunk) of tracks dataset in JSONL format (~40-50MB per day):
 ```
-{"timestamp": "2025-09-06T05:01:54.546608", "frame_dimensions": {"height": 720, "width": 1280}, "track_history": {"38": [[1150, 45], [1156, 44], [1160, 43], [1162, 42], [1165, 41], [1170, 41], [1172, 44], [1175, 37], [1182, 40], [1188, 40]], "40": [[1099, 49], [1098, 49], [1099, 49], [1099, 49], [1098, 48], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1099, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1098, 50], [1098, 49], [1098, 49], [1098, 49], [1098, 49], [1094, 49], [1094, 49], [1094, 49], [1094, 49], [1094, 49], [1094, 49], [1095, 49], [1097, 49], [1097, 49], [1097, 50], [1098, 50], [1099, 51], [1100, 51], [1101, 51], [1102, 49], [1104, 48], [1102, 48], [1103, 47], [1103, 46], [1104, 44], [1104, 44], [1103, 45], [1103, 44], [1103, 44], [1103, 45], [1102, 45], [1101, 46], [1101, 46], [1102, 46], [1102, 45], [1102, 46]], "44": [[1162, 25], [1163, 25], [1163, 25], [1160, 23], [1157, 23], [1158, 21], [1158, 22], [1156, 22], [1153, 23], [1153, 25], [1152, 22], [1151, 21], [1150, 20], [1149, 26], [1148, 29], [1145, 27], [1140, 27], [1143, 26], [1145, 26], [1144, 33], [1146, 32], [1148, 32], [1147, 31], [1144, 31], [1143, 30], [1145, 32], [1145, 33], [1146, 34], [1145, 33], [1145, 33], [1143, 31], [1141, 32], [1142, 32], [1150, 37], [1147, 36], [1147, 36], [1144, 37]], "46": [[1133, 33], [1136, 34], [1140, 34], [1143, 35], [1146, 34], [1148, 34], [1151, 33], [1153, 33], [1150, 32], [1149, 32], [1149, 31], [1149, 30], [1150, 30], [1150, 31], [1150, 31], [1151, 31], [1152, 33], [1153, 34], [1154, 34], [1155, 34], [1156, 34], [1157, 35], [1159, 35], [1160, 35], [1161, 35], [1164, 35], [1164, 35], [1165, 35], [1167, 35], [1170, 35], [1172, 34], [1175, 35], [1177, 36], [1180, 36], [1182, 36], [1184, 36], [1187, 36]], "48": [[473, 20], [474, 19], [473, 19], [473, 19], [474, 19], [474, 19], [474, 19], [474, 18], [474, 18], [474, 19], [473, 19], [471, 19], [472, 19], [472, 19], [473, 19], [474, 20], [473, 20], [472, 20], [472, 21], [473, 22], [472, 22], [472, 22], [472, 21], [472, 21], [471, 21], [471, 21], [471, 20], [471, 21], [471, 21], [472, 21], [471, 20], [471, 20], [470, 19], [470, 20], [470, 20], [471, 19], [472, 19], [472, 20], [474, 19], [474, 19], [475, 19], [475, 19], [474, 20], [475, 20], [476, 20], [474, 21], [474, 20], [473, 20], [473, 19], [474, 20], [473, 20], [474, 22]], "50": [[755, 70], [755, 78]], "51": [[737, 131], [739, 130], [736, 135], [739, 137]], "52": [[510, 26], [514, 26]], "53": [[557, 22], [559, 23], [561, 23], [568, 22], [572, 22], [575, 23], [580, 24], [583, 24], [587, 24], [589, 24], [591, 23], [594, 23], [595, 23], [597, 22], [599, 22], [601, 22], [602, 22], [603, 21], [604, 21], [605, 21], [606, 22], [607, 21], [608, 20], [611, 20], [615, 20], [617, 21], [620, 20], [622, 20], [624, 19], [625, 18], [629, 18], [633, 19], [634, 18], [632, 18], [632, 18], [633, 17], [633, 17], [634, 17], [634, 17], [635, 17], [636, 18], [635, 18], [636, 18], [640, 18], [642, 18], [643, 20], [645, 20], [646, 20], [648, 21], [648, 21], [650, 22], [651, 22], [652, 21], [655, 22], [659, 21], [663, 21], [668, 22], [674, 21], [678, 21], [679, 20], [679, 20], [680, 20], [682, 20], [683, 20], [683, 19], [685, 18], [688, 17], [688, 17], [691, 18], [692, 19], [693, 19], [696, 19], [696, 19], [696, 19], [694, 19], [693, 20], [693, 20], [692, 22], [692, 22], [695, 21], [697, 20], [700, 19], [703, 19], [705, 18], [711, 20], [714, 19], [716, 20], [721, 20], [724, 20], [725, 20], [723, 19], [720, 20], [719, 19], [717, 20], [716, 21], [715, 23], [714, 24], [718, 32], [718, 38], [717, 42], [715, 47], [711, 53], [710, 53], [709, 54], [707, 54], [705, 54], [703, 54], [701, 55], [699, 55], [696, 56], [692, 56], [687, 57], [684, 57], [682, 57]], "55": [[743, 81]]}}
+{"timestamp": "2025-09-06T05:01:54.546608", "frame_dimensions": {"height": 720, "width": 1280}, "track_history": {"38": [[1150, 45], [1156, 44], [1160, 43], [1162, 42], [1165, 41], [1170, 41], [1172, 44], [1175, 37], [1182, 40], [1188, 40]], "40": [[1099, 49], [1098, 49], [1099, 49], [1099, 49], [1098, 48], [1098, 49], [1098, 49],  ...
 ```
 
 
@@ -270,7 +288,7 @@ Counting line moved closer to the hive entrance.
 This collection of annotated video and corresponding metrics serves as a valuable resource for the research community. It can be used not only to replicate the findings of this study but also as a foundational dataset for training and validating new models. Potential applications include improving bee detection precision under diverse conditions (e.g., varying zoom levels, lighting, and shade) and developing classifiers to distinguish between different bee activities, such as flying versus walking.
 
 
-### 4.2.4. AI Model Training
+### 4.2.4. Bee Detection Model Training
 
 The bee detection model was trained using the YOLOv8n architecture, chosen for its optimal balance of speed and accuracy on edge devices like the NVIDIA Jetson Orin Nano. The training was conducted in the Google Colab environment, leveraging its cloud-based GPU resources (NVIDIA T4).
 
@@ -282,6 +300,29 @@ From empirical observations, model quality is good when running detections on ho
 
 However in more complex scenes, it is prone to have false positive detections, for example when running app from Mac OSX:
 ![](./Screenshot%202025-09-07%20at%2019.14.07.png)
+
+### 4.2.5 Bee Pose Model Training
+
+To gain a deeper understanding of bee-to-bee interactions and individual movement, we integrated pose estimation. By tracking the keypoints of a bee's body, we can more accurately determine its orientation and direction of movement. This significantly improves the accuracy of metrics like `bees_in` and `bees_out` and provides a richer dataset for analyzing complex social behaviors like trophallaxis or guarding.
+
+We evaluated several state-of-the-art animal pose estimation toolkits, including **SLEAP** (Pereira et al., 2022), **DeepLabCut** (Mathis et al., 2018), and **DeepPoseKit** (Graving et al., 2019). These frameworks have proven to be highly effective for tracking multiple body parts on a variety of species. After evaluation, we trained a model using **DeepLabCut**. An initial exploration of this concept was also conducted using the `beepose` library [17], and while the library is now outdated, it served as a proof-of-concept for the value of pose estimation in this domain. We are also aware of the `apic-bee-pose-dataset` [19], but its license does not permit commercial use, which was a consideration during our evaluation.
+
+Integrating these powerful models into the `entrance-observer` presented a significant challenge. Running a pose estimation model in real-time on an edge device like the Jetson Orin Nano, which already dedicates a substantial portion of its limited computational resources to the YOLOv8n detection model, required careful optimization to avoid performance bottlenecks. Furthermore, it is important to note that models and their underlying technologies can become outdated very quickly. Attempting to use older toolkits that rely on obsolete libraries, such as TensorFlow 1.x, can be challenging or even impossible to run on a native machine without containerization solutions like Docker.
+
+The following are the results from our model training:
+
+```
+Epoch 197/200 (lr=1e-05), train loss 0.00264
+Epoch 198/200 (lr=1e-05), train loss 0.00289
+Epoch 199/200 (lr=1e-05), train loss 0.00278
+Training for epoch 200 done, starting evaluation
+Epoch 200/200 (lr=1e-05), train loss 0.00241, valid loss 0.00294
+Model performance:
+  metrics/test.rmse:          62.60
+  metrics/test.rmse_pcutoff:  56.85
+  metrics/test.mAP:           69.38
+  metrics/test.mAR:           76.67
+```
 
 ### 4.3. Data Analysis
 
@@ -442,9 +483,6 @@ While YOLOv8n provides a strong baseline for real-time detection, future work wi
 
 One promising direction is the use of transformer-based models. Research such as BeeNet [16] has demonstrated that a combination of CNNs for feature extraction and a transformer encoder-decoder architecture can achieve high accuracy in fine-grained classification tasks, including bee species identification and health monitoring. However, it is worth noting that the authors of the BeeNet paper did not provide a public code repository, which makes it difficult to verify their findings and build upon their work. Nevertheless, the paper provides a valuable theoretical framework for the application of transformer-based models to bee monitoring. Adopting a similar approach could allow the `entrance-observer` to learn more complex visual features and perform more nuanced classifications, such as identifying different castes of bees or subtle indicators of disease.
 
-Furthermore, to gain a deeper understanding of bee-to-bee interactions and individual movement, we plan to integrate pose estimation. By tracking the keypoints of a bee's body, we can more accurately determine its orientation and direction of movement. This would significantly improve the accuracy of metrics like `bees_in` and `bees_out` and provide a richer dataset for analyzing complex social behaviors like trophallaxis or guarding. An initial exploration of this concept was conducted using the `beepose` library [17], and while the library is now outdated, it serves as a proof-of-concept for the value of pose estimation in this domain. We are also aware of the `apic-bee-pose-dataset` [19], but its license does not permit commercial use, which is a consideration for the future development of the `entrance-observer` system.
-
-For this purpose, we will leverage state-of-the-art animal pose estimation toolkits such as **SLEAP** (Pereira et al., 2022), **DeepLabCut** (Mathis et al., 2018), and **DeepPoseKit** (Graving et al., 2019). These frameworks have proven to be highly effective for tracking multiple body parts on a variety of species. However, integrating these powerful models into the `entrance-observer` presents a significant challenge. Running a pose estimation model in real-time on an edge device like the Jetson Orin Nano, which already dedicates a substantial portion of its limited computational resources to the YOLOv8n detection model, will require careful optimization to avoid performance bottlenecks. Furthermore, it is important to note that models and their underlying technologies can become outdated very quickly. Attempting to use older toolkits that rely on obsolete libraries, such as TensorFlow 1.x, can be challenging or even impossible to run on a native machine without containerization solutions like Docker.
 
 Finally, we will continue to evaluate the rapidly evolving landscape of object detection models optimized for edge devices. Models such as YOLOv10, which offers NMS-free training for lower latency, and RT-DETR, an end-to-end DETR variant, present compelling alternatives that could further improve the efficiency and accuracy of the `entrance-observer` on hardware like the NVIDIA Jetson series. We also performed preliminary experiments with Large Language and Vision Assistant (LLaVA) models [18], but found that their empirical precision for the specific task of bee detection was not as high as that of convolutional networks like YOLO.
 
