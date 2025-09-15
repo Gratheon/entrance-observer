@@ -212,21 +212,8 @@ Jetson Orin Nano VNC:
 
 Data collection began on September 4th and is ongoing, with the goal of capturing approximately two weeks of data before the onset of cold weather. Data collection is not uniform as we were changing the system, had to periodically maintain and resolve ongoing issues. The `entrance-observer` application is configured to record video in 30 second chunks, covering the full daylight hours.
 
-The raw video files are periodically synchronized from the Jetson Orin Nano to a remote machine for backup and further analysis using a shell script that leverages `rsync`. This script runs in a continuous loop, ensuring that the video data is efficiently and reliably transferred over the Wi-Fi network.
+The raw video files were periodically synchronized from the Jetson Orin Nano to a remote machine for backup and further analysis using a shell script that leverages `rsync`. This script runs in a continuous loop, ensuring that the video data is efficiently and reliably transferred over the Wi-Fi network.
 
-
-Example of metrics dataset in JSONL format:
-```
-{"timestamp": "2025-09-06T05:03:54.564032", "metrics": {"bees_in": 0, "bees_out": 0, "detected_bees": 37, "avg_speed_px_per_frame": 3.39, "p95_speed_px_per_frame": 6.43, "stationary_bees_count": 4, "net_flow": 0}}
-{"timestamp": "2025-09-06T05:04:24.770983", "metrics": {"bees_in": 0, "bees_out": 0, "detected_bees": 26, "avg_speed_px_per_frame": 4.7, "p95_speed_px_per_frame": 9.65, "stationary_bees_count": 2, "net_flow": 0}}
-
-```
-
-
-Example of a single entry (tracks of individual bees per frame within 30 sec video chunk) of tracks dataset in JSONL format (~40-50MB per day):
-```
-{"timestamp": "2025-09-06T05:01:54.546608", "frame_dimensions": {"height": 720, "width": 1280}, "track_history": {"38": [[1150, 45], [1156, 44], [1160, 43], [1162, 42], [1165, 41], [1170, 41], [1172, 44], [1175, 37], [1182, 40], [1188, 40]], "40": [[1099, 49], [1098, 49], [1099, 49], [1099, 49], [1098, 48], [1098, 49], [1098, 49],  ...
-```
 
 
 #### 4.2.2 Correlating data with weather and plant blooming factors
@@ -238,46 +225,58 @@ In addition to the video data, historical weather data for the apiary's location
 
 ### 4.2.3. Dataset Availability
 
-The video datasets collected during this research are publicly available at [https://gratheon.com/research/Datasets](https://gratheon.com/research/Datasets). The collection includes the following:
+Datasets collected during this research are publicly available at:
+- [https://gratheon.com/research/Datasets](https://gratheon.com/research/Datasets)
+- [Google Drive](https://drive.google.com/drive/folders/12QVrB-gmoln-tNeFB6f1G5LH72bBCPV8?usp=drive_link)
+- Youtube https://www.youtube.com/watch?v=oG791JNb1aA
+
+The collection includes the following:
 
 
-#### Dataset type 1
+#### Daily metrics
+Every 30 seconds, metrics as JSON object were appended to the `metrics_*.jsonl` files
+Example of metrics dataset in JSONL format:
+```
+{"timestamp": "2025-09-06T05:03:54.564032", "metrics": {"bees_in": 0, "bees_out": 0, "detected_bees": 37, "avg_speed_px_per_frame": 3.39, "p95_speed_px_per_frame": 6.43, "stationary_bees_count": 4, "net_flow": 0}}
+{"timestamp": "2025-09-06T05:04:24.770983", "metrics": {"bees_in": 0, "bees_out": 0, "detected_bees": 26, "avg_speed_px_per_frame": 4.7, "p95_speed_px_per_frame": 9.65, "stationary_bees_count": 2, "net_flow": 0}}
+
+```
+
+#### Bee tracks history
+Similar to metrics, we store track history of individual bees that were detected by yolo model.
+Note that we used bee detection confidence was relatively low, default yolo model value of `0.1` and that it did not guarantee that single bee could not lose its track over time.
+Example of a single entry (tracks of individual bees per frame within 30 sec video chunk) of tracks dataset in JSONL format (~40-50MB per day):
+```
+{"timestamp": "2025-09-06T05:01:54.546608", "frame_dimensions": {"height": 720, "width": 1280}, "track_history": {"38": [[1150, 45], [1156, 44], [1160, 43], [1162, 42], [1165, 41], [1170, 41], [1172, 44], [1175, 37], [1182, 40], [1188, 40]], "40": [[1099, 49], [1098, 49], [1099, 49], [1099, 49], [1098, 48], [1098, 49], [1098, 49],  ...
+```
+
+
+#### Video datasets
+1280x720px. 30 min chunks. 15FPS. 5-25mb per chunk. mp4
+file names are in UTC timestamps.
+
+#### Video Dataset type 1
 Zoom at landing board ~ 40cm wide. Camera placed on **third** hive section
 
-- [September 04](https://drive.google.com/drive/folders/1BY7RrQdQI-6iaSzx4-CVES0kwVlpzX2u?usp=drive_link). 
+- September 04
 	- some chunks have pairs with `_detect.mp4` suffixes, showing yolov8 model detections.
-	- 5-25mb per chunk. mp4
-- [September 05](https://drive.google.com/drive/folders/12oV370f8HqrZsuXUU9mLWeT9NAs8HcO2?usp=drive_link) 
-	- Dataset duration ~8h (11:30 - 20:00 EEST)
+- September 05
+	- Duration ~8h (11:30 - 20:00 EEST)
 	- Sunny weather.
 	- ~ 25GB in total
-	- 1280x720px. 30 min chunks. 15FPS. 5-25mb per chunk. mp4
-	- file names are in UTC timestamps.
-	- [metrics in jsonl format](https://drive.google.com/file/d/18b2aKTxrS1K9YpQciDybXwDlNYuEE4yh/view?usp=drive_link)
-	- [bee tracks in jsonl format](https://drive.google.com/file/d/1J6I2KOeUa4dns7OmXidvc6Oqc0VF2goC/view?usp=drive_link)
 - [September 6th](https://drive.google.com/drive/folders/1TQxpUFSc13xWLE_0gA4BkzPv8amcFyc-?usp=drive_link). Sunny weather. 
-	- Dataset duration ~8h (8:00-15:36, 19:35-20:35 EEST)
+	- Duration ~8h (8:00-15:36, 19:35-20:35 EEST)
 	- ~13:20 a flight pattern is seen
-	- [metrics in jsonl](https://drive.google.com/file/d/1oHRftj_zvbZXd8vKCcTIg9VRGoslf4vy/view?usp=drive_link)
-	- [bee tracks in jsonl](https://drive.google.com/file/d/1SibnVr5I8ifYLJlxiqiWBpNWbBxm7lEl/view?usp=drive_link)
 
 
-
-#### Dataset type 2
+#### Video Dataset type 2
 **New zoom level** of landing board area (23cm wide). Camera placed on **third** hive section
-
 - [September 7th](https://drive.google.com/drive/folders/1E8p_d_rdb_Mq2IjoOyw4OVaWrs37xj2s?usp=drive_link)
-	- Dataset duration ~ 3h (12:00-15:05 EEST)
-	- 1280x720px. 30 min chunks. 15FPS.  
+	- Duration ~ 3h (12:00-15:05 EEST)
 	- Sunny weather with clouds and gust after 16:00
-	- [metrics](https://drive.google.com/file/d/1vzIe7SRJP_jarai9jqNIVPac8l6efrQv/view?usp=drive_link)
-	- [tracks](https://drive.google.com/file/d/1ij0A15NC2XDdUy3ghvZ6GYT_458uqzZn/view?usp=drive_link)
-- September 8th
-	- [metrics](https://drive.google.com/file/d/1Uz0I-nzvRPiNe1QH-PK1XcPpCMrfV2NY/view?usp=drive_link)
-	- [tracks](https://drive.google.com/file/d/1o9Z6c7-JunYptKTGUFV7aJqYdjkKKYUr/view?usp=drive_link)
-- September 9th
+- September 8th,9th
 
-#### Dataset type 3
+#### Video Dataset type 3
 Camera placed on **second** hive section (closer), changed zoom, **removed the glass** and aluminium boundaries, added stones instead.
 Counting line moved closer to the hive entrance.
 
@@ -376,7 +375,7 @@ Loading From /Users/artjom/git/models-beepose2/testDLC_Resnet50_GratheonBeePoseS
 
 The data analysis pipeline is designed to provide both real-time insights and in-depth, long-term scientific investigation. The process begins at the edge, where the `entrance-observer` application processes video in 30-second chunks, as configured by the `VIDEO_CHUNK_LENGTH_SEC` environment variable. For each chunk, the system calculates the bee traffic metrics described in Section 3.2.1. These metrics are then transmitted to the Gratheon web application's telemetry API.
 
-Each 30-second aggregation of metrics is stored as a distinct `EntranceMovementRecord` in a MySQL database, linked to its corresponding hive and section ID. This granular, time-stamped data structure provides a rich dataset for detailed analysis. The metrics stored for each interval include `bees_in`, `bees_out`, `net_flow`, `avg_speed_px_per_frame`, `p95_speed_px_per_frame`, `stationary_bees_count`, and `detected_bees`.
+Each 30-second aggregation of metrics is stored as a distinct `EntranceMovementRecord` in a MySQL database, linked to its corresponding hive and section ID. Initially, we experimented with InfluxDB, a time-series database, which performed well for this task. However, to maintain a consistent technology stack with the rest of the application and simplify data access and management, we chose to use MySQL for the time being. We may revisit this decision in the future and explore other specialized time-series databases such as Mimir, ClickHouse, or Prometheus to optimize for performance and scalability. This granular, time-stamped data structure provides a rich dataset for detailed analysis. The metrics stored for each interval include `bees_in`, `bees_out`, `net_flow`, `avg_speed_px_per_frame`, `p95_speed_px_per_frame`, `stationary_bees_count`, and `detected_bees`.
 
 The second stage of the analysis focuses on correlating the bee traffic data with the historical weather data. While the Gratheon web application provides real-time visualization of these correlations through **Grafana dashboards**, a more rigorous statistical analysis will be performed to quantify the relationships between bee behavior and environmental factors. The planned statistical methods include:
 
