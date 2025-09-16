@@ -274,13 +274,25 @@ Zoom at landing board ~ 40cm wide. Camera placed on **third** hive section
 - [September 7th](https://drive.google.com/drive/folders/1E8p_d_rdb_Mq2IjoOyw4OVaWrs37xj2s?usp=drive_link)
 	- Duration ~ 3h (12:00-15:05 EEST)
 	- Sunny weather with clouds and gust after 16:00
-- September 8th,9th
+- [September 7th](https://drive.google.com/drive/folders/1E8p_d_rdb_Mq2IjoOyw4OVaWrs37xj2s?usp=drive_link)
+	- Dataset duration ~ 3h (12:00-15:05 EEST)
+	- 1280x720px. 30 min chunks. 15FPS.  
+	- Sunny weather with clouds and gust after 16:00
+	- **New zoom level** done at 12:00 EEST of landing board area (23cm wide). 
+- [September 8th](https://drive.google.com/drive/folders/1L25SnvC_IDGOZlkE_vWidIPIKZilKURE?usp=drive_link)
+	- Dataset duration ~3.5h (13:52-17:33 EEST) at peak time with orientation flights
+	- Full duration (8h) available on [youtube](https://youtu.be/oG791JNb1aA)
+  - Full duration (8h) available on [youtube](https://youtu.be/oG791JNb1aA)
+- September 9th
+	- Dataset duration ~3h (12:00-15:00 EEST)
 
 #### Video Dataset type 3
 Camera placed on **second** hive section (closer), changed zoom, **removed the glass** and aluminium boundaries, added stones instead.
 Counting line moved closer to the hive entrance.
 
-- September 10th
+- [September 10th](https://drive.google.com/drive/folders/1T9zKrfkNYAl4NHn6E1F8O6stDdiA544f?usp=drive_link)
+	- 11:30 - 17:00
+  - a copy uploaded to youtube - https://www.youtube.com/watch?v=3O4oy4sBHtM
 ![](./Screenshot%202025-09-10%20at%2009.11.23.png)
 
 
@@ -387,6 +399,33 @@ While the Gratheon web application provides real-time visualization of these cor
 *   **Time-Series Analysis:** The bee traffic data will be treated as a time series to identify and model temporal patterns, such as diurnal cycles. This analysis will also be instrumental in establishing a baseline for normal activity, which is a prerequisite for anomaly detection.
 *   **Regression Analysis:** Multiple regression models will be developed to predict bee activity levels based on a combination of weather variables. This will help to identify the most significant environmental drivers of foraging behavior.
 
+#### Grafana UI for correlation detection
+
+Beehive activity metrics (stored in mysql, queried via graphql API through telemetry-api) in Grafana for September 7-9th:
+
+![](./Screenshot%202025-09-11%20at%2018.36.37.png)
+
+Weather conditions at the same time:
+![](./Screenshot%202025-09-11%20at%2018.40.40.png)
+
+
+Details connecting grafana to backend GraphQL API that uses telemetry-api. Notice using sending currently selected time range as arguments and parsing output
+![](./Screenshot%202025-09-08%20at%2023.30.08.png)
+
+
+### Hypothesis
+Using described tooling, our plan for long-term future study is to test several specific hypotheses. We posit that bee movement speed and overall traffic are complex variables influenced by multiple factors. Our primary hypotheses include:
+
+1.  **Environmental Drivers:** There is a significant positive correlation between ambient temperature (above a certain threshold), solar radiation, and the number of outgoing bees (`bees_out`). Conversely, increased wind speed, humidity, and precipitation decrease overall bee traffic.
+
+2.  **Colony Stressors:** The presence of stressors such as Varroa mite infestation, pesticide exposure, or predator attacks (e.g., hornets) will lead to a measurable decrease in the average and 95th percentile of bee movement speed (`avg_speed_px_per_frame` and `p95_speed_px_per_frame`).
+
+3.  **Internal Hive Conditions:** Factors such as hive placement, orientation, and insufficient internal space (congestion) will correlate with changes in landing board activity, potentially affecting `stationary_bees_count` and `bee_interactions`. For such study we would need multiple beehives studied at the same time.
+
+Our goal is to develop a strategy for **anomaly detection** based on statistical deviations from the established baseline of normal activity. An anomaly will be defined as a data point that falls outside a specified number of standard deviations from the predicted value, given the time of day and prevailing weather conditions. This will enable the system to flag unusual events that may require the beekeeper's attention. For that we could use models like prophet by meta [22]
+
+
+
 #### Spatial heatmap analysis
 In addition to statistical analysis, we use visualization techniques to explore the spatial patterns of bee movement. A heatmap of bee traffic on the landing board was be generated from the `track_history` data. This visualization reveals the most frequented areas, providing insights into the bees' preferred paths and loitering zones. 
 
@@ -401,33 +440,19 @@ They also tend to like to be in the corners, possibly because it offers some are
 Also notice that glass border is also noticeable, because bees could move on it upside-down and flip on the other side.
 
 ![](./heatmap-09-06.png)
-![](./heatmap-09-09.png)
 
-Notice that after September 9th repositioning of the camera and removal of the glass and aluminium boundaries, how the heatmap changed. Bees position themselves right at the entrance for best control under the protection of the hive. Also notice how placement is not symmetrical, we believe this is due to the fact that bees flight routes go to the left. So heatmap analysis can give a hint which area bees are landing from the most. The stone contours being visible again seems to prove that bees either take shelter from the wind or feel safer from preditors while having a wall or a roof behind them. Notice also how hot spots of statical bees are also present in this image too.
+Notice how on September 10th after repositioning of the camera and removal of the glass and aluminium boundaries, how the heatmap changed. Bees position themselves right at the entrance for best control under the protection of the hive. Also notice how placement is not symmetrical, we believe this is due to the fact that bees flight routes go to the left. So heatmap analysis can give a hint which area bees are landing from the most. The stone contours being visible again seems to prove that bees either take shelter from the wind or feel safer from preditors while having a wall or a roof behind them. Notice also how hot spots of statical bees are also present in this image too.
 
 ![](./heatmap-09-10.png)
 
-#### Grafana UI for correlation detection
+Composite heatmap of beehive entrances over 10-15th of September shows how activity of bees depends on the weather. The black area on September 15th heatmap (last) is a wet leaf that apparently bees do not like to walk on.
+![](./composite-heatmap.jpg)
 
-
-Beehive activity metrics (stored in mysql, queried via graphql API through telemetry-api) in Grafana for September 7-9th:
-
-![](./Screenshot%202025-09-11%20at%2018.36.37.png)
-
-Weather conditions at the same time:
-![](./Screenshot%202025-09-11%20at%2018.40.40.png)
+Now compare this to weather conditions on same days.
+![](./Screenshot%202025-09-16%20at%2013.51.27.png)
 
 
 
-Details connecting grafana to backend GraphQL API that uses telemetry-api. Notice using sending currently selected time range as arguments and parsing output
-![](./Screenshot%202025-09-08%20at%2023.30.08.png)
-
-Based on these analyses, we will test several specific hypotheses. We posit that bee movement speed and overall traffic are complex variables influenced by multiple factors. Our primary hypotheses include:
-1.  **Environmental Drivers:** There is a significant positive correlation between ambient temperature (above a certain threshold), solar radiation, and the number of outgoing bees (`bees_out`). Conversely, increased wind speed, humidity, and precipitation are significantly correlated with a decrease in overall bee traffic.
-2.  **Colony Stressors:** The presence of stressors such as Varroa mite infestation, pesticide exposure, or predator attacks (e.g., hornets) will lead to a measurable decrease in the average and 95th percentile of bee movement speed (`avg_speed_px_per_frame` and `p95_speed_px_per_frame`).
-3.  **Internal Hive Conditions:** Factors such as hive placement, orientation, and insufficient internal space (congestion) will correlate with changes in landing board activity, potentially affecting `stationary_bees_count` and `bee_interactions`.
-
-Finally, we will develop a strategy for anomaly detection based on statistical deviations from the established baseline of normal activity. An anomaly will be defined as a data point that falls outside a specified number of standard deviations from the predicted value, given the time of day and prevailing weather conditions. This will enable the system to flag unusual events that may require the beekeeper's attention.
 
 ### 4.4. Experimental Log
 
@@ -603,3 +628,5 @@ https://github.com/jachansantiago/plotbee
 [20] Chan, J., Carrión, H., Mégret, R., Rivera, J. L. A., & Giray, T. (2022). Honeybee Re-identification in Video: New Datasets and Impact of Self-supervision. In *Proceedings of the 17th International Joint Conference on Computer Vision, Imaging and Computer Graphics Theory and Applications (VISIGRAPP 2022)* (Vol. 5, pp. 517-525).
 
 [21] Kekshin, V., Kurapov, A., & Kuts, V. (2025). Integration of Beekeeping with the Concept of Smart Manufacturing. *EasyChair Preprint no. 15936*.
+
+[22] Prophet model by Meta. https://facebook.github.io/prophet/
