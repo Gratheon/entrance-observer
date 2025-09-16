@@ -448,9 +448,11 @@ Notice how on September 10th after repositioning of the camera and removal of th
 Composite heatmap of beehive entrances over 10-15th of September shows how activity of bees depends on the weather. The black area on September 15th heatmap (last) is a wet leaf that apparently bees do not like to walk on.
 ![](./composite-heatmap.jpg)
 
-Now compare this to weather conditions on same days.
+Now comparing this to weather conditions on same days shows correlation with temperature and wind.
 ![](./Screenshot%202025-09-16%20at%2013.51.27.png)
 
+Looking at bee activity metrics from MySQL, we can see that some of our telemetry data is incomplete - on 11th of September we collected data only up to 14:00 and on 14th of September we collected data only after 15:00, so in reality those heatmaps should be brighter. However 12th of September shows drastic reduction in activity due to cold rainy weather.
+![](./Screenshot%202025-09-16%20at%2014.10.08.png)
 
 
 
