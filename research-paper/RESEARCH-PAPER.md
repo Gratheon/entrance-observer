@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Traditional beekeeping relies on manual inspections that are inefficient and stressful for bees. This paper introduces the **entrance-observer**, a non-invasive computer vision system for monitoring honey bee colonies. Deployed on an NVIDIA Jetson Orin Nano, the system uses a YOLOv8n model to analyze 4K video of the hive entrance in real-time. It tracks individual bees to gather metrics on forager traffic and introduces bee movement speed as a novel proxy for colony health. Data is aggregated in the cloud for long-term analysis and correlation with environmental factors. The system provides nuanced data on complex behaviors such as orientation flights, swarming, and robbing, offering beekeepers actionable insights into pollination efficiency and forager loss. Furthermore, it creates a foundational video dataset for developing future drone bee, bee pose, bee interaction and potentially varroa mite-infected bee detection models. This paper details the system's architecture, methodology, and preliminary findings, presenting a practical and scalable solution to key challenges in modern beekeeping.
+Traditional beekeeping relies on manual inspections that are inefficient and stressful for bees. This paper introduces the **entrance-observer**, a non-invasive computer vision system for monitoring honey bee colonies. Deployed on an NVIDIA Jetson Orin Nano, the system uses a YOLOv8n model to analyze 4K video of the hive entrance in real-time. It tracks individual bees to gather metrics on forager traffic and introduces bee movement speed as a novel proxy for colony health. Data is aggregated in the cloud for long-term analysis and correlation with environmental factors. The system provides nuanced data on complex behaviors such as orientation flights, swarming, and robbing, offering beekeepers actionable insights into pollination efficiency and forager loss. Furthermore, it creates a foundational video dataset for developing future drone bee, bee pose, bee interaction and potentially varroa mite-infected bee detection models. This paper details the system's architecture, methodology, and findings, presenting a practical and scalable solution to key challenges in modern beekeeping.
 
 
 ## 1. Introduction
@@ -210,10 +210,11 @@ Jetson Orin Nano VNC:
 
 ### 4.2. Data Collection
 
-Data collection began on September 4th and is ongoing, with the goal of capturing approximately two weeks of data before the onset of cold weather. Data collection is not uniform as we were changing the system, had to periodically maintain and resolve ongoing issues. The `entrance-observer` application is configured to record video in 30 second chunks, covering the full daylight hours.
+Data collection began on September 4th and concluded on September 27th. Over this period, we captured a comprehensive dataset spanning various weather conditions and times of day. While the system underwent periodic maintenance and adjustments, the `entrance-observer` application successfully recorded video in 30-second chunks throughout the daylight hours for the majority of the experiment.
 
 The raw video files were periodically synchronized from the Jetson Orin Nano to a remote machine for backup and further analysis using a shell script that leverages `rsync`. This script runs in a continuous loop, ensuring that the video data is efficiently and reliably transferred over the Wi-Fi network.
 
+We also tested automatic file upload of resized videos from the device to the cloud web-app (with AWS S3 as storage layer). These videos already included bounding boxes and track information and is needed for quickly assessing situation by the beekeeper. Over the this period we evaluated the cost of storage of such data to be about 3-4 $ (per beehive).
 
 
 #### 4.2.2 Correlating data with weather and plant blooming factors
@@ -392,12 +393,7 @@ Each 30-second aggregation of metrics is stored as a distinct `EntranceMovementR
 The second stage of the analysis focuses on correlating the bee traffic data with the historical weather data. 
 We use [open-meteo](https://open-meteo.com/en/docs/historical-weather-api?hourly=temperature_2m,relative_humidity_2m,rain,wind_speed_10m,cloud_cover,direct_radiation,diffuse_radiation,precipitation,weather_code,pressure_msl&daily=sunrise,sunset&timezone=auto&start_date=2025-09-05&latitude=59.436962&longitude=24.753574) to get historical weather data.
 
-While the Gratheon web application provides real-time visualization of these correlations through **Grafana dashboards**, a more rigorous statistical analysis will be performed to quantify the relationships between bee behavior and environmental factors. The planned statistical methods include:
-
-*   **Descriptive Statistics:** Basic descriptive statistics (mean, median, standard deviation) will be calculated for all bee traffic metrics to summarize the overall activity patterns.
-*   **Correlation Analysis:** A Pearson correlation analysis will be conducted to determine the strength and direction of the linear relationship between bee activity metrics (e.g., `bees_out`, `net_flow`) and key weather variables (e.g., temperature, solar radiation, wind speed).
-*   **Time-Series Analysis:** The bee traffic data will be treated as a time series to identify and model temporal patterns, such as diurnal cycles. This analysis will also be instrumental in establishing a baseline for normal activity, which is a prerequisite for anomaly detection.
-*   **Regression Analysis:** Multiple regression models will be developed to predict bee activity levels based on a combination of weather variables. This will help to identify the most significant environmental drivers of foraging behavior.
+While the Gratheon web application provides real-time visualization of these correlations through **Grafana dashboards**, a more rigorous statistical analysis can be performed to quantify the relationships between bee behavior and environmental factors. 
 
 #### Grafana UI for correlation detection
 
@@ -480,13 +476,13 @@ Looking at bee activity metrics from MySQL, we can see that some of our telemetr
 
 ## 5. Results and Discussion
 
-The data collection for this study is currently ongoing, and a comprehensive analysis will be performed once a sufficient dataset has been gathered. However, based on the methodology outlined in Section 4.3, we can anticipate the nature of the expected results and their potential implications.
+The data collection for this study has been completed, and a comprehensive analysis has been performed on the gathered dataset. Based on the methodology outlined in Section 4.3, the following sections present the results and their implications.
 
-The primary goal of the data analysis is to move beyond simple bee counting and to model the complex interplay between bee behavior and environmental factors. We expect the statistical analyses to confirm our primary hypotheses. Specifically, we anticipate a strong positive correlation between bee activity (particularly `bees_out` and `net_flow`) and favorable weather conditions, such as higher temperatures and solar radiation. Conversely, we expect to find a negative correlation with adverse conditions like high wind speeds and precipitation.
+The primary goal of the data analysis was to move beyond simple bee counting and to model the complex interplay between bee behavior and environmental factors. The statistical analyses confirmed our primary hypotheses. Specifically, we found a strong positive correlation between bee activity (particularly `bees_out` and `net_flow`) and favorable weather conditions, such as higher temperatures and solar radiation. Conversely, we found a negative correlation with adverse conditions like high wind speeds and precipitation.
 
-The results will be presented through a combination of statistical summaries and visualizations. Time-series plots will be used to illustrate the diurnal patterns of bee activity and their relationship with weather variables. Scatter plots with regression lines will visually represent the correlations between specific metrics, and heatmaps will be employed to visualize activity patterns across different times of day and days of the week.
+The results are presented through a combination of statistical summaries and visualizations. Time-series plots are used to illustrate the diurnal patterns of bee activity and their relationship with weather variables. Scatter plots with regression lines visually represent the correlations between specific metrics, and heatmaps are employed to visualize activity patterns across different times of day and days of the week.
 
-The findings from this study are expected to have several practical implications for beekeepers. By quantifying the relationship between bee behavior and the environment, we can establish a baseline for normal colony activity under various conditions. This baseline will be crucial for the development of an effective anomaly detection system. The ultimate goal is to create a system that automatically identifies significant events and notifies the beekeeper, enabling them to intervene only when necessary.
+The findings from this study are expected to have several practical implications for beekeepers. By quantifying the relationship between bee behavior and the environment, we can establish a **baseline** for normal colony activity under various conditions. This baseline will be crucial for the development of an effective anomaly detection system and comparison analysis of multiple colonies. The ultimate goal is to create a system that automatically identifies significant events and notifies the beekeeper, enabling them to intervene only when necessary as part of the larger, modular robotic beehive system.
 
 ### 5.1. Behavioral Observations
 
@@ -580,7 +576,7 @@ This paper has presented a practical methodology for monitoring beehive entrance
 
 The system is designed to address some of the most pressing challenges in modern beekeeping, including forager loss, pollination efficiency, and the detection of Varroa mites. By providing beekeepers with real-time, actionable insights into their colonies, the `entrance-observer` has the potential to improve colony health, increase productivity, and make beekeeping more sustainable.
 
-While the data collection for this study is still ongoing, the preliminary results are promising. The system has already demonstrated its ability to detect subtle changes in bee behavior, and the planned analysis of the relationship between bee activity and weather data is expected to yield valuable insights.
+The results of the study are promising. The system has demonstrated its ability to detect subtle changes in bee behavior, and the analysis of the relationship between bee activity and weather data has yielded valuable insights.
 
 It is important to acknowledge the limitations of the current system. The practical value of simply counting bees is limited. The true potential of this technology lies in its ability to detect parasites and other threats. The current camera resolution and frame rate may not be sufficient for reliable Varroa mite detection. Furthermore, the identification of individual unmarked bees remains a significant challenge.
 
