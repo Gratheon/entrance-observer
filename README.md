@@ -201,3 +201,28 @@ The video processing pipeline is designed to be robust and efficient, handling b
 ### Video Processing Workflow
 
 The application uses OpenCV for both video capture and encoding. The `cv2.VideoCapture` function is used to interface with the camera hardware, and the `cv2.VideoWriter` function is used to encode the video. This approach was chosen for its simplicity and reliability across different platforms.
+
+
+## License
+
+This project is **dual-licensed**:
+
+- **[AGPL v3](LICENSE-AGPL.md)** - For open source use:
+    - ✅ You can use, modify, and distribute the software
+    - ✅ Source code is freely available
+    - ⚠️ If you modify and host a public instance, you must share your modifications
+    - ⚠️ Any derivative work must also be licensed under AGPL v3
+
+- **[Commercial License](LICENSE-COMMERCIAL.md)** - For enterprise customers who need:
+    - 🏢 On-premise deployment without source disclosure
+    - 🔧 Custom modifications without copyleft obligations
+    - 🎨 White-label/rebranding rights
+    - 📞 Priority support and SLA guarantees
+
+### Contributing
+
+If you'd like to contribute, please see our [Contributing Guide](CONTRIBUTING.md) and sign our Contributor License Agreement (CLA).
+
+*   Please refer to the `CODEOWNERS` file for ownership details.
+*   Code style is enforced by Prettier (`npm run prettier`).
+*   Follow standard GitHub flow: Fork the repository, create a feature branch, make changes, and submit a Pull Request.
