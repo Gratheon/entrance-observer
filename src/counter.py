@@ -73,11 +73,18 @@ def countBees(frames, output_video_path=None, detection_line_coefficient=None, v
     # to avoid issues with concurrent processing.
     local_track_history = defaultdict(list)
 
-    h, w = frame_shape
+    if not frames:
+        return 0, 0, 0, local_track_history
+
+    if frame_shape is not None:
+        writer_h, writer_w = frame_shape
+    else:
+        writer_h, writer_w = frames[0][0].shape[:2]
     
     if detection_line_coefficient is None:
         detection_line_coefficient = float(os.getenv("DETECTION_LINE", 0.5))
-    line_y = round(h * detection_line_coefficient)
+    line_y_writer = round(writer_h * detection_line_coefficient)
+    effective_fps = writer_fps if writer_fps and writer_fps > 0 else float(os.getenv("FPS", 30))
 
     video_chunk_length = float(os.getenv("VIDEO_CHUNK_LENGTH_SEC", 30))
 
@@ -89,19 +96,22 @@ def countBees(frames, output_video_path=None, detection_line_coefficient=None, v
     if output_video_path and not video_writer:
         close_video_writer = True
         fourcc = cv2.VideoWriter_fourcc(*'avc1')
-        video_writer = cv2.VideoWriter(output_video_path, fourcc, writer_fps, (w, h))
+        video_writer = cv2.VideoWriter(output_video_path, fourcc, effective_fps, (writer_w, writer_h))
         if not video_writer.isOpened():
             print("⚠️ Failed to open VideoWriter with 'avc1' codec, trying 'mp4v'...")
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            video_writer = cv2.VideoWriter(output_video_path, fourcc, writer_fps, (w, h))
+            video_writer = cv2.VideoWriter(output_video_path, fourcc, effective_fps, (writer_w, writer_h))
             if not video_writer.isOpened():
                 print("❌ Fallback codec 'mp4v' also failed. No debug video will be saved.")
                 video_writer = None
 
     for i, (frame, results, capture_time) in enumerate(frames):
+        # Counting line must use the same coordinate space as model detections.
+        line_y_counting = round(frame.shape[0] * detection_line_coefficient)
+
         if video_writer:
-            resized_annotated_frame = cv2.resize(frame, (w, h))
-            cv2.line(resized_annotated_frame, (0, line_y), (w, line_y), (0, 0, 255), 2)
+            resized_annotated_frame = cv2.resize(frame, (writer_w, writer_h))
+            cv2.line(resized_annotated_frame, (0, line_y_writer), (writer_w, line_y_writer), (0, 0, 255), 2)
             video_writer.write(resized_annotated_frame)
 
         boxes = results[0].boxes
@@ -111,18 +121,18 @@ def countBees(frames, output_video_path=None, detection_line_coefficient=None, v
                 bbox_center = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
                 track = local_track_history[track_id]
                 track.append((float(bbox_center[0]), float(bbox_center[1])))
-                if len(track) > 2:
+                if len(track) >= 2:
                     if entrance_position == 'bottom':
-                        if track[-2][1] < line_y and track[-1][1] >= line_y:
+                        if track[-2][1] < line_y_counting and track[-1][1] >= line_y_counting:
                             in_counts += 1
-                        elif track[-2][1] > line_y and track[-1][1] <= line_y:
+                        elif track[-2][1] > line_y_counting and track[-1][1] <= line_y_counting:
                             out_counts += 1
                     else: # entrance_position == 'top'
-                        if track[-2][1] < line_y and track[-1][1] >= line_y:
+                        if track[-2][1] < line_y_counting and track[-1][1] >= line_y_counting:
                             out_counts += 1
-                        elif track[-2][1] > line_y and track[-1][1] <= line_y:
+                        elif track[-2][1] > line_y_counting and track[-1][1] <= line_y_counting:
                             in_counts += 1
-                if len(track) > video_chunk_length * writer_fps:  # Keep history for the length of the video chunk
+                if len(track) > video_chunk_length * effective_fps:  # Keep history for the length of the video chunk
                     track.pop(0)
 
     if video_writer and close_video_writer:

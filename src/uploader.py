@@ -22,6 +22,7 @@ def uploadAndRemove(output_file: str, detections_file: str, start_time_utc: date
     # Retrieve environment variables
     bearer_token = os.getenv("API_TOKEN")
     box_id = os.getenv("SECTION_ID")
+    upload_url = os.getenv("VIDEO_UPLOAD_URL", "https://video.gratheon.com/graphql")
 
     if not bearer_token or not box_id:
         print("Error: Please set the API_TOKEN and BOX_ID environment variables.")
@@ -32,7 +33,7 @@ def uploadAndRemove(output_file: str, detections_file: str, start_time_utc: date
         # Make multipart/form-data request
         with open(output_file, 'rb') as file, open(detections_file, 'rb') as detectionsFile:
             response = requests.post(
-                'https://video.gratheon.com/graphql',
+                upload_url,
                 headers={
                     'Authorization': f'Bearer {bearer_token}'
                 },
@@ -64,9 +65,21 @@ def uploadAndRemove(output_file: str, detections_file: str, start_time_utc: date
             )
 
         if response.status_code == 200:
-            print("Video uploaded successfully")
+            try:
+                response_json = response.json()
+            except ValueError:
+                response_json = None
+
+            if response_json and response_json.get("errors"):
+                print("❌ Video upload GraphQL errors:", response_json["errors"])
+            elif response_json and response_json.get("data", {}).get("uploadGateVideo") is True:
+                print("✅ Video uploaded successfully")
+            elif response_json and response_json.get("data", {}).get("uploadGateVideo") is False:
+                print("❌ Video upload rejected by gate-video-stream (uploadGateVideo=false)")
+            else:
+                print("⚠️ Video upload response did not contain expected uploadGateVideo result")
         else:
-            print("Error uploading video:", response.status_code)
+            print("❌ Error uploading video:", response.status_code)
 
         print(response.text)
 

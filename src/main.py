@@ -723,13 +723,13 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
             metrics_data["time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             bee_counts_history.append(metrics_data)
             
-            if metrics_data["bees_in"] > 0 or metrics_data["bees_out"] > 0:
+            if metrics_data["bees_in"] > 0 or metrics_data["bees_out"] > 0 or metrics_data["detected_bees"] > 0:
                 print(f"☁️ Uploading debug file: {file_path}")
                 # The original `output_file` is not available in this thread.
                 # We pass the detections file path for both arguments to prevent a crash.
                 upload_file_async(file_path, file_path, start_time_utc)
             else:
-                print("🤫 No bees detected, skipping upload")
+                print("🤫 No detections in this chunk, skipping upload")
 
         detect_video_fps = len(frames_for_counting) / actual_duration if actual_duration > 0 else writer_fps
         print(f"📹 Writing detections video with {detect_video_fps:.2f} FPS")

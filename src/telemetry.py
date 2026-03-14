@@ -4,14 +4,28 @@ import json
 from datetime import datetime
 import os
 
+def _resolve_telemetry_upload_url(base_url):
+    full_url = os.getenv("TELEMETRY_UPLOAD_URL")
+    if full_url:
+        return full_url
+
+    path = os.getenv("TELEMETRY_UPLOAD_PATH", "/entrance/v1/movement")
+    if not path.startswith("/"):
+        path = f"/{path}"
+    return f"{base_url.rstrip('/')}{path}"
+
 def _ensure_telemetry_dir():
     """Ensures the telemetry directory exists."""
-    telemetry_dir = "/app/telemetry"
+    telemetry_dir = os.getenv("TELEMETRY_DIR", "./telemetry")
     print(f"ℹ️ Ensuring telemetry directory exists at: {telemetry_dir}")
-    if not os.path.exists(telemetry_dir):
-        print(f"⚠️ Telemetry directory not found. Creating it...")
-        os.makedirs(telemetry_dir)
-    return telemetry_dir
+    try:
+        os.makedirs(telemetry_dir, exist_ok=True)
+        return telemetry_dir
+    except OSError as e:
+        fallback_dir = os.path.abspath("./telemetry")
+        print(f"⚠️ Failed to prepare telemetry dir ({e}). Falling back to: {fallback_dir}")
+        os.makedirs(fallback_dir, exist_ok=True)
+        return fallback_dir
 
 def save_track_history_locally(track_history, frame_shape):
     """Saves track history data to a local jsonl file with daily rotation."""
@@ -89,11 +103,13 @@ def report_telemetry(metrics_data, bearer_token, hiveId, boxId, base_url):
 
     # Print the payload
     print("📡 Payload to be sent:", payload)
+    endpoint_url = _resolve_telemetry_upload_url(base_url)
+    print("📡 Telemetry endpoint:", endpoint_url)
 
     try:
         # Make multipart/form-data request
         response = requests.post(
-            f'{base_url}/entrance/v1/movement',
+            endpoint_url,
             headers={
                 'Authorization': f'Bearer {bearer_token}',
                 'Content-Type': 'application/json'

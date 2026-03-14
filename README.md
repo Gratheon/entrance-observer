@@ -74,9 +74,22 @@ For in-depth analysis and potential model retraining, the application also saves
 
 ```
 git clone https://github.com/Gratheon/entrance-observer.git
-cp .env.example .env
+cd entrance-observer
+cp example.env .env
 
-pip install -r requirements.txt
+# Optional: choose Python version via pyenv
+# pyenv install -s 3.10.14
+# pyenv local 3.10.14
+
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+
+# macOS
+pip3 install -r requirements.macos.txt
+
+# Jetson/Linux
+# pip3 install -r requirements.jetson.txt
 ```
 - Generate API token in https://app.gratheon.com/account
 - Open your hive entrance view, ex https://app.gratheon.com/apiaries/55/hives/68/box/250 and use BOX_ID from the end of URL, ex. 250.
@@ -101,6 +114,11 @@ We use env vars and we load them from `.env` file for ease of management.
 |HIVE_ID|identifier of the hive. Can be found in the gratheon.com hive URL|364|
 |SECTION_ID|hive section (box). Can be found in the URL|1944|
 |API_TOKEN|authentication token| 9f23616a52-2a51-4369-96d3-237a456eedb5
+|VIDEO_UPLOAD_URL|GraphQL endpoint for uploading recorded videos and detections.|https://video.gratheon.com/graphql|
+|TELEMETRY_BASE_URL|Base URL for telemetry ingestion endpoint.|https://telemetry.gratheon.com|
+|TELEMETRY_UPLOAD_PATH|Path appended to `TELEMETRY_BASE_URL` for movement uploads.|/entrance/v1/movement|
+|TELEMETRY_UPLOAD_URL|Optional full telemetry upload URL override. If set, takes precedence over base URL + path.|http://localhost:8080/entrance/v1/movement|
+|TELEMETRY_DIR|Directory for local metrics and track history JSONL files.|./telemetry|
 |CAMERA_DEVICE|numerical number for the device. For Linux, you can set it to `/dev/video0`.|0
 |FPS|frame rate of the camera|30|
 |WIDTH_PX|width of the output video. |960|
