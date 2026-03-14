@@ -2,3 +2,6 @@
 .env
 src/config/config.dev.ts
 src/config/config.prod.ts
+src/__pycache__
+telemetry
+videos
