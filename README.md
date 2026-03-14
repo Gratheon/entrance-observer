@@ -74,7 +74,7 @@ For in-depth analysis and potential model retraining, the application also saves
 
 ```
 git clone https://github.com/Gratheon/entrance-observer.git
-cp .env.example .env
+cp example.env .env
 
 pip install -r requirements.txt
 ```
