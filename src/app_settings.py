@@ -26,7 +26,6 @@ DEFAULT_TELEMETRY_SETTINGS = {
     "base_url": "https://telemetry.gratheon.com",
     "upload_path": "/entrance/v1/movement",
     "upload_url": "",
-    "dir": "./telemetry",
     "video_upload_url": "https://video.gratheon.com/graphql",
 }
 
@@ -36,12 +35,39 @@ DEFAULT_NIGHT_MODE_SETTINGS = {
     "day_end_hour": 22,
 }
 
+DEFAULT_VIDEO_SETTINGS = {
+    "fps": 30,
+    "width_px": 640,
+    "height_px": 480,
+    "detect_video_width": 320,
+    "detect_video_height": 240,
+    "video_chunk_length_sec": 20,
+    "auto_calibrate_fps": True,
+    "upload_videos_enabled": True,
+    "upload_max_fps": 0,
+}
+
+DEFAULT_STORAGE_SETTINGS = {
+    "videos_dir": "./videos",
+    "telemetry_dir": "./telemetry",
+    "runs_dir": "./runs",
+    "video_retention_minutes": 1440,
+    "detect_video_retention_minutes": 10,
+    "telemetry_retention_days": 30,
+    "runs_retention_days": 7,
+    "min_free_disk_mb": 1024,
+    "max_managed_storage_mb": 0,
+    "delete_uploaded_videos": False,
+}
+
 DEFAULT_SETTINGS = {
     "camera_properties": DEFAULT_CAMERA_PROPERTIES,
     "detection_line_coefficient": 0.5,
     "entrance_position": "bottom",
     "telemetry": DEFAULT_TELEMETRY_SETTINGS,
     "night_mode": DEFAULT_NIGHT_MODE_SETTINGS,
+    "video": DEFAULT_VIDEO_SETTINGS,
+    "storage": DEFAULT_STORAGE_SETTINGS,
 }
 
 TELEMETRY_ENV_MAP = {
@@ -51,13 +77,34 @@ TELEMETRY_ENV_MAP = {
     "base_url": "TELEMETRY_BASE_URL",
     "upload_path": "TELEMETRY_UPLOAD_PATH",
     "upload_url": "TELEMETRY_UPLOAD_URL",
-    "dir": "TELEMETRY_DIR",
     "video_upload_url": "VIDEO_UPLOAD_URL",
 }
 
 NIGHT_MODE_ENV_MAP = {
     "day_start_hour": "DAY_START_HOUR",
     "day_end_hour": "DAY_END_HOUR",
+}
+
+VIDEO_ENV_MAP = {
+    "fps": "FPS",
+    "width_px": "WIDTH_PX",
+    "height_px": "HEIGHT_PX",
+    "detect_video_width": "DETECT_VIDEO_WIDTH",
+    "detect_video_height": "DETECT_VIDEO_HEIGHT",
+    "video_chunk_length_sec": "VIDEO_CHUNK_LENGTH_SEC",
+    "upload_max_fps": "UPLOAD_MAX_FPS",
+}
+
+STORAGE_ENV_MAP = {
+    "videos_dir": "VIDEOS_DIR",
+    "telemetry_dir": "TELEMETRY_DIR",
+    "runs_dir": "RUNS_DIR",
+    "video_retention_minutes": "VIDEO_RETENTION_MINUTES",
+    "detect_video_retention_minutes": "DETECT_VIDEO_RETENTION_MINUTES",
+    "telemetry_retention_days": "TELEMETRY_RETENTION_DAYS",
+    "runs_retention_days": "RUNS_RETENTION_DAYS",
+    "min_free_disk_mb": "MIN_FREE_DISK_MB",
+    "max_managed_storage_mb": "MAX_MANAGED_STORAGE_MB",
 }
 
 
@@ -101,7 +148,11 @@ def load_raw_settings() -> Dict[str, Any]:
 
 
 def merge_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
-    return _deep_merge(DEFAULT_SETTINGS, settings or {})
+    merged = _deep_merge(DEFAULT_SETTINGS, settings or {})
+    legacy_telemetry_dir = (settings or {}).get("telemetry", {}).get("dir")
+    if legacy_telemetry_dir and not (settings or {}).get("storage", {}).get("telemetry_dir"):
+        merged["storage"]["telemetry_dir"] = legacy_telemetry_dir
+    return merged
 
 
 def save_settings_file(settings: Dict[str, Any]) -> None:
@@ -143,6 +194,57 @@ def get_night_mode_settings(raw_settings: Optional[Dict[str, Any]] = None) -> Di
                 night_mode[key] = env_value
 
     return night_mode
+
+
+def _settings_with_env_ints(section_name: str, env_map: Dict[str, str], raw_settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    raw_settings = load_raw_settings() if raw_settings is None else raw_settings
+    merged = merge_settings(raw_settings)
+    section = copy.deepcopy(merged[section_name])
+    raw_section = raw_settings.get(section_name, {}) if isinstance(raw_settings, dict) else {}
+
+    for key, env_name in env_map.items():
+        if key in raw_section:
+            continue
+        if isinstance(section.get(key), int):
+            env_value = _env_int(env_name)
+            if env_value is not None:
+                section[key] = env_value
+        else:
+            env_value = os.getenv(env_name)
+            if env_value:
+                section[key] = env_value
+
+    return section
+
+
+def get_video_settings(raw_settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    video = _settings_with_env_ints("video", VIDEO_ENV_MAP, raw_settings)
+    raw_settings = load_raw_settings() if raw_settings is None else raw_settings
+    raw_video = raw_settings.get("video", {}) if isinstance(raw_settings, dict) else {}
+
+    if "auto_calibrate_fps" not in raw_video:
+        enabled_from_env = _env_bool("AUTO_CALIBRATE_FPS")
+        if enabled_from_env is not None:
+            video["auto_calibrate_fps"] = enabled_from_env
+    if "upload_videos_enabled" not in raw_video:
+        enabled_from_env = _env_bool("UPLOAD_VIDEOS_ENABLED")
+        if enabled_from_env is not None:
+            video["upload_videos_enabled"] = enabled_from_env
+
+    return video
+
+
+def get_storage_settings(raw_settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    storage = _settings_with_env_ints("storage", STORAGE_ENV_MAP, raw_settings)
+    raw_settings = load_raw_settings() if raw_settings is None else raw_settings
+    raw_storage = raw_settings.get("storage", {}) if isinstance(raw_settings, dict) else {}
+
+    if "delete_uploaded_videos" not in raw_storage:
+        enabled_from_env = _env_bool("DELETE_UPLOADED_VIDEOS")
+        if enabled_from_env is not None:
+            storage["delete_uploaded_videos"] = enabled_from_env
+
+    return storage
 
 
 def has_effective_api_token(raw_settings: Optional[Dict[str, Any]] = None) -> bool:

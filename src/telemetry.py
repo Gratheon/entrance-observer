@@ -18,7 +18,7 @@ def _resolve_telemetry_upload_url(base_url, telemetry_settings=None):
 
 def _ensure_telemetry_dir():
     """Ensures the telemetry directory exists."""
-    telemetry_dir = app_settings.get_telemetry_settings().get("dir") or os.getenv("TELEMETRY_DIR", "./telemetry")
+    telemetry_dir = app_settings.get_storage_settings().get("telemetry_dir") or os.getenv("TELEMETRY_DIR", "./telemetry")
     print(f"ℹ️ Ensuring telemetry directory exists at: {telemetry_dir}")
     try:
         os.makedirs(telemetry_dir, exist_ok=True)

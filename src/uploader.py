@@ -1,25 +1,29 @@
 import json
 import os
-import time
-import cv2
 import requests
 import threading
-from requests_toolbelt.multipart.encoder import MultipartEncoder
-import glob
-from datetime import datetime, timedelta
+from datetime import datetime
 from dotenv import load_dotenv
+
 import app_settings
+import storage_manager
 
 # Load environment variables from .env file
 load_dotenv()
 
 
 def upload_file_async(file_path, detections_file_path, start_time_utc):
-    # Define a function to upload the file asynchronously
     upload_thread = threading.Thread(target=uploadAndRemove, args=(file_path, detections_file_path, start_time_utc))
     upload_thread.start()
 
+
 def uploadAndRemove(output_file: str, detections_file: str, start_time_utc: datetime):
+    video_settings = app_settings.get_video_settings()
+    if not video_settings.get("upload_videos_enabled", True):
+        print("☁️ Video upload disabled in app settings.")
+        storage_manager.cleanup_storage()
+        return
+
     settings = app_settings.get_telemetry_settings()
     bearer_token = settings.get("api_token")
     box_id = settings.get("section_id")
@@ -28,10 +32,11 @@ def uploadAndRemove(output_file: str, detections_file: str, start_time_utc: date
     if not bearer_token or not box_id:
         print("Error: Please set API token and section ID in app settings.")
         print("Skipping video upload for testing purposes.")
+        storage_manager.cleanup_storage()
         return
 
+    uploaded_successfully = False
     try:
-        # Make multipart/form-data request
         with open(output_file, 'rb') as file, open(detections_file, 'rb') as detectionsFile:
             response = requests.post(
                 upload_url,
@@ -75,6 +80,7 @@ def uploadAndRemove(output_file: str, detections_file: str, start_time_utc: date
                 print("❌ Video upload GraphQL errors:", response_json["errors"])
             elif response_json and response_json.get("data", {}).get("uploadGateVideo") is True:
                 print("✅ Video uploaded successfully")
+                uploaded_successfully = True
             elif response_json and response_json.get("data", {}).get("uploadGateVideo") is False:
                 print("❌ Video upload rejected by gate-video-stream (uploadGateVideo=false)")
             else:
@@ -87,30 +93,16 @@ def uploadAndRemove(output_file: str, detections_file: str, start_time_utc: date
     except Exception as e:
         print(f"Error during video upload: {e}")
 
-    # remove file after uploading, you can leave it if you want a local cache
-    # but you need enough storage to not run out of space
-    # os.remove(output_file)
-    # os.remove(detections_file)
+    if uploaded_successfully and app_settings.get_storage_settings().get("delete_uploaded_videos", False):
+        for path in {output_file, detections_file}:
+            try:
+                os.remove(path)
+                print(f"🧹 Deleted uploaded video: {path}")
+            except OSError as error:
+                print(f"⚠️ Could not delete uploaded video {path}: {error}")
+
+    storage_manager.cleanup_storage()
 
 
 def delete_old_mp4_files():
-    directory = "./videos"
-    retention_minutes = int(os.getenv("VIDEO_RETENTION_MINUTES", "1440"))
-    detect_retention_minutes = int(os.getenv("DETECT_VIDEO_RETENTION_MINUTES", "10"))
-    
-    now = datetime.now()
-    max_age_regular = timedelta(minutes=retention_minutes)
-    max_age_detect = timedelta(minutes=detect_retention_minutes)
-
-    for file_path in glob.glob(os.path.join(directory, '*.mp4')):
-        file_mtime = datetime.fromtimestamp(os.path.getmtime(file_path))
-        is_detect_file = '_detect.mp4' in os.path.basename(file_path)
-        
-        if is_detect_file:
-            if now - file_mtime > max_age_detect:
-                os.remove(file_path)
-                print(f"Deleted old detection video: {file_path}")
-        else:
-            if now - file_mtime > max_age_regular:
-                os.remove(file_path)
-                print(f"Deleted old video: {file_path}")
+    storage_manager.cleanup_storage()

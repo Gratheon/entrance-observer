@@ -18,14 +18,18 @@ from src.cameras import list_available_cameras, get_default_camera_config, initi
 from src.video_utils import VideoWriterFactory
 from app_settings import (
     DEFAULT_CAMERA_PROPERTIES,
+    DEFAULT_STORAGE_SETTINGS,
     get_night_mode_settings,
     get_telemetry_settings,
+    get_video_settings,
+    get_storage_settings,
     has_effective_api_token,
     load_raw_settings,
     merge_settings,
     save_settings_file,
 )
 from uploader import upload_file_async, delete_old_mp4_files
+import storage_manager
 from counter import count_bees_from_frames_async
 
 # enable GPU acceleration
@@ -762,10 +766,6 @@ def index():
                       <label for="video_upload_url">Video upload GraphQL URL</label>
                       <input type="text" id="video_upload_url" name="video_upload_url" value="{{ telemetry_settings.video_upload_url }}">
                     </div>
-                    <div class="settings-field">
-                      <label for="telemetry_dir">Telemetry directory</label>
-                      <input type="text" id="telemetry_dir" name="dir" value="{{ telemetry_settings.dir }}">
-                    </div>
                   </div>
                 </div>
 
@@ -786,6 +786,98 @@ def index():
                       <input type="number" id="day_end_hour" name="day_end_hour" min="0" max="23" value="{{ night_mode_settings.day_end_hour }}">
                       <span class="hint">0-23, default 22. Set start and end equal to process all day.</span>
                     </div>
+                  </div>
+                </div>
+
+                <div class="card">
+                  <h3>Video capture and upload</h3>
+                  <div class="settings-form">
+                    <div class="settings-field">
+                      <label for="video_fps">Requested camera FPS</label>
+                      <input type="number" id="video_fps" min="1" max="120" value="{{ video_settings.fps }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="width_px">Capture width</label>
+                      <input type="number" id="width_px" min="160" max="3840" value="{{ video_settings.width_px }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="height_px">Capture height</label>
+                      <input type="number" id="height_px" min="120" max="2160" value="{{ video_settings.height_px }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="detect_video_width">Detection upload width</label>
+                      <input type="number" id="detect_video_width" min="160" max="3840" value="{{ video_settings.detect_video_width }}">
+                      <span class="hint">Lower this when network upload bandwidth is limited.</span>
+                    </div>
+                    <div class="settings-field">
+                      <label for="detect_video_height">Detection upload height</label>
+                      <input type="number" id="detect_video_height" min="120" max="2160" value="{{ video_settings.detect_video_height }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="video_chunk_length_sec">Video chunk length, seconds</label>
+                      <input type="number" id="video_chunk_length_sec" min="5" max="600" value="{{ video_settings.video_chunk_length_sec }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="upload_max_fps">Upload video FPS cap</label>
+                      <input type="number" id="upload_max_fps" min="0" max="120" value="{{ video_settings.upload_max_fps }}">
+                      <span class="hint">0 disables the cap. Lower values reduce uploaded detection video size.</span>
+                    </div>
+                    <label class="settings-field toggle-label" for="auto_calibrate_fps">
+                      <input type="checkbox" id="auto_calibrate_fps" {% if video_settings.auto_calibrate_fps %}checked{% endif %}>
+                      Auto-calibrate sustainable camera FPS
+                    </label>
+                    <label class="settings-field toggle-label" for="upload_videos_enabled">
+                      <input type="checkbox" id="upload_videos_enabled" {% if video_settings.upload_videos_enabled %}checked{% endif %}>
+                      Upload detection videos
+                    </label>
+                  </div>
+                </div>
+
+                <div class="card">
+                  <h3>Storage and retention</h3>
+                  <div class="settings-form">
+                    <div class="settings-field">
+                      <label for="videos_dir">Videos directory</label>
+                      <input type="text" id="videos_dir" value="{{ storage_settings.videos_dir }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="telemetry_dir">Telemetry directory</label>
+                      <input type="text" id="telemetry_dir" value="{{ storage_settings.telemetry_dir }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="runs_dir">Runs directory</label>
+                      <input type="text" id="runs_dir" value="{{ storage_settings.runs_dir }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="video_retention_minutes">Raw video retention, minutes</label>
+                      <input type="number" id="video_retention_minutes" min="1" value="{{ storage_settings.video_retention_minutes }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="detect_video_retention_minutes">Detection video retention, minutes</label>
+                      <input type="number" id="detect_video_retention_minutes" min="1" value="{{ storage_settings.detect_video_retention_minutes }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="telemetry_retention_days">Telemetry retention, days</label>
+                      <input type="number" id="telemetry_retention_days" min="1" value="{{ storage_settings.telemetry_retention_days }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="runs_retention_days">Runs retention, days</label>
+                      <input type="number" id="runs_retention_days" min="1" value="{{ storage_settings.runs_retention_days }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="min_free_disk_mb">Minimum free disk, MB</label>
+                      <input type="number" id="min_free_disk_mb" min="0" value="{{ storage_settings.min_free_disk_mb }}">
+                      <span class="hint">Old managed files are deleted until at least this much disk is free.</span>
+                    </div>
+                    <div class="settings-field">
+                      <label for="max_managed_storage_mb">Max managed storage, MB</label>
+                      <input type="number" id="max_managed_storage_mb" min="0" value="{{ storage_settings.max_managed_storage_mb }}">
+                      <span class="hint">0 means unlimited; disk free guard still applies.</span>
+                    </div>
+                    <label class="settings-field toggle-label" for="delete_uploaded_videos">
+                      <input type="checkbox" id="delete_uploaded_videos" {% if storage_settings.delete_uploaded_videos %}checked{% endif %}>
+                      Delete local videos after successful upload
+                    </label>
                   </div>
                 </div>
 
@@ -1151,6 +1243,7 @@ def index():
          const appSettingsStatus = document.getElementById('app-settings-status');
 
          saveAppSettingsButton.addEventListener('click', () => {
+           const numberValue = (id) => Number(document.getElementById(id).value);
            const apiToken = document.getElementById('api_token').value;
            const telemetry = {
              hive_id: document.getElementById('hive_id').value,
@@ -1159,7 +1252,6 @@ def index():
              upload_path: document.getElementById('upload_path').value,
              upload_url: document.getElementById('upload_url').value,
              video_upload_url: document.getElementById('video_upload_url').value,
-             dir: document.getElementById('telemetry_dir').value,
            };
            if (apiToken) {
              telemetry.api_token = apiToken;
@@ -1174,8 +1266,31 @@ def index():
                telemetry,
                night_mode: {
                  enabled: document.getElementById('night_mode_enabled').checked,
-                 day_start_hour: Number(document.getElementById('day_start_hour').value),
-                 day_end_hour: Number(document.getElementById('day_end_hour').value),
+                 day_start_hour: numberValue('day_start_hour'),
+                 day_end_hour: numberValue('day_end_hour'),
+               },
+               video: {
+                 fps: numberValue('video_fps'),
+                 width_px: numberValue('width_px'),
+                 height_px: numberValue('height_px'),
+                 detect_video_width: numberValue('detect_video_width'),
+                 detect_video_height: numberValue('detect_video_height'),
+                 video_chunk_length_sec: numberValue('video_chunk_length_sec'),
+                 upload_max_fps: numberValue('upload_max_fps'),
+                 auto_calibrate_fps: document.getElementById('auto_calibrate_fps').checked,
+                 upload_videos_enabled: document.getElementById('upload_videos_enabled').checked,
+               },
+               storage: {
+                 videos_dir: document.getElementById('videos_dir').value,
+                 telemetry_dir: document.getElementById('telemetry_dir').value,
+                 runs_dir: document.getElementById('runs_dir').value,
+                 video_retention_minutes: numberValue('video_retention_minutes'),
+                 detect_video_retention_minutes: numberValue('detect_video_retention_minutes'),
+                 telemetry_retention_days: numberValue('telemetry_retention_days'),
+                 runs_retention_days: numberValue('runs_retention_days'),
+                 min_free_disk_mb: numberValue('min_free_disk_mb'),
+                 max_managed_storage_mb: numberValue('max_managed_storage_mb'),
+                 delete_uploaded_videos: document.getElementById('delete_uploaded_videos').checked,
                },
              }),
            })
@@ -1216,6 +1331,8 @@ def index():
     raw_settings = load_raw_settings()
     telemetry_settings = get_telemetry_settings(raw_settings)
     night_mode_settings = get_night_mode_settings(raw_settings)
+    video_settings = get_video_settings(raw_settings)
+    storage_settings = get_storage_settings(raw_settings)
     return render_template_string(
         html,
         detection_line_coefficient=detection_line_coefficient,
@@ -1223,6 +1340,8 @@ def index():
         entrance_position=entrance_position,
         telemetry_settings=telemetry_settings,
         night_mode_settings=night_mode_settings,
+        video_settings=video_settings,
+        storage_settings=storage_settings,
         api_token_configured=has_effective_api_token(raw_settings),
     )
 
@@ -1269,7 +1388,7 @@ def set_detection_line():
     data = request.get_json()
     detection_line_coefficient = data['coefficient']
     save_settings()
-
+    return jsonify(success=True)
 @app.route("/api/settings", methods=['POST'])
 def set_app_settings():
     data = request.get_json() or {}
@@ -1310,9 +1429,61 @@ def set_app_settings():
                 return jsonify(success=False, error=f"{key} must be from 0 to 23"), 400
             settings["night_mode"][key] = hour
 
+    video_payload = data.get("video", {})
+    if isinstance(video_payload, dict):
+        allowed_video_ints = {
+            "fps": (1, 120),
+            "width_px": (160, 3840),
+            "height_px": (120, 2160),
+            "detect_video_width": (160, 3840),
+            "detect_video_height": (120, 2160),
+            "video_chunk_length_sec": (5, 600),
+            "upload_max_fps": (0, 120),
+        }
+        for key, (min_value, max_value) in allowed_video_ints.items():
+            if key not in video_payload:
+                continue
+            try:
+                value = int(video_payload[key])
+            except (TypeError, ValueError):
+                return jsonify(success=False, error=f"{key} must be an integer"), 400
+            if value < min_value or value > max_value:
+                return jsonify(success=False, error=f"{key} must be from {min_value} to {max_value}"), 400
+            settings["video"][key] = value
+        for key in ("auto_calibrate_fps", "upload_videos_enabled"):
+            if key in video_payload:
+                settings["video"][key] = bool(video_payload[key])
+
+    storage_payload = data.get("storage", {})
+    if isinstance(storage_payload, dict):
+        allowed_storage_text = {"videos_dir", "telemetry_dir", "runs_dir"}
+        for key in allowed_storage_text:
+            if key in storage_payload:
+                settings["storage"][key] = str(storage_payload[key]).strip() or DEFAULT_STORAGE_SETTINGS[key]
+
+        allowed_storage_ints = {
+            "video_retention_minutes": 1,
+            "detect_video_retention_minutes": 1,
+            "telemetry_retention_days": 1,
+            "runs_retention_days": 1,
+            "min_free_disk_mb": 0,
+            "max_managed_storage_mb": 0,
+        }
+        for key, min_value in allowed_storage_ints.items():
+            if key not in storage_payload:
+                continue
+            try:
+                value = int(storage_payload[key])
+            except (TypeError, ValueError):
+                return jsonify(success=False, error=f"{key} must be an integer"), 400
+            if value < min_value:
+                return jsonify(success=False, error=f"{key} must be at least {min_value}"), 400
+            settings["storage"][key] = value
+        if "delete_uploaded_videos" in storage_payload:
+            settings["storage"]["delete_uploaded_videos"] = bool(storage_payload["delete_uploaded_videos"])
     save_settings_file(settings)
     load_settings()
-    return jsonify(success=True)
+    storage_manager.cleanup_storage()
     return jsonify(success=True)
 
 def frame_capture_thread(camera, video_queue, ai_queue):
@@ -1382,13 +1553,15 @@ def video_writer_thread(video_queue, writer_fps, target_width, target_height):
             continue
 
         timestamp = int(datetime.datetime.now().timestamp())
-        output_file = f'./videos/{timestamp}.mp4'
+        videos_dir = get_storage_settings().get("videos_dir", "./videos")
+        os.makedirs(videos_dir, exist_ok=True)
+        output_file = os.path.join(videos_dir, f'{timestamp}.mp4')
 
         out = VideoWriterFactory.create_writer(output_file, writer_fps, (target_width, target_height))
         if not out:
             break
 
-        video_chunk_length = int(os.getenv("VIDEO_CHUNK_LENGTH_SEC", 20))
+        video_chunk_length = int(get_video_settings().get("video_chunk_length_sec", 20))
         
         print(f"🎥 Recording a {video_chunk_length} second video at a target of {writer_fps:.2f} FPS...")
 
@@ -1460,9 +1633,11 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
             continue
 
         timestamp = int(datetime.datetime.now().timestamp())
-        detections_video_file = f'./videos/{timestamp}_detect.mp4'
+        videos_dir = get_storage_settings().get("videos_dir", "./videos")
+        os.makedirs(videos_dir, exist_ok=True)
+        detections_video_file = os.path.join(videos_dir, f'{timestamp}_detect.mp4')
 
-        video_chunk_length = int(os.getenv("VIDEO_CHUNK_LENGTH_SEC", 20))
+        video_chunk_length = int(get_video_settings().get("video_chunk_length_sec", 20))
         
         # We'll process as many frames as we can in the chunk duration
         frames_for_counting = []
@@ -1554,10 +1729,17 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
                 print("🤫 No detections in this chunk, skipping upload")
 
         detect_video_fps = len(frames_for_counting) / actual_duration if actual_duration > 0 else writer_fps
-        print(f"📹 Writing detections video with {detect_video_fps:.2f} FPS")
-        detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, detect_video_fps, (detect_video_width, detect_video_height))
+        video_settings = get_video_settings()
+        upload_max_fps = int(video_settings.get("upload_max_fps", 0) or 0)
+        output_video_fps = detect_video_fps
+        video_frame_stride = 1
+        if upload_max_fps > 0 and detect_video_fps > upload_max_fps:
+            video_frame_stride = max(1, round(detect_video_fps / upload_max_fps))
+            output_video_fps = detect_video_fps / video_frame_stride
+        print(f"📹 Writing detections video with {output_video_fps:.2f} FPS (source {detect_video_fps:.2f} FPS, stride {video_frame_stride})")
+        detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, output_video_fps, (detect_video_width, detect_video_height))
         
-        count_bees_from_frames_async(frames_for_counting, total_interactions, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=detect_video_fps, frame_shape=(detect_video_height, detect_video_width), entrance_position=entrance_position)
+        count_bees_from_frames_async(frames_for_counting, total_interactions, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=output_video_fps, frame_shape=(detect_video_height, detect_video_width), entrance_position=entrance_position, video_frame_stride=video_frame_stride)
         delete_old_mp4_files()
 
 def warm_up_camera(camera, num_frames=10):
@@ -1604,11 +1786,15 @@ def measure_actual_fps(camera, target_width, target_height, duration_sec=5):
 def startObserverClient():
     global capture_thread_running, camera_instance
     load_settings()
-    FPS = int(os.getenv("FPS", 30))
-    WIDTH_PX = int(os.getenv("WIDTH_PX", 640))
-    HEIGHT_PX = int(os.getenv("HEIGHT_PX", 480))
-    DETECT_VIDEO_WIDTH = int(os.getenv("DETECT_VIDEO_WIDTH", 320))
-    DETECT_VIDEO_HEIGHT = int(os.getenv("DETECT_VIDEO_HEIGHT", 240))
+    video_settings = get_video_settings()
+    storage_manager.ensure_managed_directories()
+    storage_manager.cleanup_storage()
+
+    FPS = int(video_settings.get("fps", 30))
+    WIDTH_PX = int(video_settings.get("width_px", 640))
+    HEIGHT_PX = int(video_settings.get("height_px", 480))
+    DETECT_VIDEO_WIDTH = int(video_settings.get("detect_video_width", 320))
+    DETECT_VIDEO_HEIGHT = int(video_settings.get("detect_video_height", 240))
 
     print(f"🖥️ Running on {platform.system()}")
     available_cameras = list_available_cameras()
@@ -1635,10 +1821,13 @@ def startObserverClient():
     
     print(f"🎯 Using resolution: {target_width}x{target_height}")
 
-    # Calibrate at the target resolution to get the true sustainable FPS
-    writer_fps = measure_actual_fps(camera, target_width, target_height)
-    if writer_fps < 1:
-        print(f"⚠️ FPS calibration failed. Falling back to requested FPS: {FPS}")
+    if video_settings.get("auto_calibrate_fps", True):
+        # Calibrate at the target resolution to get the true sustainable FPS.
+        writer_fps = measure_actual_fps(camera, target_width, target_height)
+        if writer_fps < 1:
+            print(f"⚠️ FPS calibration failed. Falling back to requested FPS: {FPS}")
+            writer_fps = FPS
+    else:
         writer_fps = FPS
 
     # Optimize queue sizes for better performance and lower memory usage
@@ -1676,27 +1865,22 @@ def startObserverClient():
         camera.release()
 
 def save_settings():
-    settings = {
-        "camera_properties": camera_properties,
-        "detection_line_coefficient": detection_line_coefficient,
-        "entrance_position": entrance_position
-    }
-    settings_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
-    os.makedirs(settings_dir, exist_ok=True)
-    settings_path = os.path.join(settings_dir, 'settings.json')
-    with open(settings_path, 'w') as f:
-        json.dump(settings, f, indent=4)
+    raw_settings = load_raw_settings()
+    settings = merge_settings(raw_settings)
+    settings["camera_properties"] = camera_properties
+    settings["detection_line_coefficient"] = detection_line_coefficient
+    settings["entrance_position"] = entrance_position
+    save_settings_file(settings)
 
 def load_settings():
     global camera_properties, detection_line_coefficient, entrance_position
-    try:
-        settings_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'settings.json')
-        with open(settings_path, 'r') as f:
-            settings = json.load(f)
-            camera_properties.update(settings.get("camera_properties", camera_properties))
-            detection_line_coefficient = settings.get("detection_line_coefficient", detection_line_coefficient)
-            entrance_position = settings.get("entrance_position", entrance_position)
-    except FileNotFoundError:
+    raw_settings = load_raw_settings()
+    settings = merge_settings(raw_settings)
+    camera_properties.update(settings.get("camera_properties", camera_properties))
+    detection_line_coefficient = settings.get("detection_line_coefficient", detection_line_coefficient)
+    entrance_position = settings.get("entrance_position", entrance_position)
+
+    if not raw_settings:
         save_settings()
 
 if __name__ == '__main__':

@@ -17,9 +17,9 @@ weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'we
 model = YOLO(weights_path)
 track_history = defaultdict(list)
 
-def count_bees_from_frames_async(frames, total_interactions, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
+def count_bees_from_frames_async(frames, total_interactions, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom', video_frame_stride=1):
     print(f"🐝 Starting bee counting for a batch of {len(frames)} frames", flush=True)
-    upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(frames, total_interactions, output_video_path, on_complete, detection_line_coefficient, video_writer, writer_fps, frame_shape, entrance_position))
+    upload_thread = threading.Thread(target=countBeesAndReportTelemetry, args=(frames, total_interactions, output_video_path, on_complete, detection_line_coefficient, video_writer, writer_fps, frame_shape, entrance_position, video_frame_stride))
     upload_thread.start()
 
 def report_telemetry_async(metrics_data):
@@ -33,11 +33,11 @@ def report_telemetry_async(metrics_data):
         telemetry_settings=telemetry_settings,
     )
 
-def countBeesAndReportTelemetry(frames, total_interactions, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
+def countBeesAndReportTelemetry(frames, total_interactions, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom', video_frame_stride=1):
     start_time = time.time()
 
     try:
-        beesIn, beesOut, detectedBees, final_track_history = countBees(frames, output_video_path, detection_line_coefficient, video_writer, writer_fps, frame_shape, entrance_position)
+        beesIn, beesOut, detectedBees, final_track_history = countBees(frames, output_video_path, detection_line_coefficient, video_writer, writer_fps, frame_shape, entrance_position, video_frame_stride)
         print(f"✅ Bee counting completed: {beesIn} in, {beesOut} out, {detectedBees} detected", flush=True)
     except Exception as e:
         print(f"❌ Error during bee counting: {e}", flush=True)
@@ -75,7 +75,7 @@ def countBeesAndReportTelemetry(frames, total_interactions, output_video_path=No
     end_time = time.time()
     print(f"⏱️ Time taken for countBeesAndReportTelemetry: {end_time - start_time:.2f} seconds", flush=True)
 
-def countBees(frames, output_video_path=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
+def countBees(frames, output_video_path=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom', video_frame_stride=1):
     track_history.clear()
     
     # It's important to operate on a copy of track_history for each run
@@ -114,11 +114,13 @@ def countBees(frames, output_video_path=None, detection_line_coefficient=None, v
                 print("❌ Fallback codec 'mp4v' also failed. No debug video will be saved.")
                 video_writer = None
 
+    video_frame_stride = max(1, int(video_frame_stride or 1))
+
     for i, (frame, results, capture_time) in enumerate(frames):
         # Counting line must use the same coordinate space as model detections.
         line_y_counting = round(frame.shape[0] * detection_line_coefficient)
 
-        if video_writer:
+        if video_writer and i % video_frame_stride == 0:
             resized_annotated_frame = cv2.resize(frame, (writer_w, writer_h))
             cv2.line(resized_annotated_frame, (0, line_y_writer), (writer_w, line_y_writer), (0, 0, 255), 2)
             video_writer.write(resized_annotated_frame)
