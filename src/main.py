@@ -86,195 +86,738 @@ def send_img(path):
 @app.route("/")
 def index():
     html = """
-   <html>
+   <!doctype html>
+   <html lang="en">
      <head>
+       <meta charset="UTF-8">
+       <meta name="viewport" content="width=device-width, initial-scale=1.0">
        <title>Entrance Observer</title>
+       <link rel="preconnect" href="https://fonts.googleapis.com">
+       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+       <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,700&subset=latin,cyrillic&display=swap" rel="stylesheet">
        <style>
-         body { 
-           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-           margin: 0; 
-           padding: 0; 
-           background-color: #f8f8f8; /* @color-gray-bg */
-           display: flex;
-           flex-direction: column;
+         :root {
+           --color-page: #ffffff;
+           --color-menu: #f8f8f8;
+           --color-muted: #ececec;
+           --color-border: #c5c5c5;
+           --color-text: #222222;
+           --color-secondary: #555555;
+           --color-accent: #0248ff;
+           --color-warning: #ffd900;
+           --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.06);
+         }
+
+         * {
+           box-sizing: border-box;
+           font-family: 'Open Sans', sans-serif;
+         }
+
+         html,
+         body {
+           margin: 0;
+           min-height: 100%;
+           background: var(--color-page);
+           color: var(--color-text);
+         }
+
+         body {
            min-height: 100vh;
          }
-         .header { 
-           background: white; 
-           border-bottom: 1px solid #c5c5c5; /* @color-gray-breadcrumbs-border */
-           padding: 8px;
-           text-align: center;
+
+         a {
+           color: inherit;
+           text-decoration: none;
          }
-         .header img { 
-           height: 100px; 
-           margin: 0 auto; 
-           display: block; 
+
+         h1,
+         h2,
+         h3 {
+           margin: 0;
+           font-weight: 700;
          }
-         .container { 
-           padding: 20px; 
-           flex-grow: 1;
+
+         p {
+           margin: 0;
          }
-         .video-container { 
-           display: flex; 
-           justify-content: center; 
-           gap: 20px; 
-           flex-wrap: wrap;
-         }
-         .toggle-container {
-           text-align: center;
-           margin-bottom: 20px;
-         }
-         .video-wrapper h2 {
-           text-align: center;
-           color: #424242; /* @color-gray-breadcrumbs-text */
-           font-weight: 500;
-         }
-         .controls-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 20px;
-            background-color: white;
-            border: 1px solid #c5c5c5;
-            border-radius: 5px;
-         }
-         .control {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-         }
-         .control label {
-            margin-right: 10px;
-         }
-         .control input {
-            width: 200px;
-         }
-         .footer { 
-           background-color: #ececec; /* @color-gray-breadcrumbs */
-           border-top: 1px solid #c5c5c5; /* @color-gray-breadcrumbs-border */
-           padding: 20px;
-           box-sizing: border-box;
-         }
-         .footer ul {
+
+         .app-shell {
            display: flex;
-           justify-content: center;
+           min-height: 100vh;
+         }
+
+         .side-menu {
+           flex: 0 0 220px;
+           width: 220px;
+           background: var(--color-menu);
+           border-right: 1px solid var(--color-border);
+           display: flex;
+           flex-direction: column;
+           padding: 18px 14px;
+         }
+
+         .menu-title {
+           padding: 6px 10px 18px;
+           border-bottom: 1px solid var(--color-border);
+           margin-bottom: 12px;
+         }
+
+         .menu-title strong {
+           display: block;
+           font-size: 18px;
+           line-height: 1.2;
+         }
+
+         .menu-title span {
+           display: block;
+           margin-top: 5px;
+           color: var(--color-secondary);
+           font-size: 12px;
+         }
+
+         .menu-section {
+           display: flex;
+           flex-direction: column;
+           gap: 4px;
            list-style: none;
            margin: 0;
            padding: 0;
          }
-         .footer li {
-           padding: 0 10px;
+
+         .menu-link {
+           border: 1px solid transparent;
+           border-radius: 8px;
+           color: #555;
+           display: flex;
+           align-items: center;
+           gap: 9px;
+           padding: 10px;
+           font-size: 14px;
+           line-height: 1.2;
+           transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
          }
-         .footer a { 
-           color: black; 
-           text-decoration: none; 
+
+         .menu-link:hover,
+         .menu-link.active {
+           background: #ffffff;
+           border-color: var(--color-border);
+           color: #000000;
          }
-         .footer a:hover {
-            text-decoration: underline;
+
+         .menu-link.active {
+           font-weight: 700;
+         }
+
+         .menu-icon {
+           display: inline-flex;
+           align-items: center;
+           justify-content: center;
+           width: 20px;
+           height: 20px;
+           color: #8a8f98;
+         }
+
+         .menu-footer {
+           margin-top: auto;
+           padding: 18px 10px 0;
+           color: var(--color-secondary);
+           font-size: 12px;
+           display: flex;
+           flex-direction: column;
+           gap: 8px;
+         }
+
+         .menu-footer a:hover {
+           text-decoration: underline;
+         }
+
+         .main-column {
+           flex: 1;
+           min-width: 0;
+           display: flex;
+           flex-direction: column;
+         }
+
+         .top-bar {
+           min-height: 76px;
+           border-bottom: 1px solid var(--color-border);
+           display: flex;
+           align-items: center;
+           justify-content: space-between;
+           gap: 24px;
+           padding: 14px 28px;
+           background: #ffffff;
+         }
+
+         .page-heading {
+           display: flex;
+           flex-direction: column;
+           gap: 4px;
+         }
+
+         .page-heading h1 {
+           font-size: 24px;
+           line-height: 1.2;
+         }
+
+         .page-heading p {
+           color: var(--color-secondary);
+           font-size: 13px;
+         }
+
+         .brand-logo {
+           display: inline-flex;
+           align-items: center;
+           justify-content: flex-end;
+           flex-shrink: 0;
+         }
+
+         .brand-logo img {
+           display: block;
+           width: 138px;
+           max-width: 28vw;
+           height: auto;
+         }
+
+         .content {
+           flex: 1;
+           padding: 24px 28px 32px;
+           background: #ffffff;
+         }
+
+         .content-section[hidden] {
+           display: none;
+         }
+
+         .section-header {
+           display: flex;
+           align-items: flex-start;
+           justify-content: space-between;
+           gap: 16px;
+           margin-bottom: 16px;
+         }
+
+         .section-header h2 {
+           font-size: 20px;
+         }
+
+         .section-header p {
+           color: var(--color-secondary);
+           font-size: 13px;
+           margin-top: 4px;
+         }
+
+         .card {
+           background: #ffffff;
+           border: 1px solid var(--color-border);
+           border-radius: 10px;
+           box-shadow: var(--shadow-card);
+           padding: 18px;
+         }
+
+         .preview-card {
+           display: flex;
+           flex-direction: column;
+           gap: 16px;
+         }
+
+         .preview-toolbar {
+           display: flex;
+           align-items: center;
+           justify-content: space-between;
+           gap: 12px;
+           flex-wrap: wrap;
+         }
+
+         .toggle-label {
+           display: inline-flex;
+           align-items: center;
+           gap: 8px;
+           color: var(--color-secondary);
+           font-size: 14px;
+           cursor: pointer;
+         }
+
+         .toggle-label input {
+           width: 16px;
+           height: 16px;
+         }
+
+         .hint {
+           color: var(--color-secondary);
+           font-size: 12px;
+         }
+
+         .preview-stack {
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           gap: 12px;
+         }
+
+         #video-container {
+           position: relative;
+           display: inline-block;
+           max-width: 100%;
+           border-radius: 8px;
+           overflow: hidden;
+           background: #111;
+           border: 1px solid var(--color-border);
+         }
+
+         #video-feed-img {
+           display: block;
+           max-width: 100%;
+           height: auto;
+         }
+
+         #detection-line {
+           position: absolute;
+           left: 0;
+           width: 100%;
+           height: 4px;
+           background: #ff2f2f;
+           cursor: ns-resize;
+           top: {{ detection_line_coefficient * 100 }}%;
+           box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.55);
+         }
+
+         .entrance-label {
+           width: 100%;
+           text-align: center;
+           padding: 10px 12px;
+           border: 1px dashed var(--color-border);
+           border-radius: 8px;
+           color: #424242;
+           cursor: pointer;
+           font-size: 18px;
+           font-weight: 700;
+           background: var(--color-menu);
+         }
+
+         .controls-container {
+           display: grid;
+           grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+           gap: 12px;
+         }
+
+         .control {
+           display: grid;
+           grid-template-columns: 130px minmax(120px, 1fr) 48px;
+           align-items: center;
+           gap: 12px;
+           padding: 12px;
+           border: 1px solid var(--color-border);
+           border-radius: 8px;
+           background: var(--color-menu);
+         }
+
+         .control label {
+           color: #424242;
+           font-size: 13px;
+           font-weight: 700;
+         }
+
+         .control input[type='range'] {
+           width: 100%;
+           accent-color: var(--color-accent);
+         }
+
+         .control span {
+           color: var(--color-secondary);
+           font-size: 13px;
+           text-align: right;
+           font-variant-numeric: tabular-nums;
+         }
+
+         .stats-grid {
+           display: grid;
+           grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+           gap: 12px;
+           margin-bottom: 16px;
+         }
+
+         .metric-card {
+           border: 1px solid var(--color-border);
+           border-radius: 10px;
+           padding: 14px;
+           background: var(--color-menu);
+         }
+
+         .metric-card span {
+           color: var(--color-secondary);
+           display: block;
+           font-size: 12px;
+           margin-bottom: 6px;
+         }
+
+         .metric-card strong {
+           display: block;
+           font-size: 24px;
+           line-height: 1.1;
+           font-variant-numeric: tabular-nums;
+         }
+
+         .charts-grid {
+           display: grid;
+           grid-template-columns: 1fr;
+           gap: 16px;
+         }
+
+         .chart-card h3,
+         .table-card h3 {
+           color: #424242;
+           font-size: 16px;
+           margin-bottom: 12px;
+         }
+
+         .chart-card canvas {
+           width: 100% !important;
+           max-height: 260px;
+         }
+
+         .table-wrapper {
+           overflow-x: auto;
+         }
+
+         #bee-counts-table {
+           width: 100%;
+           min-width: 860px;
+           border-collapse: collapse;
+           font-size: 13px;
+         }
+
+         #bee-counts-table th,
+         #bee-counts-table td {
+           border-bottom: 1px solid #dddddd;
+           padding: 9px 10px;
+           text-align: left;
+         }
+
+         #bee-counts-table th {
+           background: var(--color-menu);
+           color: #424242;
+           font-weight: 700;
+         }
+
+         #bee-counts-table td {
+           font-variant-numeric: tabular-nums;
+         }
+
+         @media (min-width: 1200px) {
+           .charts-grid {
+             grid-template-columns: repeat(3, minmax(0, 1fr));
+           }
+         }
+
+         @media (max-width: 760px) {
+           .app-shell {
+             flex-direction: column;
+           }
+
+           .side-menu {
+             width: 100%;
+             flex: 0 0 auto;
+             border-right: none;
+             border-bottom: 1px solid var(--color-border);
+             padding: 12px;
+           }
+
+           .menu-title {
+             padding: 4px 6px 10px;
+             margin-bottom: 8px;
+           }
+
+           .menu-section {
+             flex-direction: row;
+             overflow-x: auto;
+           }
+
+           .menu-link {
+             white-space: nowrap;
+           }
+
+           .menu-footer {
+             display: none;
+           }
+
+           .top-bar,
+           .content {
+             padding-left: 16px;
+             padding-right: 16px;
+           }
+
+           .top-bar {
+             align-items: flex-start;
+           }
+
+           .page-heading h1 {
+             font-size: 20px;
+           }
+
+           .brand-logo img {
+             width: 110px;
+           }
+
+           .control {
+             grid-template-columns: 1fr;
+             gap: 8px;
+           }
+
+           .control span {
+             text-align: left;
+           }
          }
        </style>
      </head>
      <body>
-       <div class="header">
-         <a href="https://app.gratheon.com/apiaries" target="_blank">
-            <img src="{{ url_for('send_img', path='gratheon.png') }}" alt="Gratheon Logo">
-         </a>
-       </div>
-       <div class="container">
-         <div class="toggle-container">
-           <label>
-             <input type="checkbox" id="feed-toggle">
-             Show Live Feed
-           </label>
-         </div>
-         <div class="video-container">
-           <div class="video-wrapper">
-             <div id="video-container" style="position: relative; display: inline-block;">
-                <img id="video-feed-img" src="{{ url_for('video_feed_yolo') }}">
-                <div id="detection-line" style="position: absolute; left: 0; width: 100%; height: 4px; background-color: red; cursor: pointer; top: {{ detection_line_coefficient * 100 }}%;"></div>
-             </div>
+       <div class="app-shell">
+         <nav class="side-menu" aria-label="Entrance observer sections">
+           <div class="menu-title">
+             <strong>Entrance Observer</strong>
+             <span>Local device UI</span>
            </div>
-            <div class="controls-container">
-                <h2>Camera Settings</h2>
-                <div class="control">
-                    <label for="brightness">Brightness</label>
-                    <input type="range" id="brightness" name="brightness" min="0" max="255" value="{{ camera_properties.brightness }}">
-                    <span id="brightness-value">{{ camera_properties.brightness }}</span>
-                </div>
-                <div class="control">
-                    <label for="contrast">Contrast</label>
-                    <input type="range" id="contrast" name="contrast" min="0" max="255" value="{{ camera_properties.contrast }}">
-                    <span id="contrast-value">{{ camera_properties.contrast }}</span>
-                </div>
-                <div class="control">
-                    <label for="saturation">Saturation</label>
-                    <input type="range" id="saturation" name="saturation" min="0" max="255" value="{{ camera_properties.saturation }}">
-                    <span id="saturation-value">{{ camera_properties.saturation }}</span>
-                </div>
-                <div class="control">
-                    <label for="gain">Gain</label>
-                    <input type="range" id="gain" name="gain" min="0" max="255" value="{{ camera_properties.gain }}">
-                    <span id="gain-value">{{ camera_properties.gain }}</span>
-                </div>
-                <div class="control">
-                    <label for="exposure">Exposure</label>
-                    <input type="range" id="exposure" name="exposure" min="-10" max="0" value="{{ camera_properties.exposure }}">
-                    <span id="exposure-value">{{ camera_properties.exposure }}</span>
-                </div>
-                <div class="control">
-                    <label for="white_balance_temperature">White Balance</label>
-                    <input type="range" id="white_balance_temperature" name="white_balance_temperature" min="2000" max="6500" value="{{ camera_properties.white_balance_temperature }}">
-                    <span id="white_balance_temperature-value">{{ camera_properties.white_balance_temperature }}</span>
-                </div>
-                <div class="control">
-                    <label for="gamma">Gamma</label>
-                    <input type="range" id="gamma" name="gamma" min="1" max="500" value="{{ camera_properties.gamma }}">
-                    <span id="gamma-value">{{ camera_properties.gamma }}</span>
-                </div>
-                <div class="control">
-                    <label for="sharpness">Sharpness</label>
-                    <input type="range" id="sharpness" name="sharpness" min="0" max="255" value="{{ camera_properties.sharpness }}">
-                    <span id="sharpness-value">{{ camera_properties.sharpness }}</span>
-                </div>
-                <div class="control">
-                    <label for="backlight">Backlight Comp</label>
-                    <input type="range" id="backlight" name="backlight" min="0" max="2" value="{{ camera_properties.backlight }}">
-                    <span id="backlight-value">{{ camera_properties.backlight }}</span>
-                </div>
-            </div>
-         </div>
-         <div id="hive-entrance-label" style="text-align: center; padding-top: 20px; font-size: 24px; color: #424242; cursor: pointer;">
-           &darr; Hive Entrance &darr;
-         </div>
-         <div id="bee-counts-container" style="padding: 20px;">
-           <h3 style="text-align: center; color: #424242; font-weight: 500;">Bee Traffic</h3>
-           <canvas id="traffic-chart" width="400" height="100"></canvas>
-           <h3 style="text-align: center; color: #424242; font-weight: 500;">Bee Detection</h3>
-           <canvas id="detection-chart" width="400" height="100"></canvas>
-           <h3 style="text-align: center; color: #424242; font-weight: 500;">Bee Speed</h3>
-           <canvas id="speed-chart" width="400" height="100"></canvas>
-           <table id="bee-counts-table" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-             <thead>
-               <tr>
-                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Time</th>
-                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Incoming</th>
-                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Outgoing</th>
-                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Net Flow</th>
-                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Detected</th>
-                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Avg Speed</th>
-                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">P95 Speed</th>
-                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Stationary</th>
-                 <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Interactions</th>
-               </tr>
-             </thead>
-             <tbody>
-             </tbody>
-           </table>
-         </div>
+           <ul class="menu-section">
+             <li>
+               <a class="menu-link active" href="#camera-preview" data-section-link="camera-preview">
+                 <span class="menu-icon" aria-hidden="true">▣</span>
+                 <span>Camera Preview</span>
+               </a>
+             </li>
+             <li>
+               <a class="menu-link" href="#settings" data-section-link="settings">
+                 <span class="menu-icon" aria-hidden="true">⚙</span>
+                 <span>Settings</span>
+               </a>
+             </li>
+             <li>
+               <a class="menu-link" href="#statistics" data-section-link="statistics">
+                 <span class="menu-icon" aria-hidden="true">↗</span>
+                 <span>Statistics</span>
+               </a>
+             </li>
+           </ul>
+           <div class="menu-footer">
+             <a href="https://gratheon.com/docs/entrance-observer/" target="_blank" rel="noreferrer">Docs</a>
+             <a href="https://gratheon.com/terms" target="_blank" rel="noreferrer">Terms of Use</a>
+             <a href="https://gratheon.com/privacy" target="_blank" rel="noreferrer">Privacy policy</a>
+           </div>
+         </nav>
+
+         <main class="main-column">
+           <header class="top-bar">
+             <div class="page-heading">
+               <h1>Beehive entrance monitor</h1>
+               <p>Camera stream, device settings, and live traffic metrics.</p>
+             </div>
+             <a class="brand-logo" href="https://app.gratheon.com/apiaries" target="_blank" rel="noreferrer" aria-label="Open Gratheon app">
+               <img src="{{ url_for('send_img', path='gratheon.png') }}" alt="Gratheon Logo">
+             </a>
+           </header>
+
+           <div class="content">
+             <section id="camera-preview" class="content-section" data-section="camera-preview">
+               <div class="section-header">
+                 <div>
+                   <h2>Camera Preview</h2>
+                   <p>Use the detection line and entrance marker to calibrate bee direction.</p>
+                 </div>
+               </div>
+
+               <div class="card preview-card">
+                 <div class="preview-toolbar">
+                   <label class="toggle-label">
+                     <input type="checkbox" id="feed-toggle">
+                     Show Live Feed
+                   </label>
+                   <span class="hint">Drag the red line to change the counting boundary.</span>
+                 </div>
+
+                 <div class="preview-stack" id="preview-stack">
+                   <div id="hive-entrance-label" class="entrance-label">&darr; Hive Entrance &darr;</div>
+                   <div id="video-container">
+                     <img id="video-feed-img" src="{{ url_for('video_feed_yolo') }}" alt="Camera stream with bee detection overlay">
+                     <div id="detection-line" aria-label="Detection line"></div>
+                   </div>
+                 </div>
+               </div>
+             </section>
+
+             <section id="settings" class="content-section" data-section="settings" hidden>
+               <div class="section-header">
+                 <div>
+                   <h2>Settings</h2>
+                   <p>Camera properties are applied to the running device and persisted locally.</p>
+                 </div>
+               </div>
+
+               <div class="card controls-container">
+                 <div class="control">
+                   <label for="brightness">Brightness</label>
+                   <input type="range" id="brightness" name="brightness" min="0" max="255" value="{{ camera_properties.brightness }}">
+                   <span id="brightness-value">{{ camera_properties.brightness }}</span>
+                 </div>
+                 <div class="control">
+                   <label for="contrast">Contrast</label>
+                   <input type="range" id="contrast" name="contrast" min="0" max="255" value="{{ camera_properties.contrast }}">
+                   <span id="contrast-value">{{ camera_properties.contrast }}</span>
+                 </div>
+                 <div class="control">
+                   <label for="saturation">Saturation</label>
+                   <input type="range" id="saturation" name="saturation" min="0" max="255" value="{{ camera_properties.saturation }}">
+                   <span id="saturation-value">{{ camera_properties.saturation }}</span>
+                 </div>
+                 <div class="control">
+                   <label for="gain">Gain</label>
+                   <input type="range" id="gain" name="gain" min="0" max="255" value="{{ camera_properties.gain }}">
+                   <span id="gain-value">{{ camera_properties.gain }}</span>
+                 </div>
+                 <div class="control">
+                   <label for="exposure">Exposure</label>
+                   <input type="range" id="exposure" name="exposure" min="-10" max="0" value="{{ camera_properties.exposure }}">
+                   <span id="exposure-value">{{ camera_properties.exposure }}</span>
+                 </div>
+                 <div class="control">
+                   <label for="white_balance_temperature">White Balance</label>
+                   <input type="range" id="white_balance_temperature" name="white_balance_temperature" min="2000" max="6500" value="{{ camera_properties.white_balance_temperature }}">
+                   <span id="white_balance_temperature-value">{{ camera_properties.white_balance_temperature }}</span>
+                 </div>
+                 <div class="control">
+                   <label for="gamma">Gamma</label>
+                   <input type="range" id="gamma" name="gamma" min="1" max="500" value="{{ camera_properties.gamma }}">
+                   <span id="gamma-value">{{ camera_properties.gamma }}</span>
+                 </div>
+                 <div class="control">
+                   <label for="sharpness">Sharpness</label>
+                   <input type="range" id="sharpness" name="sharpness" min="0" max="255" value="{{ camera_properties.sharpness }}">
+                   <span id="sharpness-value">{{ camera_properties.sharpness }}</span>
+                 </div>
+                 <div class="control">
+                   <label for="backlight">Backlight Comp</label>
+                   <input type="range" id="backlight" name="backlight" min="0" max="2" value="{{ camera_properties.backlight }}">
+                   <span id="backlight-value">{{ camera_properties.backlight }}</span>
+                 </div>
+               </div>
+             </section>
+
+             <section id="statistics" class="content-section" data-section="statistics" hidden>
+               <div class="section-header">
+                 <div>
+                   <h2>Statistics</h2>
+                   <p>Recent bee traffic, detection, speed, and interaction metrics.</p>
+                 </div>
+               </div>
+
+               <div class="stats-grid" aria-label="Latest metrics">
+                 <div class="metric-card">
+                   <span>Incoming</span>
+                   <strong id="metric-incoming">--</strong>
+                 </div>
+                 <div class="metric-card">
+                   <span>Outgoing</span>
+                   <strong id="metric-outgoing">--</strong>
+                 </div>
+                 <div class="metric-card">
+                   <span>Net Flow</span>
+                   <strong id="metric-net-flow">--</strong>
+                 </div>
+                 <div class="metric-card">
+                   <span>Detected</span>
+                   <strong id="metric-detected">--</strong>
+                 </div>
+               </div>
+
+               <div class="charts-grid">
+                 <div class="card chart-card">
+                   <h3>Bee Traffic</h3>
+                   <canvas id="traffic-chart" width="400" height="160"></canvas>
+                 </div>
+                 <div class="card chart-card">
+                   <h3>Bee Detection</h3>
+                   <canvas id="detection-chart" width="400" height="160"></canvas>
+                 </div>
+                 <div class="card chart-card">
+                   <h3>Bee Speed</h3>
+                   <canvas id="speed-chart" width="400" height="160"></canvas>
+                 </div>
+               </div>
+
+               <div class="card table-card" style="margin-top: 16px;">
+                 <h3>Recent measurements</h3>
+                 <div class="table-wrapper">
+                   <table id="bee-counts-table">
+                     <thead>
+                       <tr>
+                         <th>Time</th>
+                         <th>Incoming</th>
+                         <th>Outgoing</th>
+                         <th>Net Flow</th>
+                         <th>Detected</th>
+                         <th>Avg Speed</th>
+                         <th>P95 Speed</th>
+                         <th>Stationary</th>
+                         <th>Interactions</th>
+                       </tr>
+                     </thead>
+                     <tbody></tbody>
+                   </table>
+                 </div>
+               </div>
+             </section>
+           </div>
+         </main>
        </div>
+
        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
        <script>
+         const sections = Array.from(document.querySelectorAll('[data-section]'));
+         const sectionLinks = Array.from(document.querySelectorAll('[data-section-link]'));
+
+         function showSection(sectionId) {
+           const targetSection = sections.find(section => section.dataset.section === sectionId) || sections[0];
+           sections.forEach(section => {
+             section.hidden = section !== targetSection;
+           });
+           sectionLinks.forEach(link => {
+             const isActive = link.dataset.sectionLink === targetSection.dataset.section;
+             link.classList.toggle('active', isActive);
+             link.setAttribute('aria-current', isActive ? 'page' : 'false');
+           });
+
+          if (targetSection.dataset.section === 'statistics') {
+            setTimeout(() => {
+              if (typeof trafficChart !== 'undefined' && trafficChart) trafficChart.resize();
+              if (typeof detectionChart !== 'undefined' && detectionChart) detectionChart.resize();
+              if (typeof speedChart !== 'undefined' && speedChart) speedChart.resize();
+            }, 0);
+          }
+         }
+
+         sectionLinks.forEach(link => {
+           link.addEventListener('click', (event) => {
+             event.preventDefault();
+             const sectionId = link.dataset.sectionLink;
+             history.replaceState(null, '', `#${sectionId}`);
+             showSection(sectionId);
+           });
+         });
+
+         showSection((window.location.hash || '#camera-preview').slice(1));
+       </script>
+       <script>
          let trafficChart, detectionChart, speedChart;
+
+         function formatNumber(value, digits = 0) {
+           const number = Number(value);
+           if (!Number.isFinite(number)) return '--';
+           return number.toFixed(digits);
+         }
+
+         function updateMetric(id, value, digits = 0) {
+           const element = document.getElementById(id);
+           if (element) element.textContent = formatNumber(value, digits);
+         }
+
          function fetchBeeCounts() {
            fetch('/api/bee_counts')
              .then(response => response.json())
@@ -284,77 +827,98 @@ def index():
                data.forEach(count => {
                  const row = document.createElement('tr');
                  row.innerHTML = `
-                   <td style="border: 1px solid #ddd; padding: 8px;">${count.time}</td>
-                   <td style="border: 1px solid #ddd; padding: 8px;">${count.bees_in}</td>
-                   <td style="border: 1px solid #ddd; padding: 8px;">${count.bees_out}</td>
-                   <td style="border: 1px solid #ddd; padding: 8px;">${count.net_flow}</td>
-                   <td style="border: 1px solid #ddd; padding: 8px;">${count.detected_bees}</td>
-                   <td style="border: 1px solid #ddd; padding: 8px;">${count.avg_speed_px_per_frame.toFixed(2)}</td>
-                   <td style="border: 1px solid #ddd; padding: 8px;">${count.p95_speed_px_per_frame.toFixed(2)}</td>
-                   <td style="border: 1px solid #ddd; padding: 8px;">${count.stationary_bees_count}</td>
-                   <td style="border: 1px solid #ddd; padding: 8px;">${count.bee_interactions}</td>
+                   <td>${count.time}</td>
+                   <td>${formatNumber(count.bees_in)}</td>
+                   <td>${formatNumber(count.bees_out)}</td>
+                   <td>${formatNumber(count.net_flow)}</td>
+                   <td>${formatNumber(count.detected_bees)}</td>
+                   <td>${formatNumber(count.avg_speed_px_per_frame, 2)}</td>
+                   <td>${formatNumber(count.p95_speed_px_per_frame, 2)}</td>
+                   <td>${formatNumber(count.stationary_bees_count)}</td>
+                   <td>${formatNumber(count.bee_interactions)}</td>
                  `;
                  tableBody.insertBefore(row, tableBody.firstChild);
                });
 
+               const latest = data[data.length - 1] || {};
+               updateMetric('metric-incoming', latest.bees_in);
+               updateMetric('metric-outgoing', latest.bees_out);
+               updateMetric('metric-net-flow', latest.net_flow);
+               updateMetric('metric-detected', latest.detected_bees);
+
                const labels = data.map(d => d.time);
-               
-               // Data for Traffic Chart
+
                const beesInData = data.map(d => d.bees_in);
                const beesOutData = data.map(d => d.bees_out);
                const netFlowData = data.map(d => d.net_flow);
 
-               // Data for Detection Chart
                const detectedBeesData = data.map(d => d.detected_bees);
                const stationaryBeesData = data.map(d => d.stationary_bees_count);
                const interactionsData = data.map(d => d.bee_interactions);
 
-               // Data for Speed Chart
                const avgSpeedData = data.map(d => d.avg_speed_px_per_frame);
                const p95SpeedData = data.map(d => d.p95_speed_px_per_frame);
 
                function createOrUpdateChart(chartInstance, chartId, chartLabels, datasets) {
-                   if (chartInstance) {
-                       chartInstance.data.labels = chartLabels;
-                       datasets.forEach((dataset, index) => {
-                           chartInstance.data.datasets[index].data = dataset.data;
-                       });
-                       chartInstance.update();
-                   } else {
-                       const ctx = document.getElementById(chartId).getContext('2d');
-                       chartInstance = new Chart(ctx, {
-                           type: 'line',
-                           data: {
-                               labels: chartLabels,
-                               datasets: datasets
+                 if (chartInstance) {
+                   chartInstance.data.labels = chartLabels;
+                   datasets.forEach((dataset, index) => {
+                     chartInstance.data.datasets[index].data = dataset.data;
+                   });
+                   chartInstance.update();
+                 } else {
+                   const ctx = document.getElementById(chartId).getContext('2d');
+                   chartInstance = new Chart(ctx, {
+                     type: 'line',
+                     data: {
+                       labels: chartLabels,
+                       datasets: datasets,
+                     },
+                     options: {
+                       responsive: true,
+                       maintainAspectRatio: false,
+                       interaction: {
+                         mode: 'index',
+                         intersect: false,
+                       },
+                       plugins: {
+                         legend: {
+                           labels: {
+                             boxWidth: 12,
+                             font: { family: 'Open Sans' },
                            },
-                           options: {
-                               scales: {
-                                   y: {
-                                       beginAtZero: true
-                                   }
-                               }
-                           }
-                       });
-                   }
-                   return chartInstance;
+                         },
+                       },
+                       scales: {
+                         y: {
+                           beginAtZero: true,
+                           grid: { color: '#ececec' },
+                         },
+                         x: {
+                           grid: { display: false },
+                         },
+                       },
+                     },
+                   });
+                 }
+                 return chartInstance;
                }
 
                trafficChart = createOrUpdateChart(trafficChart, 'traffic-chart', labels, [
-                   { label: 'Incoming Bees', data: beesInData, borderColor: 'rgb(75, 192, 192)', tension: 0.1 },
-                   { label: 'Outgoing Bees', data: beesOutData, borderColor: 'rgb(255, 99, 132)', tension: 0.1 },
-                   { label: 'Net Flow', data: netFlowData, borderColor: 'rgb(54, 162, 235)', tension: 0.1 }
+                 { label: 'Incoming Bees', data: beesInData, borderColor: 'rgb(75, 192, 192)', backgroundColor: 'rgba(75, 192, 192, 0.12)', tension: 0.1 },
+                 { label: 'Outgoing Bees', data: beesOutData, borderColor: 'rgb(255, 99, 132)', backgroundColor: 'rgba(255, 99, 132, 0.12)', tension: 0.1 },
+                 { label: 'Net Flow', data: netFlowData, borderColor: 'rgb(54, 162, 235)', backgroundColor: 'rgba(54, 162, 235, 0.12)', tension: 0.1 },
                ]);
 
                detectionChart = createOrUpdateChart(detectionChart, 'detection-chart', labels, [
-                   { label: 'Detected Bees', data: detectedBeesData, borderColor: 'rgb(255, 206, 86)', tension: 0.1 },
-                   { label: 'Stationary Bees', data: stationaryBeesData, borderColor: 'rgb(153, 102, 255)', tension: 0.1 },
-                   { label: 'Interactions', data: interactionsData, borderColor: 'rgb(255, 99, 132)', tension: 0.1 }
+                 { label: 'Detected Bees', data: detectedBeesData, borderColor: 'rgb(255, 206, 86)', backgroundColor: 'rgba(255, 206, 86, 0.12)', tension: 0.1 },
+                 { label: 'Stationary Bees', data: stationaryBeesData, borderColor: 'rgb(153, 102, 255)', backgroundColor: 'rgba(153, 102, 255, 0.12)', tension: 0.1 },
+                 { label: 'Interactions', data: interactionsData, borderColor: 'rgb(255, 99, 132)', backgroundColor: 'rgba(255, 99, 132, 0.12)', tension: 0.1 },
                ]);
 
                speedChart = createOrUpdateChart(speedChart, 'speed-chart', labels, [
-                   { label: 'Avg Speed (px/frame)', data: avgSpeedData, borderColor: 'rgb(255, 159, 64)', tension: 0.1 },
-                   { label: 'P95 Speed (px/frame)', data: p95SpeedData, borderColor: 'rgb(75, 192, 75)', tension: 0.1 }
+                 { label: 'Avg Speed (px/frame)', data: avgSpeedData, borderColor: 'rgb(255, 159, 64)', backgroundColor: 'rgba(255, 159, 64, 0.12)', tension: 0.1 },
+                 { label: 'P95 Speed (px/frame)', data: p95SpeedData, borderColor: 'rgb(75, 192, 75)', backgroundColor: 'rgba(75, 192, 75, 0.12)', tension: 0.1 },
                ]);
              });
          }
@@ -363,25 +927,25 @@ def index():
        </script>
        <script>
          const hiveEntranceLabel = document.getElementById('hive-entrance-label');
+         const previewStack = document.getElementById('preview-stack');
+         const videoContainer = document.getElementById('video-container');
          let entrancePosition = '{{ entrance_position }}';
 
-         if (entrancePosition === 'top') {
+         function renderEntrancePosition() {
+           if (entrancePosition === 'top') {
              hiveEntranceLabel.innerHTML = '&uarr; Hive Entrance &uarr;';
-             document.querySelector('.container').insertBefore(hiveEntranceLabel, document.querySelector('.video-container'));
-         } else {
+             previewStack.insertBefore(hiveEntranceLabel, videoContainer);
+           } else {
              hiveEntranceLabel.innerHTML = '&darr; Hive Entrance &darr;';
+             previewStack.insertBefore(hiveEntranceLabel, videoContainer.nextSibling);
+           }
          }
 
+         renderEntrancePosition();
+
          hiveEntranceLabel.addEventListener('click', () => {
-           if (entrancePosition === 'bottom') {
-             entrancePosition = 'top';
-             hiveEntranceLabel.innerHTML = '&uarr; Hive Entrance &uarr;';
-             document.querySelector('.container').insertBefore(hiveEntranceLabel, document.querySelector('.video-container'));
-           } else {
-             entrancePosition = 'bottom';
-             hiveEntranceLabel.innerHTML = '&darr; Hive Entrance &darr;';
-             document.querySelector('.container').insertBefore(hiveEntranceLabel, document.getElementById('bee-counts-container'));
-           }
+           entrancePosition = entrancePosition === 'bottom' ? 'top' : 'bottom';
+           renderEntrancePosition();
            fetch('/api/set_entrance_position', {
              method: 'POST',
              headers: {
@@ -398,80 +962,66 @@ def index():
          const yoloFeedUrl = "{{ url_for('video_feed_yolo') }}";
 
          feedToggle.addEventListener('change', () => {
-           if (feedToggle.checked) {
-             videoFeedImg.src = liveFeedUrl;
-           } else {
-             videoFeedImg.src = yoloFeedUrl;
-           }
+           videoFeedImg.src = feedToggle.checked ? liveFeedUrl : yoloFeedUrl;
          });
        </script>
        <script>
          const detectionLine = document.getElementById('detection-line');
-         const videoContainer = document.getElementById('video-container');
          let isDragging = false;
 
-         detectionLine.addEventListener('mousedown', (e) => {
+         detectionLine.addEventListener('mousedown', () => {
            isDragging = true;
          });
 
-         videoContainer.addEventListener('mousemove', (e) => {
-           if (isDragging) {
-             const rect = videoContainer.getBoundingClientRect();
-             const y = e.clientY - rect.top;
-             const height = rect.height;
-             let coefficient = y / height;
-             if (coefficient < 0) coefficient = 0;
-             if (coefficient > 1) coefficient = 1;
-             detectionLine.style.top = `${coefficient * 100}%`;
-           }
+         videoContainer.addEventListener('mousemove', (event) => {
+           if (!isDragging) return;
+           const rect = videoContainer.getBoundingClientRect();
+           const y = event.clientY - rect.top;
+           const height = rect.height;
+           let coefficient = y / height;
+           if (coefficient < 0) coefficient = 0;
+           if (coefficient > 1) coefficient = 1;
+           detectionLine.style.top = `${coefficient * 100}%`;
          });
 
-         videoContainer.addEventListener('mouseup', (e) => {
-           if (isDragging) {
-             isDragging = false;
-             const rect = videoContainer.getBoundingClientRect();
-             const y = e.clientY - rect.top;
-             const height = rect.height;
-             let coefficient = y / height;
-             if (coefficient < 0) coefficient = 0;
-             if (coefficient > 1) coefficient = 1;
-             
-             fetch('/api/set_detection_line', {
-               method: 'POST',
-               headers: {
-                 'Content-Type': 'application/json',
-               },
-               body: JSON.stringify({ coefficient: coefficient }),
-             });
-           }
+         document.addEventListener('mouseup', (event) => {
+           if (!isDragging) return;
+           isDragging = false;
+           const rect = videoContainer.getBoundingClientRect();
+           const y = event.clientY - rect.top;
+           const height = rect.height;
+           let coefficient = y / height;
+           if (coefficient < 0) coefficient = 0;
+           if (coefficient > 1) coefficient = 1;
+
+           fetch('/api/set_detection_line', {
+             method: 'POST',
+             headers: {
+               'Content-Type': 'application/json',
+             },
+             body: JSON.stringify({ coefficient: coefficient }),
+           });
          });
 
          const controls = document.querySelectorAll('.control input');
          controls.forEach(control => {
-             control.addEventListener('input', (e) => {
-                 const valueSpan = document.getElementById(`${e.target.id}-value`);
-                 valueSpan.textContent = e.target.value;
+           control.addEventListener('input', (event) => {
+             const valueSpan = document.getElementById(`${event.target.id}-value`);
+             valueSpan.textContent = event.target.value;
+           });
+           control.addEventListener('change', (event) => {
+             const property = event.target.name;
+             const value = event.target.value;
+             fetch('/api/set_camera_properties', {
+               method: 'POST',
+               headers: {
+                 'Content-Type': 'application/json',
+               },
+               body: JSON.stringify({ [property]: value }),
              });
-             control.addEventListener('change', (e) => {
-                 const property = e.target.name;
-                 const value = e.target.value;
-                 fetch('/api/set_camera_properties', {
-                     method: 'POST',
-                     headers: {
-                         'Content-Type': 'application/json',
-                     },
-                     body: JSON.stringify({ [property]: value }),
-                 });
-             });
+           });
          });
        </script>
-       <div class="footer">
-         <ul>
-            <li><a href="https://gratheon.com/terms" target="_blank">Terms of Use</a></li>
-            <li><a href="https://gratheon.com/privacy" target="_blank">Privacy policy</a></li>
-            <li><a href="https://gratheon.com/docs/entrance-observer/" target="_blank">Docs</a></li>
-         </ul>
-       </div>
      </body>
    </html>
    """
