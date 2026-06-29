@@ -4,7 +4,7 @@ import datetime
 import cv2
 import platform
 import json
-from flask import Flask, Response, render_template_string, jsonify, request
+from flask import Flask, Response, render_template_string, jsonify, request, abort
 import threading
 import logging
 from ultralytics import YOLO
@@ -48,6 +48,7 @@ detection_line_coefficient = 0.5
 entrance_position = 'bottom'
 track_history = defaultdict(list)
 track_colors = {}
+VIDEO_FILE_EXTENSIONS = {'.mp4', '.mov', '.m4v', '.webm', '.avi', '.mkv'}
 
 
 weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weights', 'best.pt'))
@@ -86,10 +87,47 @@ def generate_frames(get_frame):
               bytearray(encodedImage) + b'\r\n')
 
 from flask import send_from_directory
+from urllib.parse import quote
 
 @app.route('/img/<path:path>')
 def send_img(path):
     return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'img'), path)
+
+
+def get_videos_directory():
+    storage_settings = get_storage_settings()
+    return os.path.abspath(storage_settings.get('videos_dir', './videos'))
+
+
+def list_recorded_videos():
+    videos_dir = get_videos_directory()
+    if not os.path.isdir(videos_dir):
+        return []
+
+    videos = []
+    for filename in os.listdir(videos_dir):
+        file_path = os.path.join(videos_dir, filename)
+        if not os.path.isfile(file_path):
+            continue
+        _, extension = os.path.splitext(filename)
+        if extension.lower() not in VIDEO_FILE_EXTENSIONS:
+            continue
+
+        try:
+            stat = os.stat(file_path)
+        except OSError:
+            continue
+
+        videos.append({
+            'name': filename,
+            'url': f"/local_videos/{quote(filename)}",
+            'size_bytes': stat.st_size,
+            'modified_at': datetime.datetime.fromtimestamp(stat.st_mtime).isoformat(timespec='seconds'),
+        })
+
+    videos.sort(key=lambda video: video['modified_at'], reverse=True)
+    return videos
+
 
 @app.route("/")
 def index():
@@ -558,6 +596,87 @@ def index():
            max-height: 260px;
          }
 
+         .videos-layout {
+           display: grid;
+           grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+           gap: 16px;
+           align-items: start;
+         }
+
+         .video-list {
+           display: flex;
+           flex-direction: column;
+           gap: 8px;
+         }
+
+         .video-list-header {
+           display: flex;
+           align-items: center;
+           justify-content: space-between;
+           gap: 12px;
+           margin-bottom: 12px;
+         }
+
+         .secondary-button {
+           border: 1px solid var(--color-border);
+           border-radius: 8px;
+           background: #ffffff;
+           color: var(--color-text);
+           cursor: pointer;
+           font-weight: 700;
+           padding: 8px 12px;
+         }
+
+         .video-item {
+           border: 1px solid var(--color-border);
+           border-radius: 8px;
+           background: var(--color-menu);
+           cursor: pointer;
+           padding: 10px;
+           text-align: left;
+         }
+
+         .video-item:hover,
+         .video-item.active {
+           background: #ffffff;
+           border-color: var(--color-accent);
+         }
+
+         .video-item strong {
+           display: block;
+           font-size: 13px;
+           overflow-wrap: anywhere;
+         }
+
+         .video-item span {
+           color: var(--color-secondary);
+           display: block;
+           font-size: 12px;
+           margin-top: 4px;
+         }
+
+         .video-preview {
+           display: flex;
+           flex-direction: column;
+           gap: 12px;
+         }
+
+         .video-preview video {
+           width: 100%;
+           max-height: 70vh;
+           border-radius: 8px;
+           background: #111111;
+         }
+
+         .empty-state {
+           color: var(--color-secondary);
+           font-size: 14px;
+           padding: 12px;
+           border: 1px dashed var(--color-border);
+           border-radius: 8px;
+           background: var(--color-menu);
+         }
+
          .table-wrapper {
            overflow-x: auto;
          }
@@ -649,6 +768,10 @@ def index():
            .control span {
              text-align: left;
            }
+
+           .videos-layout {
+             grid-template-columns: 1fr;
+           }
          }
        </style>
      </head>
@@ -670,9 +793,39 @@ def index():
                </a>
              </li>
              <li>
-               <a class="menu-link" href="#settings" data-section-link="settings">
+               <a class="menu-link" href="#telemetry-settings" data-section-link="telemetry-settings">
+                 <span class="menu-icon" aria-hidden="true">⇄</span>
+                 <span>Telemetry</span>
+               </a>
+             </li>
+             <li>
+               <a class="menu-link" href="#night-mode-settings" data-section-link="night-mode-settings">
+                 <span class="menu-icon" aria-hidden="true">☾</span>
+                 <span>Night Mode</span>
+               </a>
+             </li>
+             <li>
+               <a class="menu-link" href="#video-settings" data-section-link="video-settings">
+                 <span class="menu-icon" aria-hidden="true">▤</span>
+                 <span>Video Settings</span>
+               </a>
+             </li>
+             <li>
+               <a class="menu-link" href="#storage-settings" data-section-link="storage-settings">
+                 <span class="menu-icon" aria-hidden="true">▥</span>
+                 <span>Storage</span>
+               </a>
+             </li>
+             <li>
+               <a class="menu-link" href="#camera-settings" data-section-link="camera-settings">
                  <span class="menu-icon" aria-hidden="true">⚙</span>
-                 <span>Settings</span>
+                 <span>Camera Settings</span>
+               </a>
+             </li>
+             <li>
+               <a class="menu-link" href="#videos" data-section-link="videos">
+                 <span class="menu-icon" aria-hidden="true">▶</span>
+                 <span>Videos</span>
                </a>
              </li>
              <li>
@@ -725,11 +878,11 @@ def index():
                </div>
              </section>
 
-            <section id="settings" class="content-section" data-section="settings" hidden>
+            <section id="telemetry-settings" class="content-section" data-section="telemetry-settings" hidden>
               <div class="section-header">
                 <div>
-                  <h2>Settings</h2>
-                  <p>Device, telemetry, and night mode settings are persisted locally.</p>
+                  <h2>Telemetry Settings</h2>
+                  <p>Connection details used to send movement metrics and video detections to Gratheon.</p>
                 </div>
               </div>
 
@@ -769,6 +922,22 @@ def index():
                   </div>
                 </div>
 
+                <div class="settings-actions">
+                  <button type="button" class="primary-button save-app-settings">Save telemetry settings</button>
+                  <span class="save-status app-settings-status" role="status"></span>
+                </div>
+              </div>
+            </section>
+
+            <section id="night-mode-settings" class="content-section" data-section="night-mode-settings" hidden>
+              <div class="section-header">
+                <div>
+                  <h2>Night Mode Settings</h2>
+                  <p>Control when recording and AI processing should pause outside daylight hours.</p>
+                </div>
+              </div>
+
+              <div class="settings-group">
                 <div class="card">
                   <h3>Night mode</h3>
                   <div class="settings-form">
@@ -789,6 +958,22 @@ def index():
                   </div>
                 </div>
 
+                <div class="settings-actions">
+                  <button type="button" class="primary-button save-app-settings">Save night mode settings</button>
+                  <span class="save-status app-settings-status" role="status"></span>
+                </div>
+              </div>
+            </section>
+
+            <section id="video-settings" class="content-section" data-section="video-settings" hidden>
+              <div class="section-header">
+                <div>
+                  <h2>Video Settings</h2>
+                  <p>Configure camera capture, detection video dimensions, chunking, and uploads.</p>
+                </div>
+              </div>
+
+              <div class="settings-group">
                 <div class="card">
                   <h3>Video capture and upload</h3>
                   <div class="settings-form">
@@ -833,6 +1018,22 @@ def index():
                   </div>
                 </div>
 
+                <div class="settings-actions">
+                  <button type="button" class="primary-button save-app-settings">Save video settings</button>
+                  <span class="save-status app-settings-status" role="status"></span>
+                </div>
+              </div>
+            </section>
+
+            <section id="storage-settings" class="content-section" data-section="storage-settings" hidden>
+              <div class="section-header">
+                <div>
+                  <h2>Storage Settings</h2>
+                  <p>Configure local directories, retention windows, and managed storage limits.</p>
+                </div>
+              </div>
+
+              <div class="settings-group">
                 <div class="card">
                   <h3>Storage and retention</h3>
                   <div class="settings-form">
@@ -882,10 +1083,21 @@ def index():
                 </div>
 
                 <div class="settings-actions">
-                  <button type="button" class="primary-button" id="save-app-settings">Save app settings</button>
-                  <span class="save-status" id="app-settings-status" role="status"></span>
+                  <button type="button" class="primary-button save-app-settings">Save storage settings</button>
+                  <span class="save-status app-settings-status" role="status"></span>
                 </div>
+              </div>
+            </section>
 
+            <section id="camera-settings" class="content-section" data-section="camera-settings" hidden>
+              <div class="section-header">
+                <div>
+                  <h2>Camera Settings</h2>
+                  <p>Adjust camera image properties. Slider changes are applied and saved immediately.</p>
+                </div>
+              </div>
+
+              <div class="settings-group">
                 <div class="card controls-container">
                   <div class="control">
                     <label for="brightness">Brightness</label>
@@ -935,6 +1147,33 @@ def index():
                 </div>
               </div>
             </section>
+
+             <section id="videos" class="content-section" data-section="videos" hidden>
+               <div class="section-header">
+                 <div>
+                   <h2>Videos</h2>
+                   <p>Recorded local video chunks from the configured videos directory.</p>
+                 </div>
+               </div>
+
+               <div class="videos-layout">
+                 <div class="card">
+                   <div class="video-list-header">
+                     <h3>Recorded videos</h3>
+                     <button type="button" class="secondary-button" id="refresh-videos">Refresh</button>
+                   </div>
+                   <div id="videos-list" class="video-list" aria-live="polite">
+                     <div class="empty-state">Loading videos...</div>
+                   </div>
+                 </div>
+
+                 <div class="card video-preview">
+                   <h3 id="video-preview-title">Select a video</h3>
+                   <video id="video-preview-player" controls preload="metadata"></video>
+                   <p class="hint" id="video-preview-meta">Choose a video from the list to preview it here.</p>
+                 </div>
+               </div>
+             </section>
 
              <section id="statistics" class="content-section" data-section="statistics" hidden>
                <div class="section-header">
@@ -1008,9 +1247,13 @@ def index():
        <script>
          const sections = Array.from(document.querySelectorAll('[data-section]'));
          const sectionLinks = Array.from(document.querySelectorAll('[data-section-link]'));
+         const sectionAliases = {
+           settings: 'telemetry-settings',
+         };
 
          function showSection(sectionId) {
-           const targetSection = sections.find(section => section.dataset.section === sectionId) || sections[0];
+           const resolvedSectionId = sectionAliases[sectionId] || sectionId;
+           const targetSection = sections.find(section => section.dataset.section === resolvedSectionId) || sections[0];
            sections.forEach(section => {
              section.hidden = section !== targetSection;
            });
@@ -1027,6 +1270,10 @@ def index():
               if (typeof speedChart !== 'undefined' && speedChart) speedChart.resize();
             }, 0);
           }
+
+          if (targetSection.dataset.section === 'videos' && typeof loadVideos === 'function') {
+            loadVideos();
+          }
          }
 
          sectionLinks.forEach(link => {
@@ -1039,6 +1286,98 @@ def index():
          });
 
          showSection((window.location.hash || '#camera-preview').slice(1));
+       </script>
+       <script>
+         const videosList = document.getElementById('videos-list');
+         const refreshVideosButton = document.getElementById('refresh-videos');
+         const videoPreviewPlayer = document.getElementById('video-preview-player');
+         const videoPreviewTitle = document.getElementById('video-preview-title');
+         const videoPreviewMeta = document.getElementById('video-preview-meta');
+         let videosLoaded = false;
+
+         function formatBytes(bytes) {
+           const number = Number(bytes);
+           if (!Number.isFinite(number) || number <= 0) return '0 B';
+           const units = ['B', 'KB', 'MB', 'GB'];
+           const index = Math.min(Math.floor(Math.log(number) / Math.log(1024)), units.length - 1);
+           return `${(number / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+         }
+
+         function formatVideoDate(value) {
+           const date = new Date(value);
+           return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+         }
+
+         function selectVideo(video, button) {
+           Array.from(document.querySelectorAll('.video-item')).forEach(item => item.classList.remove('active'));
+           if (button) button.classList.add('active');
+           videoPreviewTitle.textContent = video.name;
+           videoPreviewPlayer.src = video.url;
+           videoPreviewPlayer.load();
+           videoPreviewMeta.textContent = `${formatBytes(video.size_bytes)} · modified ${formatVideoDate(video.modified_at)}`;
+         }
+
+         function renderVideos(videos) {
+           videosList.innerHTML = '';
+           if (!videos.length) {
+             const empty = document.createElement('div');
+             empty.className = 'empty-state';
+             empty.textContent = 'No videos found in the configured videos directory.';
+             videosList.appendChild(empty);
+             videoPreviewTitle.textContent = 'No videos available';
+             videoPreviewPlayer.removeAttribute('src');
+             videoPreviewPlayer.load();
+             videoPreviewMeta.textContent = 'Recorded video chunks will appear here.';
+             return;
+           }
+
+           videos.forEach((video, index) => {
+             const button = document.createElement('button');
+             button.type = 'button';
+             button.className = 'video-item';
+
+             const title = document.createElement('strong');
+             title.textContent = video.name;
+             const meta = document.createElement('span');
+             meta.textContent = `${formatBytes(video.size_bytes)} · ${formatVideoDate(video.modified_at)}`;
+
+             button.appendChild(title);
+             button.appendChild(meta);
+             button.addEventListener('click', () => selectVideo(video, button));
+             videosList.appendChild(button);
+
+             if (index === 0) {
+               selectVideo(video, button);
+             }
+           });
+         }
+
+         function loadVideos(force = false) {
+           if (videosLoaded && !force) return;
+           videosLoaded = true;
+           videosList.innerHTML = '<div class="empty-state">Loading videos...</div>';
+
+           fetch('/api/videos')
+             .then(response => {
+               if (!response.ok) throw new Error('Failed to load videos');
+               return response.json();
+             })
+             .then(renderVideos)
+             .catch(error => {
+               videosLoaded = false;
+               videosList.innerHTML = '';
+               const empty = document.createElement('div');
+               empty.className = 'empty-state';
+               empty.textContent = error.message;
+               videosList.appendChild(empty);
+             });
+         }
+
+         refreshVideosButton.addEventListener('click', () => loadVideos(true));
+
+         if ((window.location.hash || '#camera-preview').slice(1) === 'videos') {
+           loadVideos();
+         }
        </script>
        <script>
          let trafficChart, detectionChart, speedChart;
@@ -1239,71 +1578,79 @@ def index():
            });
          });
 
-         const saveAppSettingsButton = document.getElementById('save-app-settings');
-         const appSettingsStatus = document.getElementById('app-settings-status');
+         const saveAppSettingsButtons = Array.from(document.querySelectorAll('.save-app-settings'));
+         const appSettingsStatuses = Array.from(document.querySelectorAll('.app-settings-status'));
 
-         saveAppSettingsButton.addEventListener('click', () => {
-           const numberValue = (id) => Number(document.getElementById(id).value);
-           const apiToken = document.getElementById('api_token').value;
-           const telemetry = {
-             hive_id: document.getElementById('hive_id').value,
-             section_id: document.getElementById('section_id').value,
-             base_url: document.getElementById('base_url').value,
-             upload_path: document.getElementById('upload_path').value,
-             upload_url: document.getElementById('upload_url').value,
-             video_upload_url: document.getElementById('video_upload_url').value,
-           };
-           if (apiToken) {
-             telemetry.api_token = apiToken;
-           }
+         function setAppSettingsStatus(message) {
+           appSettingsStatuses.forEach(status => {
+             status.textContent = message;
+           });
+         }
 
-           fetch('/api/settings', {
-             method: 'POST',
-             headers: {
-               'Content-Type': 'application/json',
-             },
-             body: JSON.stringify({
-               telemetry,
-               night_mode: {
-                 enabled: document.getElementById('night_mode_enabled').checked,
-                 day_start_hour: numberValue('day_start_hour'),
-                 day_end_hour: numberValue('day_end_hour'),
+         saveAppSettingsButtons.forEach(button => {
+           button.addEventListener('click', () => {
+             const numberValue = (id) => Number(document.getElementById(id).value);
+             const apiToken = document.getElementById('api_token').value;
+             const telemetry = {
+               hive_id: document.getElementById('hive_id').value,
+               section_id: document.getElementById('section_id').value,
+               base_url: document.getElementById('base_url').value,
+               upload_path: document.getElementById('upload_path').value,
+               upload_url: document.getElementById('upload_url').value,
+               video_upload_url: document.getElementById('video_upload_url').value,
+             };
+             if (apiToken) {
+               telemetry.api_token = apiToken;
+             }
+
+             fetch('/api/settings', {
+               method: 'POST',
+               headers: {
+                 'Content-Type': 'application/json',
                },
-               video: {
-                 fps: numberValue('video_fps'),
-                 width_px: numberValue('width_px'),
-                 height_px: numberValue('height_px'),
-                 detect_video_width: numberValue('detect_video_width'),
-                 detect_video_height: numberValue('detect_video_height'),
-                 video_chunk_length_sec: numberValue('video_chunk_length_sec'),
-                 upload_max_fps: numberValue('upload_max_fps'),
-                 auto_calibrate_fps: document.getElementById('auto_calibrate_fps').checked,
-                 upload_videos_enabled: document.getElementById('upload_videos_enabled').checked,
-               },
-               storage: {
-                 videos_dir: document.getElementById('videos_dir').value,
-                 telemetry_dir: document.getElementById('telemetry_dir').value,
-                 runs_dir: document.getElementById('runs_dir').value,
-                 video_retention_minutes: numberValue('video_retention_minutes'),
-                 detect_video_retention_minutes: numberValue('detect_video_retention_minutes'),
-                 telemetry_retention_days: numberValue('telemetry_retention_days'),
-                 runs_retention_days: numberValue('runs_retention_days'),
-                 min_free_disk_mb: numberValue('min_free_disk_mb'),
-                 max_managed_storage_mb: numberValue('max_managed_storage_mb'),
-                 delete_uploaded_videos: document.getElementById('delete_uploaded_videos').checked,
-               },
-             }),
-           })
-             .then(response => response.json())
-             .then(data => {
-               if (!data.success) throw new Error(data.error || 'Failed to save settings');
-               document.getElementById('api_token').value = '';
-               document.getElementById('api_token').placeholder = 'Configured';
-               appSettingsStatus.textContent = 'Saved';
+               body: JSON.stringify({
+                 telemetry,
+                 night_mode: {
+                   enabled: document.getElementById('night_mode_enabled').checked,
+                   day_start_hour: numberValue('day_start_hour'),
+                   day_end_hour: numberValue('day_end_hour'),
+                 },
+                 video: {
+                   fps: numberValue('video_fps'),
+                   width_px: numberValue('width_px'),
+                   height_px: numberValue('height_px'),
+                   detect_video_width: numberValue('detect_video_width'),
+                   detect_video_height: numberValue('detect_video_height'),
+                   video_chunk_length_sec: numberValue('video_chunk_length_sec'),
+                   upload_max_fps: numberValue('upload_max_fps'),
+                   auto_calibrate_fps: document.getElementById('auto_calibrate_fps').checked,
+                   upload_videos_enabled: document.getElementById('upload_videos_enabled').checked,
+                 },
+                 storage: {
+                   videos_dir: document.getElementById('videos_dir').value,
+                   telemetry_dir: document.getElementById('telemetry_dir').value,
+                   runs_dir: document.getElementById('runs_dir').value,
+                   video_retention_minutes: numberValue('video_retention_minutes'),
+                   detect_video_retention_minutes: numberValue('detect_video_retention_minutes'),
+                   telemetry_retention_days: numberValue('telemetry_retention_days'),
+                   runs_retention_days: numberValue('runs_retention_days'),
+                   min_free_disk_mb: numberValue('min_free_disk_mb'),
+                   max_managed_storage_mb: numberValue('max_managed_storage_mb'),
+                   delete_uploaded_videos: document.getElementById('delete_uploaded_videos').checked,
+                 },
+               }),
              })
-             .catch(error => {
-               appSettingsStatus.textContent = error.message;
-             });
+               .then(response => response.json())
+               .then(data => {
+                 if (!data.success) throw new Error(data.error || 'Failed to save settings');
+                 document.getElementById('api_token').value = '';
+                 document.getElementById('api_token').placeholder = 'Configured';
+                 setAppSettingsStatus('Saved');
+               })
+               .catch(error => {
+                 setAppSettingsStatus(error.message);
+               });
+           });
          });
 
          const controls = document.querySelectorAll('.control input[type="range"]');
@@ -1373,6 +1720,25 @@ def video_feed_yolo():
 @app.route("/api/bee_counts")
 def bee_counts():
     return jsonify(list(bee_counts_history))
+
+
+@app.route("/api/videos")
+def videos():
+    return jsonify(list_recorded_videos())
+
+
+@app.route("/local_videos/<path:filename>")
+def local_video(filename):
+    if filename != os.path.basename(filename):
+        abort(404)
+
+    videos_dir = get_videos_directory()
+    _, extension = os.path.splitext(filename)
+    if extension.lower() not in VIDEO_FILE_EXTENSIONS:
+        abort(404)
+
+    return send_from_directory(videos_dir, filename, conditional=True)
+
 
 @app.route("/api/set_entrance_position", methods=['POST'])
 def set_entrance_position():
