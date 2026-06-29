@@ -14,8 +14,8 @@
     "entrance_position": "top",
     "telemetry": {
         "api_token": "",
-        "hive_id": "",
-        "section_id": "",
+        "hive_id": "33",
+        "section_id": "394",
         "base_url": "https://telemetry.gratheon.com",
         "upload_path": "/entrance/v1/movement",
         "upload_url": "",

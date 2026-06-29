@@ -99,6 +99,48 @@ def get_videos_directory():
     return os.path.abspath(storage_settings.get('videos_dir', './videos'))
 
 
+def get_recorded_video_path(filename):
+    if not filename or filename != os.path.basename(filename):
+        raise ValueError('Invalid video filename')
+
+    _, extension = os.path.splitext(filename)
+    if extension.lower() not in VIDEO_FILE_EXTENSIONS:
+        raise ValueError('Invalid video file type')
+
+    videos_dir = get_videos_directory()
+    file_path = os.path.abspath(os.path.join(videos_dir, filename))
+    if os.path.commonpath([videos_dir, file_path]) != videos_dir:
+        raise ValueError('Invalid video path')
+
+    return file_path
+
+
+def delete_recorded_video(filename):
+    file_path = get_recorded_video_path(filename)
+    if not os.path.isfile(file_path):
+        return False
+
+    os.remove(file_path)
+    return True
+
+
+def delete_all_recorded_videos():
+    deleted_count = 0
+    errors = []
+
+    for video in list_recorded_videos():
+        filename = video['name']
+        try:
+            if delete_recorded_video(filename):
+                deleted_count += 1
+        except OSError as error:
+            errors.append({'name': filename, 'error': str(error)})
+        except ValueError as error:
+            errors.append({'name': filename, 'error': str(error)})
+
+    return deleted_count, errors
+
+
 def list_recorded_videos():
     videos_dir = get_videos_directory()
     if not os.path.isdir(videos_dir):
@@ -460,6 +502,18 @@ def index():
            margin-bottom: 2px;
          }
 
+         .settings-subsection {
+           display: flex;
+           flex-direction: column;
+           gap: 8px;
+         }
+
+         .settings-subsection h4 {
+           color: #424242;
+           font-size: 14px;
+           margin: 8px 0 0;
+         }
+
          .settings-form {
            display: grid;
            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -617,7 +671,8 @@ def index():
            margin-bottom: 12px;
          }
 
-         .secondary-button {
+         .secondary-button,
+         .danger-button {
            border: 1px solid var(--color-border);
            border-radius: 8px;
            background: #ffffff;
@@ -625,6 +680,25 @@ def index():
            cursor: pointer;
            font-weight: 700;
            padding: 8px 12px;
+         }
+
+         .danger-button {
+           border-color: #b42318;
+           color: #b42318;
+         }
+
+         .secondary-button:disabled,
+         .danger-button:disabled {
+           cursor: not-allowed;
+           opacity: 0.55;
+         }
+
+         .video-list-actions,
+         .video-preview-actions {
+           display: flex;
+           align-items: center;
+           gap: 8px;
+           flex-wrap: wrap;
          }
 
          .video-item {
@@ -1035,50 +1109,73 @@ def index():
 
               <div class="settings-group">
                 <div class="card">
-                  <h3>Storage and retention</h3>
-                  <div class="settings-form">
-                    <div class="settings-field">
-                      <label for="videos_dir">Videos directory</label>
-                      <input type="text" id="videos_dir" value="{{ storage_settings.videos_dir }}">
+                  <h3>Storage by data type</h3>
+                  <div class="settings-subsection">
+                    <h4>Video recordings</h4>
+                    <div class="settings-form">
+                      <div class="settings-field">
+                        <label for="videos_dir">Videos directory</label>
+                        <input type="text" id="videos_dir" value="{{ storage_settings.videos_dir }}">
+                      </div>
+                      <div class="settings-field">
+                        <label for="video_retention_minutes">Raw video retention, minutes</label>
+                        <input type="number" id="video_retention_minutes" min="1" value="{{ storage_settings.video_retention_minutes }}">
+                      </div>
+                      <div class="settings-field">
+                        <label for="detect_video_retention_minutes">Detection video retention, minutes</label>
+                        <input type="number" id="detect_video_retention_minutes" min="1" value="{{ storage_settings.detect_video_retention_minutes }}">
+                      </div>
+                      <label class="settings-field toggle-label" for="delete_uploaded_videos">
+                        <input type="checkbox" id="delete_uploaded_videos" {% if storage_settings.delete_uploaded_videos %}checked{% endif %}>
+                        Delete local videos after successful upload
+                      </label>
                     </div>
-                    <div class="settings-field">
-                      <label for="telemetry_dir">Telemetry directory</label>
-                      <input type="text" id="telemetry_dir" value="{{ storage_settings.telemetry_dir }}">
+                  </div>
+
+                  <div class="settings-subsection">
+                    <h4>Telemetry logs</h4>
+                    <div class="settings-form">
+                      <div class="settings-field">
+                        <label for="telemetry_dir">Telemetry directory</label>
+                        <input type="text" id="telemetry_dir" value="{{ storage_settings.telemetry_dir }}">
+                        <span class="hint">Local JSONL metrics and track history.</span>
+                      </div>
+                      <div class="settings-field">
+                        <label for="telemetry_retention_days">Telemetry retention, days</label>
+                        <input type="number" id="telemetry_retention_days" min="1" value="{{ storage_settings.telemetry_retention_days }}">
+                      </div>
                     </div>
-                    <div class="settings-field">
-                      <label for="runs_dir">Runs directory</label>
-                      <input type="text" id="runs_dir" value="{{ storage_settings.runs_dir }}">
+                  </div>
+
+                  <div class="settings-subsection">
+                    <h4>Processing run artifacts</h4>
+                    <div class="settings-form">
+                      <div class="settings-field">
+                        <label for="runs_dir">Run artifacts directory</label>
+                        <input type="text" id="runs_dir" value="{{ storage_settings.runs_dir }}">
+                        <span class="hint">Temporary/debug files produced by detection or training runs.</span>
+                      </div>
+                      <div class="settings-field">
+                        <label for="runs_retention_days">Run artifacts retention, days</label>
+                        <input type="number" id="runs_retention_days" min="1" value="{{ storage_settings.runs_retention_days }}">
+                      </div>
                     </div>
-                    <div class="settings-field">
-                      <label for="video_retention_minutes">Raw video retention, minutes</label>
-                      <input type="number" id="video_retention_minutes" min="1" value="{{ storage_settings.video_retention_minutes }}">
+                  </div>
+
+                  <div class="settings-subsection">
+                    <h4>Disk guard</h4>
+                    <div class="settings-form">
+                      <div class="settings-field">
+                        <label for="min_free_disk_mb">Minimum free disk, MB</label>
+                        <input type="number" id="min_free_disk_mb" min="0" value="{{ storage_settings.min_free_disk_mb }}">
+                        <span class="hint">Old managed files are deleted until at least this much disk is free.</span>
+                      </div>
+                      <div class="settings-field">
+                        <label for="max_managed_storage_mb">Max managed storage, MB</label>
+                        <input type="number" id="max_managed_storage_mb" min="0" value="{{ storage_settings.max_managed_storage_mb }}">
+                        <span class="hint">0 means unlimited; disk free guard still applies.</span>
+                      </div>
                     </div>
-                    <div class="settings-field">
-                      <label for="detect_video_retention_minutes">Detection video retention, minutes</label>
-                      <input type="number" id="detect_video_retention_minutes" min="1" value="{{ storage_settings.detect_video_retention_minutes }}">
-                    </div>
-                    <div class="settings-field">
-                      <label for="telemetry_retention_days">Telemetry retention, days</label>
-                      <input type="number" id="telemetry_retention_days" min="1" value="{{ storage_settings.telemetry_retention_days }}">
-                    </div>
-                    <div class="settings-field">
-                      <label for="runs_retention_days">Runs retention, days</label>
-                      <input type="number" id="runs_retention_days" min="1" value="{{ storage_settings.runs_retention_days }}">
-                    </div>
-                    <div class="settings-field">
-                      <label for="min_free_disk_mb">Minimum free disk, MB</label>
-                      <input type="number" id="min_free_disk_mb" min="0" value="{{ storage_settings.min_free_disk_mb }}">
-                      <span class="hint">Old managed files are deleted until at least this much disk is free.</span>
-                    </div>
-                    <div class="settings-field">
-                      <label for="max_managed_storage_mb">Max managed storage, MB</label>
-                      <input type="number" id="max_managed_storage_mb" min="0" value="{{ storage_settings.max_managed_storage_mb }}">
-                      <span class="hint">0 means unlimited; disk free guard still applies.</span>
-                    </div>
-                    <label class="settings-field toggle-label" for="delete_uploaded_videos">
-                      <input type="checkbox" id="delete_uploaded_videos" {% if storage_settings.delete_uploaded_videos %}checked{% endif %}>
-                      Delete local videos after successful upload
-                    </label>
                   </div>
                 </div>
 
@@ -1160,7 +1257,10 @@ def index():
                  <div class="card">
                    <div class="video-list-header">
                      <h3>Recorded videos</h3>
-                     <button type="button" class="secondary-button" id="refresh-videos">Refresh</button>
+                     <div class="video-list-actions">
+                       <button type="button" class="secondary-button" id="refresh-videos">Refresh</button>
+                       <button type="button" class="danger-button" id="delete-all-videos" disabled>Delete all</button>
+                     </div>
                    </div>
                    <div id="videos-list" class="video-list" aria-live="polite">
                      <div class="empty-state">Loading videos...</div>
@@ -1171,6 +1271,9 @@ def index():
                    <h3 id="video-preview-title">Select a video</h3>
                    <video id="video-preview-player" controls preload="metadata"></video>
                    <p class="hint" id="video-preview-meta">Choose a video from the list to preview it here.</p>
+                   <div class="video-preview-actions">
+                     <button type="button" class="danger-button" id="delete-selected-video" disabled>Delete selected</button>
+                   </div>
                  </div>
                </div>
              </section>
@@ -1290,10 +1393,13 @@ def index():
        <script>
          const videosList = document.getElementById('videos-list');
          const refreshVideosButton = document.getElementById('refresh-videos');
+         const deleteAllVideosButton = document.getElementById('delete-all-videos');
          const videoPreviewPlayer = document.getElementById('video-preview-player');
          const videoPreviewTitle = document.getElementById('video-preview-title');
          const videoPreviewMeta = document.getElementById('video-preview-meta');
+         const deleteSelectedVideoButton = document.getElementById('delete-selected-video');
          let videosLoaded = false;
+         let selectedVideo = null;
 
          function formatBytes(bytes) {
            const number = Number(bytes);
@@ -1308,26 +1414,44 @@ def index():
            return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
          }
 
+         function setVideoActionsEnabled(enabled) {
+           deleteSelectedVideoButton.disabled = !enabled;
+         }
+
+         function setAllVideoActionsEnabled(enabled) {
+           deleteAllVideosButton.disabled = !enabled;
+         }
+
+         function clearSelectedVideo(title = 'No videos available', meta = 'Recorded video chunks will appear here.') {
+           selectedVideo = null;
+           videoPreviewTitle.textContent = title;
+           videoPreviewPlayer.removeAttribute('src');
+           videoPreviewPlayer.load();
+           videoPreviewMeta.textContent = meta;
+           setVideoActionsEnabled(false);
+         }
+
          function selectVideo(video, button) {
+           selectedVideo = video;
            Array.from(document.querySelectorAll('.video-item')).forEach(item => item.classList.remove('active'));
            if (button) button.classList.add('active');
            videoPreviewTitle.textContent = video.name;
            videoPreviewPlayer.src = video.url;
            videoPreviewPlayer.load();
            videoPreviewMeta.textContent = `${formatBytes(video.size_bytes)} · modified ${formatVideoDate(video.modified_at)}`;
+           setVideoActionsEnabled(true);
          }
 
          function renderVideos(videos) {
            videosList.innerHTML = '';
+           setAllVideoActionsEnabled(videos.length > 0);
+
            if (!videos.length) {
              const empty = document.createElement('div');
              empty.className = 'empty-state';
              empty.textContent = 'No videos found in the configured videos directory.';
              videosList.appendChild(empty);
-             videoPreviewTitle.textContent = 'No videos available';
-             videoPreviewPlayer.removeAttribute('src');
-             videoPreviewPlayer.load();
-             videoPreviewMeta.textContent = 'Recorded video chunks will appear here.';
+             clearSelectedVideo();
              return;
            }
 
@@ -1356,6 +1480,8 @@ def index():
            if (videosLoaded && !force) return;
            videosLoaded = true;
            videosList.innerHTML = '<div class="empty-state">Loading videos...</div>';
+           setAllVideoActionsEnabled(false);
+           setVideoActionsEnabled(false);
 
            fetch('/api/videos')
              .then(response => {
@@ -1366,6 +1492,8 @@ def index():
              .catch(error => {
                videosLoaded = false;
                videosList.innerHTML = '';
+               setAllVideoActionsEnabled(false);
+               clearSelectedVideo('Unable to load videos', 'Fix the error and refresh the list.');
                const empty = document.createElement('div');
                empty.className = 'empty-state';
                empty.textContent = error.message;
@@ -1373,7 +1501,55 @@ def index():
              });
          }
 
-         refreshVideosButton.addEventListener('click', () => loadVideos(true));
+         function refreshVideos() {
+           videosLoaded = false;
+           loadVideos(true);
+         }
+
+         function deleteVideoRequest(url) {
+           return fetch(url, { method: 'DELETE' })
+             .then(response => response.json().catch(() => ({})).then(data => {
+               if (!response.ok) {
+                 throw new Error(data.error || 'Failed to delete video');
+               }
+               return data;
+             }));
+         }
+
+         function deleteSelectedVideo() {
+           if (!selectedVideo) return;
+           if (!confirm(`Delete video file "${selectedVideo.name}"? This cannot be undone.`)) return;
+
+           setVideoActionsEnabled(false);
+           deleteVideoRequest(`/api/videos/${encodeURIComponent(selectedVideo.name)}`)
+             .then(refreshVideos)
+             .catch(error => {
+               alert(error.message);
+               setVideoActionsEnabled(true);
+             });
+         }
+
+         function deleteAllVideos() {
+           if (!confirm('Delete all video files from the configured videos directory? This cannot be undone.')) return;
+
+           setAllVideoActionsEnabled(false);
+           setVideoActionsEnabled(false);
+           deleteVideoRequest('/api/videos')
+             .then(data => {
+               if (data.errors && data.errors.length) {
+                 alert(`Deleted ${data.deleted_count || 0} videos, but ${data.errors.length} failed.`);
+               }
+               refreshVideos();
+             })
+             .catch(error => {
+               alert(error.message);
+               refreshVideos();
+             });
+         }
+
+         refreshVideosButton.addEventListener('click', refreshVideos);
+         deleteSelectedVideoButton.addEventListener('click', deleteSelectedVideo);
+         deleteAllVideosButton.addEventListener('click', deleteAllVideos);
 
          if ((window.location.hash || '#camera-preview').slice(1) === 'videos') {
            loadVideos();
@@ -1725,6 +1901,28 @@ def bee_counts():
 @app.route("/api/videos")
 def videos():
     return jsonify(list_recorded_videos())
+
+
+@app.route("/api/videos/<path:filename>", methods=['DELETE'])
+def delete_video(filename):
+    try:
+        deleted = delete_recorded_video(filename)
+    except ValueError:
+        abort(404)
+    except OSError as error:
+        return jsonify(success=False, error=str(error)), 500
+
+    if not deleted:
+        abort(404)
+
+    return jsonify(success=True, deleted=filename)
+
+
+@app.route("/api/videos", methods=['DELETE'])
+def delete_videos():
+    deleted_count, errors = delete_all_recorded_videos()
+    status_code = 207 if errors else 200
+    return jsonify(success=not errors, deleted_count=deleted_count, errors=errors), status_code
 
 
 @app.route("/local_videos/<path:filename>")

@@ -1,0 +1,47 @@
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+
+import app_settings
+
+
+def test_storage_settings_group_related_storage_values_from_env(monkeypatch):
+    monkeypatch.setenv('VIDEOS_DIR', './custom-videos')
+    monkeypatch.setenv('VIDEO_RETENTION_MINUTES', '60')
+    monkeypatch.setenv('DETECT_VIDEO_RETENTION_MINUTES', '5')
+    monkeypatch.setenv('TELEMETRY_DIR', './custom-telemetry')
+    monkeypatch.setenv('TELEMETRY_RETENTION_DAYS', '14')
+    monkeypatch.setenv('RUNS_DIR', './custom-runs')
+    monkeypatch.setenv('RUNS_RETENTION_DAYS', '3')
+    monkeypatch.setenv('MIN_FREE_DISK_MB', '512')
+    monkeypatch.setenv('MAX_MANAGED_STORAGE_MB', '2048')
+    monkeypatch.setenv('DELETE_UPLOADED_VIDEOS', 'true')
+
+    storage = app_settings.get_storage_settings({'storage': {}})
+
+    assert storage['videos_dir'] == './custom-videos'
+    assert storage['video_retention_minutes'] == 60
+    assert storage['detect_video_retention_minutes'] == 5
+    assert storage['telemetry_dir'] == './custom-telemetry'
+    assert storage['telemetry_retention_days'] == 14
+    assert storage['runs_dir'] == './custom-runs'
+    assert storage['runs_retention_days'] == 3
+    assert storage['min_free_disk_mb'] == 512
+    assert storage['max_managed_storage_mb'] == 2048
+    assert storage['delete_uploaded_videos'] is True
+
+
+def test_storage_settings_keep_explicit_file_values_over_env(monkeypatch):
+    monkeypatch.setenv('TELEMETRY_DIR', './env-telemetry')
+    monkeypatch.setenv('RUNS_RETENTION_DAYS', '3')
+
+    storage = app_settings.get_storage_settings({
+        'storage': {
+            'telemetry_dir': './file-telemetry',
+            'runs_retention_days': 9,
+        },
+    })
+
+    assert storage['telemetry_dir'] == './file-telemetry'
+    assert storage['runs_retention_days'] == 9
