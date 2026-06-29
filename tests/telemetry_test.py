@@ -23,7 +23,9 @@ class TelemetryTest(unittest.TestCase):
             "net_flow": 5,
             "avg_speed_px_per_frame": 1.2,
             "p95_speed_px_per_frame": 3.4,
-            "stationary_bees_count": 1
+            "stationary_bees_count": 1,
+            "detected_bees": 2,
+            "bee_interactions": 3
         }
         bearer_token = "test_token"
         hiveId = "test_hive"
@@ -49,6 +51,8 @@ class TelemetryTest(unittest.TestCase):
                 "avgSpeed": metrics_data["avg_speed_px_per_frame"],
                 "p95Speed": metrics_data["p95_speed_px_per_frame"],
                 "stationaryBees": metrics_data["stationary_bees_count"],
+                "detectedBees": metrics_data["detected_bees"],
+                "beeInteractions": metrics_data["bee_interactions"],
             },
             timeout=120,
             allow_redirects=True
@@ -68,7 +72,9 @@ class TelemetryTest(unittest.TestCase):
             "net_flow": 5,
             "avg_speed_px_per_frame": 1.2,
             "p95_speed_px_per_frame": 3.4,
-            "stationary_bees_count": 1
+            "stationary_bees_count": 1,
+            "detected_bees": 2,
+            "bee_interactions": 3
         }
         bearer_token = "test_token"
         hiveId = "test_hive"
@@ -89,7 +95,9 @@ class TelemetryTest(unittest.TestCase):
             "net_flow": 5,
             "avg_speed_px_per_frame": 1.2,
             "p95_speed_px_per_frame": 3.4,
-            "stationary_bees_count": 1
+            "stationary_bees_count": 1,
+            "detected_bees": 2,
+            "bee_interactions": 3
         }
         bearer_token = None
         hiveId = "test_hive"

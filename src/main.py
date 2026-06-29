@@ -16,6 +16,15 @@ from scipy.spatial.distance import pdist, squareform
 
 from src.cameras import list_available_cameras, get_default_camera_config, initialize_camera
 from src.video_utils import VideoWriterFactory
+from app_settings import (
+    DEFAULT_CAMERA_PROPERTIES,
+    get_night_mode_settings,
+    get_telemetry_settings,
+    has_effective_api_token,
+    load_raw_settings,
+    merge_settings,
+    save_settings_file,
+)
 from uploader import upload_file_async, delete_old_mp4_files
 from counter import count_bees_from_frames_async
 
@@ -28,17 +37,7 @@ yolo_frame = None
 frame_lock = threading.Lock()
 bee_counts_history = deque(maxlen=3600)  # Store up to last 10h. 10*60*6 entries (1 hour if updated every 10 sec)
 capture_thread_running = False
-camera_properties = {
-    "brightness": 40,
-    "contrast": 4,
-    "saturation": 70,
-    "gain": 0,
-    "exposure": -6,
-    "white_balance_temperature": 4000,
-    "gamma": 78,
-    "sharpness": 128,
-    "backlight": 1
-}
+camera_properties = DEFAULT_CAMERA_PROPERTIES.copy()
 camera_lock = threading.Lock()
 camera_instance = None
 detection_line_coefficient = 0.5
@@ -52,18 +51,23 @@ logging.getLogger('ultralytics').setLevel(logging.WARNING)
 model = YOLO(weights_path)
 
 def is_day_time():
-    """
-    Checks if the current time is within the configured day hours.
-    Night mode is disabled if DAY_START_HOUR and DAY_END_HOUR are the same.
-    """
-    day_start_hour = int(os.getenv("DAY_START_HOUR", 6))
-    day_end_hour = int(os.getenv("DAY_END_HOUR", 22))
+    """Checks if the current time is within the configured processing hours."""
+    night_mode = get_night_mode_settings()
+    if not night_mode.get("enabled", True):
+        return True
+
+    day_start_hour = int(night_mode.get("day_start_hour", 6))
+    day_end_hour = int(night_mode.get("day_end_hour", 22))
 
     if day_start_hour == day_end_hour:
         return True
 
     current_hour = datetime.datetime.now().hour
-    return day_start_hour <= current_hour < day_end_hour
+    if day_start_hour < day_end_hour:
+        return day_start_hour <= current_hour < day_end_hour
+
+    # Supports schedules crossing midnight, e.g. active from 22:00 to 06:00.
+    return current_hour >= day_start_hour or current_hour < day_end_hour
 
 def generate_frames(get_frame):
     while True:
@@ -243,7 +247,7 @@ def index():
            border-bottom: 1px solid var(--color-border);
            display: flex;
            align-items: center;
-           justify-content: space-between;
+           justify-content: flex-start;
            gap: 24px;
            padding: 14px 28px;
            background: #ffffff;
@@ -266,16 +270,18 @@ def index():
          }
 
          .brand-logo {
-           display: inline-flex;
+           display: flex;
            align-items: center;
-           justify-content: flex-end;
+           justify-content: center;
            flex-shrink: 0;
+           padding: 0 10px 16px;
+           margin-bottom: 6px;
          }
 
          .brand-logo img {
            display: block;
            width: 138px;
-           max-width: 28vw;
+           max-width: 100%;
            height: auto;
          }
 
@@ -284,7 +290,6 @@ def index():
            padding: 24px 28px 32px;
            background: #ffffff;
          }
-
          .content-section[hidden] {
            display: none;
          }
@@ -399,6 +404,79 @@ def index():
            display: grid;
            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
            gap: 12px;
+         }
+
+         .settings-group {
+           display: flex;
+           flex-direction: column;
+           gap: 12px;
+         }
+
+         .settings-group h3 {
+           color: #424242;
+           font-size: 16px;
+           margin-bottom: 2px;
+         }
+
+         .settings-form {
+           display: grid;
+           grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+           gap: 12px;
+         }
+
+         .settings-field {
+           display: flex;
+           flex-direction: column;
+           gap: 6px;
+           padding: 12px;
+           border: 1px solid var(--color-border);
+           border-radius: 8px;
+           background: var(--color-menu);
+         }
+
+         .settings-field label {
+           color: #424242;
+           font-size: 13px;
+           font-weight: 700;
+         }
+
+         .settings-field input[type='text'],
+         .settings-field input[type='password'],
+         .settings-field input[type='number'],
+         .settings-field select {
+           width: 100%;
+           border: 1px solid var(--color-border);
+           border-radius: 6px;
+           padding: 9px 10px;
+           background: #ffffff;
+           color: var(--color-text);
+           font-size: 14px;
+         }
+
+         .settings-field .hint {
+           line-height: 1.35;
+         }
+
+         .settings-actions {
+           display: flex;
+           align-items: center;
+           gap: 12px;
+           flex-wrap: wrap;
+         }
+
+         .primary-button {
+           border: 1px solid var(--color-accent);
+           border-radius: 8px;
+           background: var(--color-accent);
+           color: #ffffff;
+           cursor: pointer;
+           font-weight: 700;
+           padding: 10px 14px;
+         }
+
+         .save-status {
+           color: var(--color-secondary);
+           font-size: 13px;
          }
 
          .control {
@@ -573,6 +651,9 @@ def index():
      <body>
        <div class="app-shell">
          <nav class="side-menu" aria-label="Entrance observer sections">
+           <a class="brand-logo" href="https://app.gratheon.com/apiaries" target="_blank" rel="noreferrer" aria-label="Open Gratheon app">
+             <img src="{{ url_for('send_img', path='gratheon.png') }}" alt="Gratheon Logo">
+           </a>
            <div class="menu-title">
              <strong>Entrance Observer</strong>
              <span>Local device UI</span>
@@ -606,14 +687,11 @@ def index():
 
          <main class="main-column">
            <header class="top-bar">
-             <div class="page-heading">
-               <h1>Beehive entrance monitor</h1>
-               <p>Camera stream, device settings, and live traffic metrics.</p>
-             </div>
-             <a class="brand-logo" href="https://app.gratheon.com/apiaries" target="_blank" rel="noreferrer" aria-label="Open Gratheon app">
-               <img src="{{ url_for('send_img', path='gratheon.png') }}" alt="Gratheon Logo">
-             </a>
-           </header>
+            <div class="page-heading">
+              <h1>Beehive entrance monitor</h1>
+              <p>Camera stream, device settings, and live traffic metrics.</p>
+            </div>
+          </header>
 
            <div class="content">
              <section id="camera-preview" class="content-section" data-section="camera-preview">
@@ -643,62 +721,128 @@ def index():
                </div>
              </section>
 
-             <section id="settings" class="content-section" data-section="settings" hidden>
-               <div class="section-header">
-                 <div>
-                   <h2>Settings</h2>
-                   <p>Camera properties are applied to the running device and persisted locally.</p>
-                 </div>
-               </div>
+            <section id="settings" class="content-section" data-section="settings" hidden>
+              <div class="section-header">
+                <div>
+                  <h2>Settings</h2>
+                  <p>Device, telemetry, and night mode settings are persisted locally.</p>
+                </div>
+              </div>
 
-               <div class="card controls-container">
-                 <div class="control">
-                   <label for="brightness">Brightness</label>
-                   <input type="range" id="brightness" name="brightness" min="0" max="255" value="{{ camera_properties.brightness }}">
-                   <span id="brightness-value">{{ camera_properties.brightness }}</span>
-                 </div>
-                 <div class="control">
-                   <label for="contrast">Contrast</label>
-                   <input type="range" id="contrast" name="contrast" min="0" max="255" value="{{ camera_properties.contrast }}">
-                   <span id="contrast-value">{{ camera_properties.contrast }}</span>
-                 </div>
-                 <div class="control">
-                   <label for="saturation">Saturation</label>
-                   <input type="range" id="saturation" name="saturation" min="0" max="255" value="{{ camera_properties.saturation }}">
-                   <span id="saturation-value">{{ camera_properties.saturation }}</span>
-                 </div>
-                 <div class="control">
-                   <label for="gain">Gain</label>
-                   <input type="range" id="gain" name="gain" min="0" max="255" value="{{ camera_properties.gain }}">
-                   <span id="gain-value">{{ camera_properties.gain }}</span>
-                 </div>
-                 <div class="control">
-                   <label for="exposure">Exposure</label>
-                   <input type="range" id="exposure" name="exposure" min="-10" max="0" value="{{ camera_properties.exposure }}">
-                   <span id="exposure-value">{{ camera_properties.exposure }}</span>
-                 </div>
-                 <div class="control">
-                   <label for="white_balance_temperature">White Balance</label>
-                   <input type="range" id="white_balance_temperature" name="white_balance_temperature" min="2000" max="6500" value="{{ camera_properties.white_balance_temperature }}">
-                   <span id="white_balance_temperature-value">{{ camera_properties.white_balance_temperature }}</span>
-                 </div>
-                 <div class="control">
-                   <label for="gamma">Gamma</label>
-                   <input type="range" id="gamma" name="gamma" min="1" max="500" value="{{ camera_properties.gamma }}">
-                   <span id="gamma-value">{{ camera_properties.gamma }}</span>
-                 </div>
-                 <div class="control">
-                   <label for="sharpness">Sharpness</label>
-                   <input type="range" id="sharpness" name="sharpness" min="0" max="255" value="{{ camera_properties.sharpness }}">
-                   <span id="sharpness-value">{{ camera_properties.sharpness }}</span>
-                 </div>
-                 <div class="control">
-                   <label for="backlight">Backlight Comp</label>
-                   <input type="range" id="backlight" name="backlight" min="0" max="2" value="{{ camera_properties.backlight }}">
-                   <span id="backlight-value">{{ camera_properties.backlight }}</span>
-                 </div>
-               </div>
-             </section>
+              <div class="settings-group">
+                <div class="card">
+                  <h3>Telemetry</h3>
+                  <div class="settings-form">
+                    <div class="settings-field">
+                      <label for="api_token">API token</label>
+                      <input type="password" id="api_token" name="api_token" autocomplete="off" placeholder="{{ 'Configured' if api_token_configured else 'Paste token' }}">
+                      <span class="hint">Leave blank to keep the current token. Stored locally in settings.</span>
+                    </div>
+                    <div class="settings-field">
+                      <label for="hive_id">Hive ID</label>
+                      <input type="text" id="hive_id" name="hive_id" value="{{ telemetry_settings.hive_id }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="section_id">Section / box ID</label>
+                      <input type="text" id="section_id" name="section_id" value="{{ telemetry_settings.section_id }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="base_url">Telemetry base URL</label>
+                      <input type="text" id="base_url" name="base_url" value="{{ telemetry_settings.base_url }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="upload_path">Telemetry upload path</label>
+                      <input type="text" id="upload_path" name="upload_path" value="{{ telemetry_settings.upload_path }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="upload_url">Full telemetry upload URL override</label>
+                      <input type="text" id="upload_url" name="upload_url" value="{{ telemetry_settings.upload_url }}" placeholder="Optional">
+                    </div>
+                    <div class="settings-field">
+                      <label for="video_upload_url">Video upload GraphQL URL</label>
+                      <input type="text" id="video_upload_url" name="video_upload_url" value="{{ telemetry_settings.video_upload_url }}">
+                    </div>
+                    <div class="settings-field">
+                      <label for="telemetry_dir">Telemetry directory</label>
+                      <input type="text" id="telemetry_dir" name="dir" value="{{ telemetry_settings.dir }}">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card">
+                  <h3>Night mode</h3>
+                  <div class="settings-form">
+                    <label class="settings-field toggle-label" for="night_mode_enabled">
+                      <input type="checkbox" id="night_mode_enabled" name="enabled" {% if night_mode_settings.enabled %}checked{% endif %}>
+                      Pause recording and AI processing at night
+                    </label>
+                    <div class="settings-field">
+                      <label for="day_start_hour">Day starts at hour</label>
+                      <input type="number" id="day_start_hour" name="day_start_hour" min="0" max="23" value="{{ night_mode_settings.day_start_hour }}">
+                      <span class="hint">0-23, default 6.</span>
+                    </div>
+                    <div class="settings-field">
+                      <label for="day_end_hour">Day ends at hour</label>
+                      <input type="number" id="day_end_hour" name="day_end_hour" min="0" max="23" value="{{ night_mode_settings.day_end_hour }}">
+                      <span class="hint">0-23, default 22. Set start and end equal to process all day.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-actions">
+                  <button type="button" class="primary-button" id="save-app-settings">Save app settings</button>
+                  <span class="save-status" id="app-settings-status" role="status"></span>
+                </div>
+
+                <div class="card controls-container">
+                  <div class="control">
+                    <label for="brightness">Brightness</label>
+                    <input type="range" id="brightness" name="brightness" min="0" max="255" value="{{ camera_properties.brightness }}">
+                    <span id="brightness-value">{{ camera_properties.brightness }}</span>
+                  </div>
+                  <div class="control">
+                    <label for="contrast">Contrast</label>
+                    <input type="range" id="contrast" name="contrast" min="0" max="255" value="{{ camera_properties.contrast }}">
+                    <span id="contrast-value">{{ camera_properties.contrast }}</span>
+                  </div>
+                  <div class="control">
+                    <label for="saturation">Saturation</label>
+                    <input type="range" id="saturation" name="saturation" min="0" max="255" value="{{ camera_properties.saturation }}">
+                    <span id="saturation-value">{{ camera_properties.saturation }}</span>
+                  </div>
+                  <div class="control">
+                    <label for="gain">Gain</label>
+                    <input type="range" id="gain" name="gain" min="0" max="255" value="{{ camera_properties.gain }}">
+                    <span id="gain-value">{{ camera_properties.gain }}</span>
+                  </div>
+                  <div class="control">
+                    <label for="exposure">Exposure</label>
+                    <input type="range" id="exposure" name="exposure" min="-10" max="0" value="{{ camera_properties.exposure }}">
+                    <span id="exposure-value">{{ camera_properties.exposure }}</span>
+                  </div>
+                  <div class="control">
+                    <label for="white_balance_temperature">White Balance</label>
+                    <input type="range" id="white_balance_temperature" name="white_balance_temperature" min="2000" max="6500" value="{{ camera_properties.white_balance_temperature }}">
+                    <span id="white_balance_temperature-value">{{ camera_properties.white_balance_temperature }}</span>
+                  </div>
+                  <div class="control">
+                    <label for="gamma">Gamma</label>
+                    <input type="range" id="gamma" name="gamma" min="1" max="500" value="{{ camera_properties.gamma }}">
+                    <span id="gamma-value">{{ camera_properties.gamma }}</span>
+                  </div>
+                  <div class="control">
+                    <label for="sharpness">Sharpness</label>
+                    <input type="range" id="sharpness" name="sharpness" min="0" max="255" value="{{ camera_properties.sharpness }}">
+                    <span id="sharpness-value">{{ camera_properties.sharpness }}</span>
+                  </div>
+                  <div class="control">
+                    <label for="backlight">Backlight Comp</label>
+                    <input type="range" id="backlight" name="backlight" min="0" max="2" value="{{ camera_properties.backlight }}">
+                    <span id="backlight-value">{{ camera_properties.backlight }}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
 
              <section id="statistics" class="content-section" data-section="statistics" hidden>
                <div class="section-header">
@@ -1003,7 +1147,51 @@ def index():
            });
          });
 
-         const controls = document.querySelectorAll('.control input');
+         const saveAppSettingsButton = document.getElementById('save-app-settings');
+         const appSettingsStatus = document.getElementById('app-settings-status');
+
+         saveAppSettingsButton.addEventListener('click', () => {
+           const apiToken = document.getElementById('api_token').value;
+           const telemetry = {
+             hive_id: document.getElementById('hive_id').value,
+             section_id: document.getElementById('section_id').value,
+             base_url: document.getElementById('base_url').value,
+             upload_path: document.getElementById('upload_path').value,
+             upload_url: document.getElementById('upload_url').value,
+             video_upload_url: document.getElementById('video_upload_url').value,
+             dir: document.getElementById('telemetry_dir').value,
+           };
+           if (apiToken) {
+             telemetry.api_token = apiToken;
+           }
+
+           fetch('/api/settings', {
+             method: 'POST',
+             headers: {
+               'Content-Type': 'application/json',
+             },
+             body: JSON.stringify({
+               telemetry,
+               night_mode: {
+                 enabled: document.getElementById('night_mode_enabled').checked,
+                 day_start_hour: Number(document.getElementById('day_start_hour').value),
+                 day_end_hour: Number(document.getElementById('day_end_hour').value),
+               },
+             }),
+           })
+             .then(response => response.json())
+             .then(data => {
+               if (!data.success) throw new Error(data.error || 'Failed to save settings');
+               document.getElementById('api_token').value = '';
+               document.getElementById('api_token').placeholder = 'Configured';
+               appSettingsStatus.textContent = 'Saved';
+             })
+             .catch(error => {
+               appSettingsStatus.textContent = error.message;
+             });
+         });
+
+         const controls = document.querySelectorAll('.control input[type="range"]');
          controls.forEach(control => {
            control.addEventListener('input', (event) => {
              const valueSpan = document.getElementById(`${event.target.id}-value`);
@@ -1025,7 +1213,18 @@ def index():
      </body>
    </html>
    """
-    return render_template_string(html, detection_line_coefficient=detection_line_coefficient, camera_properties=camera_properties, entrance_position=entrance_position)
+    raw_settings = load_raw_settings()
+    telemetry_settings = get_telemetry_settings(raw_settings)
+    night_mode_settings = get_night_mode_settings(raw_settings)
+    return render_template_string(
+        html,
+        detection_line_coefficient=detection_line_coefficient,
+        camera_properties=camera_properties,
+        entrance_position=entrance_position,
+        telemetry_settings=telemetry_settings,
+        night_mode_settings=night_mode_settings,
+        api_token_configured=has_effective_api_token(raw_settings),
+    )
 
 @app.route("/api/set_camera_properties", methods=['POST'])
 def set_camera_properties():
@@ -1070,6 +1269,50 @@ def set_detection_line():
     data = request.get_json()
     detection_line_coefficient = data['coefficient']
     save_settings()
+
+@app.route("/api/settings", methods=['POST'])
+def set_app_settings():
+    data = request.get_json() or {}
+    raw_settings = load_raw_settings()
+    settings = merge_settings(raw_settings)
+
+    telemetry_payload = data.get("telemetry", {})
+    if isinstance(telemetry_payload, dict):
+        allowed_telemetry_keys = {
+            "api_token",
+            "hive_id",
+            "section_id",
+            "base_url",
+            "upload_path",
+            "upload_url",
+            "dir",
+            "video_upload_url",
+        }
+        for key, value in telemetry_payload.items():
+            if key not in allowed_telemetry_keys:
+                continue
+            if key == "api_token" and value == "":
+                continue
+            settings["telemetry"][key] = str(value).strip()
+
+    night_mode_payload = data.get("night_mode", {})
+    if isinstance(night_mode_payload, dict):
+        if "enabled" in night_mode_payload:
+            settings["night_mode"]["enabled"] = bool(night_mode_payload["enabled"])
+        for key in ("day_start_hour", "day_end_hour"):
+            if key not in night_mode_payload:
+                continue
+            try:
+                hour = int(night_mode_payload[key])
+            except (TypeError, ValueError):
+                return jsonify(success=False, error=f"{key} must be an integer from 0 to 23"), 400
+            if hour < 0 or hour > 23:
+                return jsonify(success=False, error=f"{key} must be from 0 to 23"), 400
+            settings["night_mode"][key] = hour
+
+    save_settings_file(settings)
+    load_settings()
+    return jsonify(success=True)
     return jsonify(success=True)
 
 def frame_capture_thread(camera, video_queue, ai_queue):
@@ -1135,7 +1378,7 @@ def video_writer_thread(video_queue, writer_fps, target_width, target_height):
                     video_queue.get_nowait()
                 except queue.Empty:
                     break
-            time.sleep(60)
+            time.sleep(1)
             continue
 
         timestamp = int(datetime.datetime.now().timestamp())
@@ -1152,7 +1395,17 @@ def video_writer_thread(video_queue, writer_fps, target_width, target_height):
         start_time = time.monotonic()
         frames_written = 0
         total_write_time = 0
+        aborted_for_night = False
         while (time.monotonic() - start_time) < video_chunk_length:
+            if not is_day_time():
+                print("🌙 Night mode enabled during recording, stopping current video chunk.")
+                aborted_for_night = True
+                while not video_queue.empty():
+                    try:
+                        video_queue.get_nowait()
+                    except queue.Empty:
+                        break
+                break
             try:
                 # Use a short timeout to remain responsive to the capture_thread_running flag
                 frame, capture_time = video_queue.get(timeout=1)
@@ -1171,6 +1424,13 @@ def video_writer_thread(video_queue, writer_fps, target_width, target_height):
                 continue
         
         out.release()
+        if aborted_for_night:
+            try:
+                os.remove(output_file)
+            except OSError:
+                pass
+            continue
+
         actual_duration = time.monotonic() - start_time
         avg_write_time = total_write_time / frames_written if frames_written > 0 else 0
         print(f"💾 Video saved to {output_file} ({frames_written} frames, {actual_duration:.2f}s duration, avg write time: {avg_write_time:.4f}s)")
@@ -1196,7 +1456,7 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
                     yolo_frame = frame.copy()
             except queue.Empty:
                 pass
-            time.sleep(60)
+            time.sleep(1)
             continue
 
         timestamp = int(datetime.datetime.now().timestamp())
@@ -1209,8 +1469,13 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
         total_inference_time = 0
         frames_processed = 0
         total_interactions = 0
+        aborted_for_night = False
         start_time = time.time()
         while (time.time() - start_time) < video_chunk_length:
+            if not is_day_time():
+                print("🌙 Night mode enabled during AI processing, stopping current detection chunk.")
+                aborted_for_night = True
+                break
             try:
                 frame, capture_time = ai_queue.get(timeout=1)
             except queue.Empty:
@@ -1262,6 +1527,13 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
                 yolo_frame = annotated_frame.copy()
 
             frames_for_counting.append((annotated_frame, results, capture_time))
+
+        if aborted_for_night or not frames_for_counting:
+            if aborted_for_night:
+                print("🌙 Detection chunk discarded because night mode is active.")
+            else:
+                print("⚠️ No frames processed in this detection chunk; skipping telemetry.")
+            continue
 
         actual_duration = time.time() - start_time
         avg_inference_time = total_inference_time / frames_processed if frames_processed > 0 else 0

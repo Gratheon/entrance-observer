@@ -8,6 +8,7 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder
 import glob
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+import app_settings
 
 # Load environment variables from .env file
 load_dotenv()
@@ -19,13 +20,13 @@ def upload_file_async(file_path, detections_file_path, start_time_utc):
     upload_thread.start()
 
 def uploadAndRemove(output_file: str, detections_file: str, start_time_utc: datetime):
-    # Retrieve environment variables
-    bearer_token = os.getenv("API_TOKEN")
-    box_id = os.getenv("SECTION_ID")
-    upload_url = os.getenv("VIDEO_UPLOAD_URL", "https://video.gratheon.com/graphql")
+    settings = app_settings.get_telemetry_settings()
+    bearer_token = settings.get("api_token")
+    box_id = settings.get("section_id")
+    upload_url = settings.get("video_upload_url") or "https://video.gratheon.com/graphql"
 
     if not bearer_token or not box_id:
-        print("Error: Please set the API_TOKEN and BOX_ID environment variables.")
+        print("Error: Please set API token and section ID in app settings.")
         print("Skipping video upload for testing purposes.")
         return
 

@@ -3,6 +3,7 @@ import threading
 import cv2
 import time
 import numpy as np
+import app_settings
 import telemetry
 import metrics
 from ultralytics import YOLO
@@ -22,11 +23,15 @@ def count_bees_from_frames_async(frames, total_interactions, output_video_path=N
     upload_thread.start()
 
 def report_telemetry_async(metrics_data):
-    bearer_token = os.getenv("API_TOKEN")
-    hiveId = os.getenv("HIVE_ID")
-    boxId = os.getenv("SECTION_ID")
-    base_url = os.getenv("TELEMETRY_BASE_URL", "https://telemetry.gratheon.com")
-    telemetry.report_telemetry_async(metrics_data, bearer_token, hiveId, boxId, base_url)
+    telemetry_settings = app_settings.get_telemetry_settings()
+    telemetry.report_telemetry_async(
+        metrics_data,
+        telemetry_settings.get("api_token"),
+        telemetry_settings.get("hive_id"),
+        telemetry_settings.get("section_id"),
+        telemetry_settings.get("base_url"),
+        telemetry_settings=telemetry_settings,
+    )
 
 def countBeesAndReportTelemetry(frames, total_interactions, output_video_path=None, on_complete=None, detection_line_coefficient=None, video_writer=None, writer_fps=None, frame_shape=None, entrance_position='bottom'):
     start_time = time.time()
@@ -54,11 +59,15 @@ def countBeesAndReportTelemetry(frames, total_interactions, output_video_path=No
     
     telemetry.save_track_history_locally(final_track_history, frame_shape)
     
-    bearer_token = os.getenv("API_TOKEN")
-    hiveId = os.getenv("HIVE_ID")
-    boxId = os.getenv("SECTION_ID")
-    base_url = os.getenv("TELEMETRY_BASE_URL", "https://telemetry.gratheon.com")
-    telemetry.report_telemetry(metrics_data, bearer_token, hiveId, boxId, base_url)
+    telemetry_settings = app_settings.get_telemetry_settings()
+    telemetry.report_telemetry(
+        metrics_data,
+        telemetry_settings.get("api_token"),
+        telemetry_settings.get("hive_id"),
+        telemetry_settings.get("section_id"),
+        telemetry_settings.get("base_url"),
+        telemetry_settings=telemetry_settings,
+    )
     
     if on_complete:
         on_complete(output_video_path, metrics_data)
