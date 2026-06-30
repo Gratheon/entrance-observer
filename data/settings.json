@@ -11,6 +11,13 @@
         "backlight": 1
     },
     "detection_line_coefficient": 0.55,
+    "counting_mode": "line",
+    "detection_rectangle": {
+        "x": 0.25,
+        "y": 0.35,
+        "width": 0.5,
+        "height": 0.2
+    },
     "entrance_position": "top",
     "telemetry": {
         "api_token": "",

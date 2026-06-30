@@ -60,9 +60,18 @@ DEFAULT_STORAGE_SETTINGS = {
     "delete_uploaded_videos": False,
 }
 
+DEFAULT_DETECTION_RECTANGLE = {
+    "x": 0.25,
+    "y": 0.35,
+    "width": 0.5,
+    "height": 0.2,
+}
+
 DEFAULT_SETTINGS = {
     "camera_properties": DEFAULT_CAMERA_PROPERTIES,
     "detection_line_coefficient": 0.5,
+    "counting_mode": "line",
+    "detection_rectangle": DEFAULT_DETECTION_RECTANGLE,
     "entrance_position": "bottom",
     "telemetry": DEFAULT_TELEMETRY_SETTINGS,
     "night_mode": DEFAULT_NIGHT_MODE_SETTINGS,
