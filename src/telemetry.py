@@ -3,20 +3,22 @@ import requests
 import json
 from datetime import datetime
 import os
+import app_settings
 
-def _resolve_telemetry_upload_url(base_url):
-    full_url = os.getenv("TELEMETRY_UPLOAD_URL")
+def _resolve_telemetry_upload_url(base_url, telemetry_settings=None):
+    telemetry_settings = telemetry_settings or app_settings.get_telemetry_settings()
+    full_url = telemetry_settings.get("upload_url") or os.getenv("TELEMETRY_UPLOAD_URL")
     if full_url:
         return full_url
 
-    path = os.getenv("TELEMETRY_UPLOAD_PATH", "/entrance/v1/movement")
+    path = telemetry_settings.get("upload_path") or os.getenv("TELEMETRY_UPLOAD_PATH", "/entrance/v1/movement")
     if not path.startswith("/"):
         path = f"/{path}"
     return f"{base_url.rstrip('/')}{path}"
 
 def _ensure_telemetry_dir():
     """Ensures the telemetry directory exists."""
-    telemetry_dir = os.getenv("TELEMETRY_DIR", "./telemetry")
+    telemetry_dir = app_settings.get_storage_settings().get("telemetry_dir") or os.getenv("TELEMETRY_DIR", "./telemetry")
     print(f"ℹ️ Ensuring telemetry directory exists at: {telemetry_dir}")
     try:
         os.makedirs(telemetry_dir, exist_ok=True)
@@ -76,14 +78,20 @@ def save_telemetry_locally(metrics_data):
     except Exception as e:
         print(f"❌ Error saving telemetry locally: {e}")
 
-def report_telemetry_async(metrics_data, bearer_token, hiveId, boxId, base_url):
-    telemetry_thread = threading.Thread(target=report_telemetry, args=(metrics_data, bearer_token, hiveId, boxId, base_url))
+def report_telemetry_async(metrics_data, bearer_token=None, hiveId=None, boxId=None, base_url=None, telemetry_settings=None):
+    telemetry_thread = threading.Thread(target=report_telemetry, args=(metrics_data, bearer_token, hiveId, boxId, base_url, telemetry_settings))
     telemetry_thread.start()
 
-def report_telemetry(metrics_data, bearer_token, hiveId, boxId, base_url):
+def report_telemetry(metrics_data, bearer_token=None, hiveId=None, boxId=None, base_url=None, telemetry_settings=None):
+    telemetry_settings = telemetry_settings or app_settings.get_telemetry_settings()
+    bearer_token = bearer_token or telemetry_settings.get("api_token")
+    hiveId = hiveId or telemetry_settings.get("hive_id")
+    boxId = boxId or telemetry_settings.get("section_id")
+    base_url = base_url or telemetry_settings.get("base_url") or "https://telemetry.gratheon.com"
+
     save_telemetry_locally(metrics_data)
     if not bearer_token or not boxId:
-        print("Error: Please provide API_TOKEN and SECTION_ID.")
+        print("Error: Please provide API token and section ID in app settings.")
         print("Skipping telemetry upload for testing purposes.")
         return
 
@@ -91,19 +99,19 @@ def report_telemetry(metrics_data, bearer_token, hiveId, boxId, base_url):
     payload = {
         "boxId": boxId,
         "hiveId": hiveId,
-        "beesIn": metrics_data["bees_in"],
-        "beesOut": metrics_data["bees_out"],
-        "netFlow": metrics_data["net_flow"],
-        "avgSpeed": metrics_data["avg_speed_px_per_frame"],
-        "p95Speed": metrics_data["p95_speed_px_per_frame"],
-        "stationaryBees": metrics_data["stationary_bees_count"],
-        "detectedBees": metrics_data["detected_bees"],
-        "beeInteractions": metrics_data["bee_interactions"],
+        "beesIn": metrics_data.get("bees_in", 0),
+        "beesOut": metrics_data.get("bees_out", 0),
+        "netFlow": metrics_data.get("net_flow", 0),
+        "avgSpeed": metrics_data.get("avg_speed_px_per_frame", 0),
+        "p95Speed": metrics_data.get("p95_speed_px_per_frame", 0),
+        "stationaryBees": metrics_data.get("stationary_bees_count", 0),
+        "detectedBees": metrics_data.get("detected_bees", 0),
+        "beeInteractions": metrics_data.get("bee_interactions", 0),
     }
 
     # Print the payload
     print("📡 Payload to be sent:", payload)
-    endpoint_url = _resolve_telemetry_upload_url(base_url)
+    endpoint_url = _resolve_telemetry_upload_url(base_url, telemetry_settings)
     print("📡 Telemetry endpoint:", endpoint_url)
 
     try:

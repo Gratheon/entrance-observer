@@ -18,5 +18,42 @@
         "width": 0.5,
         "height": 0.2
     },
-    "entrance_position": "top"
+    "entrance_position": "top",
+    "telemetry": {
+        "api_token": "",
+        "hive_id": "33",
+        "section_id": "394",
+        "base_url": "https://telemetry.gratheon.com",
+        "upload_path": "/entrance/v1/movement",
+        "upload_url": "",
+        "video_upload_url": "https://video.gratheon.com/graphql"
+    },
+    "night_mode": {
+        "enabled": true,
+        "day_start_hour": 6,
+        "day_end_hour": 22
+    },
+    "video": {
+        "fps": 30,
+        "width_px": 640,
+        "height_px": 480,
+        "detect_video_width": 320,
+        "detect_video_height": 240,
+        "video_chunk_length_sec": 20,
+        "auto_calibrate_fps": true,
+        "upload_videos_enabled": true,
+        "upload_max_fps": 0
+    },
+    "storage": {
+        "videos_dir": "./videos",
+        "telemetry_dir": "./telemetry",
+        "runs_dir": "./runs",
+        "video_retention_minutes": 1440,
+        "detect_video_retention_minutes": 10,
+        "telemetry_retention_days": 30,
+        "runs_retention_days": 7,
+        "min_free_disk_mb": 1024,
+        "max_managed_storage_mb": 0,
+        "delete_uploaded_videos": false
+    }
 }
