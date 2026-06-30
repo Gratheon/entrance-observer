@@ -1032,7 +1032,7 @@ def index():
                  </div>
 
                  <div class="preview-stack" id="preview-stack">
-                   <div id="hive-entrance-label" class="entrance-label">&darr; Hive Entrance &darr;</div>
+                   <div id="hive-entrance-label" class="entrance-label {% if counting_mode != 'line' %}hidden-overlay{% endif %}">&darr; Hive Entrance &darr;</div>
                    <div id="video-container">
                      <img id="video-feed-img" src="{{ url_for('video_feed_yolo') }}" alt="Camera stream with bee detection overlay">
                      <div id="detection-line" aria-label="Detection line"></div>
@@ -1175,6 +1175,11 @@ def index():
                       <label for="upload_max_fps">Upload video FPS cap</label>
                       <input type="number" id="upload_max_fps" min="0" max="120" value="{{ video_settings.upload_max_fps }}">
                       <span class="hint">0 disables the cap. Lower values reduce uploaded detection video size.</span>
+                    </div>
+                    <div class="settings-field">
+                      <label for="bee_confidence_threshold">Bee confidence threshold</label>
+                      <input type="number" id="bee_confidence_threshold" min="0" max="1" step="0.01" value="{{ video_settings.bee_confidence_threshold }}">
+                      <span class="hint">Detections below this confidence are not shown in preview or used for counting. 0.5 means 50%.</span>
                     </div>
                     <label class="settings-field toggle-label" for="auto_calibrate_fps">
                       <input type="checkbox" id="auto_calibrate_fps" {% if video_settings.auto_calibrate_fps %}checked{% endif %}>
@@ -1778,6 +1783,8 @@ def index():
          let entrancePosition = '{{ entrance_position }}';
 
          function renderEntrancePosition() {
+           const activeCountingMode = window.currentCountingMode || '{{ counting_mode }}';
+           hiveEntranceLabel.classList.toggle('hidden-overlay', activeCountingMode !== 'line');
            if (entrancePosition === 'top') {
              hiveEntranceLabel.innerHTML = '&uarr; Hive Entrance &uarr;';
              previewStack.insertBefore(hiveEntranceLabel, videoContainer);
@@ -1853,11 +1860,13 @@ def index():
          }
 
          function renderCountingBoundary() {
+           window.currentCountingMode = countingMode;
            countingModeInputs.forEach(input => {
              input.checked = input.value === countingMode;
            });
            detectionLine.classList.toggle('hidden-overlay', countingMode !== 'line');
            detectionRectangle.classList.toggle('hidden-overlay', countingMode !== 'rectangle');
+           renderEntrancePosition();
            countingModeHint.textContent = countingMode === 'rectangle'
              ? 'Drag the rectangle to move it. Drag a corner to resize the hive entrance area.'
              : 'Drag the red line to change the counting boundary.';
@@ -2025,6 +2034,7 @@ def index():
                    detect_video_height: numberValue('detect_video_height'),
                    video_chunk_length_sec: numberValue('video_chunk_length_sec'),
                    upload_max_fps: numberValue('upload_max_fps'),
+                   bee_confidence_threshold: numberValue('bee_confidence_threshold'),
                    auto_calibrate_fps: document.getElementById('auto_calibrate_fps').checked,
                    upload_videos_enabled: document.getElementById('upload_videos_enabled').checked,
                  },
@@ -2268,6 +2278,21 @@ def set_app_settings():
             if value < min_value or value > max_value:
                 return jsonify(success=False, error=f"{key} must be from {min_value} to {max_value}"), 400
             settings["video"][key] = value
+
+        allowed_video_floats = {
+            "bee_confidence_threshold": (0.0, 1.0),
+        }
+        for key, (min_value, max_value) in allowed_video_floats.items():
+            if key not in video_payload:
+                continue
+            try:
+                value = float(video_payload[key])
+            except (TypeError, ValueError):
+                return jsonify(success=False, error=f"{key} must be a number"), 400
+            if value < min_value or value > max_value:
+                return jsonify(success=False, error=f"{key} must be from {min_value} to {max_value}"), 400
+            settings["video"][key] = value
+
         for key in ("auto_calibrate_fps", "upload_videos_enabled"):
             if key in video_payload:
                 settings["video"][key] = bool(video_payload[key])
@@ -2455,7 +2480,9 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
         os.makedirs(videos_dir, exist_ok=True)
         detections_video_file = os.path.join(videos_dir, f'{timestamp}_detect.mp4')
 
-        video_chunk_length = int(get_video_settings().get("video_chunk_length_sec", 20))
+        video_settings = get_video_settings()
+        video_chunk_length = int(video_settings.get("video_chunk_length_sec", 20))
+        bee_confidence_threshold = float(video_settings.get("bee_confidence_threshold", 0.5))
         
         # We'll process as many frames as we can in the chunk duration
         frames_for_counting = []
@@ -2476,7 +2503,7 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
                 continue
             
             start_inference_time = time.monotonic()
-            results = model.track(frame, persist=True)
+            results = model.track(frame, persist=True, conf=bee_confidence_threshold)
             inference_duration = time.monotonic() - start_inference_time
             total_inference_time += inference_duration
             frames_processed += 1
@@ -2700,15 +2727,19 @@ def save_settings():
     settings = merge_settings(raw_settings)
     settings["camera_properties"] = camera_properties
     settings["detection_line_coefficient"] = detection_line_coefficient
+    settings["counting_mode"] = counting_mode
+    settings["detection_rectangle"] = detection_rectangle
     settings["entrance_position"] = entrance_position
     save_settings_file(settings)
 
 def load_settings():
-    global camera_properties, detection_line_coefficient, entrance_position
+    global camera_properties, detection_line_coefficient, counting_mode, detection_rectangle, entrance_position
     raw_settings = load_raw_settings()
     settings = merge_settings(raw_settings)
     camera_properties.update(settings.get("camera_properties", camera_properties))
     detection_line_coefficient = settings.get("detection_line_coefficient", detection_line_coefficient)
+    counting_mode = settings.get("counting_mode", counting_mode)
+    detection_rectangle = normalize_detection_rectangle(settings.get("detection_rectangle", detection_rectangle))
     entrance_position = settings.get("entrance_position", entrance_position)
 
     if not raw_settings:

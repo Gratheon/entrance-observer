@@ -45,3 +45,23 @@ def test_storage_settings_keep_explicit_file_values_over_env(monkeypatch):
 
     assert storage['telemetry_dir'] == './file-telemetry'
     assert storage['runs_retention_days'] == 9
+
+
+def test_video_settings_support_confidence_threshold_from_env(monkeypatch):
+    monkeypatch.setenv('CONFIDENCE', '0.75')
+
+    video = app_settings.get_video_settings({'video': {}})
+
+    assert video['bee_confidence_threshold'] == 0.75
+
+
+def test_video_settings_keep_explicit_confidence_threshold_over_env(monkeypatch):
+    monkeypatch.setenv('CONFIDENCE', '0.75')
+
+    video = app_settings.get_video_settings({
+        'video': {
+            'bee_confidence_threshold': 0.6,
+        },
+    })
+
+    assert video['bee_confidence_threshold'] == 0.6

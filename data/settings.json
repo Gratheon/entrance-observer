@@ -42,7 +42,8 @@
         "video_chunk_length_sec": 20,
         "auto_calibrate_fps": true,
         "upload_videos_enabled": true,
-        "upload_max_fps": 0
+        "upload_max_fps": 0,
+        "bee_confidence_threshold": 0.5
     },
     "storage": {
         "videos_dir": "./videos",

@@ -45,6 +45,7 @@ DEFAULT_VIDEO_SETTINGS = {
     "auto_calibrate_fps": True,
     "upload_videos_enabled": True,
     "upload_max_fps": 0,
+    "bee_confidence_threshold": 0.5,
 }
 
 DEFAULT_STORAGE_SETTINGS = {
@@ -145,6 +146,17 @@ def _env_int(name: str) -> Optional[int]:
         return None
 
 
+def _env_float(name: str) -> Optional[float]:
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return None
+    try:
+        return float(raw_value)
+    except ValueError:
+        print(f"⚠️ Ignoring invalid float env var {name}={raw_value!r}")
+        return None
+
+
 def load_raw_settings() -> Dict[str, Any]:
     try:
         with open(SETTINGS_PATH, "r") as settings_file:
@@ -230,6 +242,11 @@ def get_video_settings(raw_settings: Optional[Dict[str, Any]] = None) -> Dict[st
     video = _settings_with_env_ints("video", VIDEO_ENV_MAP, raw_settings)
     raw_settings = load_raw_settings() if raw_settings is None else raw_settings
     raw_video = raw_settings.get("video", {}) if isinstance(raw_settings, dict) else {}
+
+    if "bee_confidence_threshold" not in raw_video:
+        confidence_from_env = _env_float("CONFIDENCE")
+        if confidence_from_env is not None:
+            video["bee_confidence_threshold"] = min(max(confidence_from_env, 0.0), 1.0)
 
     if "auto_calibrate_fps" not in raw_video:
         enabled_from_env = _env_bool("AUTO_CALIBRATE_FPS")
