@@ -42,6 +42,13 @@ camera_properties = {
 camera_lock = threading.Lock()
 camera_instance = None
 detection_line_coefficient = 0.5
+counting_mode = 'line'
+detection_rectangle = {
+    "x": 0.25,
+    "y": 0.35,
+    "width": 0.5,
+    "height": 0.2,
+}
 entrance_position = 'bottom'
 track_history = defaultdict(list)
 track_colors = {}
@@ -50,6 +57,29 @@ track_colors = {}
 weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weights', 'best.pt'))
 logging.getLogger('ultralytics').setLevel(logging.WARNING)
 model = YOLO(weights_path)
+
+
+def normalize_detection_rectangle(rectangle):
+    """Clamp rectangle coefficients so stored UI geometry always fits inside the video frame."""
+    min_size = 0.03
+    rectangle = rectangle or {}
+    x = float(rectangle.get("x", detection_rectangle["x"]))
+    y = float(rectangle.get("y", detection_rectangle["y"]))
+    width = float(rectangle.get("width", detection_rectangle["width"]))
+    height = float(rectangle.get("height", detection_rectangle["height"]))
+
+    width = min(max(width, min_size), 1.0)
+    height = min(max(height, min_size), 1.0)
+    x = min(max(x, 0.0), 1.0 - width)
+    y = min(max(y, 0.0), 1.0 - height)
+
+    return {
+        "x": x,
+        "y": y,
+        "width": width,
+        "height": height,
+    }
+
 
 def is_day_time():
     """
@@ -172,6 +202,76 @@ def index():
          .footer a:hover {
             text-decoration: underline;
          }
+         .counting-mode-container {
+           display: flex;
+           justify-content: center;
+           gap: 16px;
+           margin-bottom: 16px;
+           color: #424242;
+         }
+         #video-container {
+           position: relative;
+           display: inline-block;
+           max-width: 100%;
+         }
+         #video-feed-img {
+           display: block;
+           max-width: 100%;
+           height: auto;
+         }
+         #detection-line {
+           position: absolute;
+           left: 0;
+           width: 100%;
+           height: 4px;
+           background-color: red;
+           cursor: ns-resize;
+           box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.55);
+         }
+         #detection-rectangle {
+           position: absolute;
+           border: 3px solid #ff2f2f;
+           background: rgba(255, 47, 47, 0.12);
+           cursor: move;
+           box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.65), inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+         }
+         .rectangle-handle {
+           position: absolute;
+           width: 14px;
+           height: 14px;
+           background: #ffffff;
+           border: 2px solid #ff2f2f;
+           border-radius: 50%;
+         }
+         .rectangle-handle.nw {
+           left: -8px;
+           top: -8px;
+           cursor: nwse-resize;
+         }
+         .rectangle-handle.ne {
+           right: -8px;
+           top: -8px;
+           cursor: nesw-resize;
+         }
+         .rectangle-handle.sw {
+           left: -8px;
+           bottom: -8px;
+           cursor: nesw-resize;
+         }
+         .rectangle-handle.se {
+           right: -8px;
+           bottom: -8px;
+           cursor: nwse-resize;
+         }
+         .hidden-overlay {
+           display: none;
+         }
+         #counting-mode-hint {
+           display: block;
+           text-align: center;
+           color: #424242;
+           margin-bottom: 12px;
+         }
        </style>
      </head>
      <body>
@@ -187,11 +287,29 @@ def index():
              Show Live Feed
            </label>
          </div>
+         <div class="counting-mode-container">
+           <strong>Counting boundary:</strong>
+           <label>
+             <input type="radio" name="counting-mode" value="line" {% if counting_mode == 'line' %}checked{% endif %}>
+             Line
+           </label>
+           <label>
+             <input type="radio" name="counting-mode" value="rectangle" {% if counting_mode == 'rectangle' %}checked{% endif %}>
+             Rectangle
+           </label>
+         </div>
+         <span id="counting-mode-hint"></span>
          <div class="video-container">
            <div class="video-wrapper">
-             <div id="video-container" style="position: relative; display: inline-block;">
+             <div id="video-container">
                 <img id="video-feed-img" src="{{ url_for('video_feed_yolo') }}">
-                <div id="detection-line" style="position: absolute; left: 0; width: 100%; height: 4px; background-color: red; cursor: pointer; top: {{ detection_line_coefficient * 100 }}%;"></div>
+                <div id="detection-line" aria-label="Detection line" style="top: {{ detection_line_coefficient * 100 }}%;"></div>
+                <div id="detection-rectangle" aria-label="Detection rectangle">
+                  <span class="rectangle-handle nw" data-handle="nw"></span>
+                  <span class="rectangle-handle ne" data-handle="ne"></span>
+                  <span class="rectangle-handle sw" data-handle="sw"></span>
+                  <span class="rectangle-handle se" data-handle="se"></span>
+                </div>
              </div>
            </div>
             <div class="controls-container">
@@ -407,35 +525,158 @@ def index():
        </script>
        <script>
          const detectionLine = document.getElementById('detection-line');
+         const detectionRectangle = document.getElementById('detection-rectangle');
          const videoContainer = document.getElementById('video-container');
-         let isDragging = false;
+         const countingModeHint = document.getElementById('counting-mode-hint');
+         const countingModeInputs = Array.from(document.querySelectorAll('input[name="counting-mode"]'));
+         let countingMode = '{{ counting_mode }}';
+         let detectionRectangleConfig = {{ detection_rectangle | tojson }};
+         let dragState = null;
+         const minRectangleCoefficient = 0.03;
 
-         detectionLine.addEventListener('mousedown', (e) => {
-           isDragging = true;
+         function clamp(value, min, max) {
+           return Math.min(Math.max(value, min), max);
+         }
+
+         function getPointerCoefficient(event) {
+           const rect = videoContainer.getBoundingClientRect();
+           return {
+             x: clamp((event.clientX - rect.left) / rect.width, 0, 1),
+             y: clamp((event.clientY - rect.top) / rect.height, 0, 1),
+           };
+         }
+
+         function normalizeRectangle(rectangle) {
+           const width = clamp(Number(rectangle.width) || 0.25, minRectangleCoefficient, 1);
+           const height = clamp(Number(rectangle.height) || 0.2, minRectangleCoefficient, 1);
+           return {
+             x: clamp(Number(rectangle.x) || 0, 0, 1 - width),
+             y: clamp(Number(rectangle.y) || 0, 0, 1 - height),
+             width,
+             height,
+           };
+         }
+
+         function renderDetectionRectangle() {
+           detectionRectangleConfig = normalizeRectangle(detectionRectangleConfig);
+           detectionRectangle.style.left = `${detectionRectangleConfig.x * 100}%`;
+           detectionRectangle.style.top = `${detectionRectangleConfig.y * 100}%`;
+           detectionRectangle.style.width = `${detectionRectangleConfig.width * 100}%`;
+           detectionRectangle.style.height = `${detectionRectangleConfig.height * 100}%`;
+         }
+
+         function renderCountingBoundary() {
+           countingModeInputs.forEach(input => {
+             input.checked = input.value === countingMode;
+           });
+           detectionLine.classList.toggle('hidden-overlay', countingMode !== 'line');
+           detectionRectangle.classList.toggle('hidden-overlay', countingMode !== 'rectangle');
+           countingModeHint.textContent = countingMode === 'rectangle'
+             ? 'Drag the rectangle to move it. Drag a corner to resize the hive entrance area.'
+             : 'Drag the red line to change the counting boundary.';
+           renderDetectionRectangle();
+         }
+
+         function saveCountingMode() {
+           fetch('/api/set_counting_mode', {
+             method: 'POST',
+             headers: {
+               'Content-Type': 'application/json',
+             },
+             body: JSON.stringify({ mode: countingMode }),
+           });
+         }
+
+         function saveDetectionRectangle() {
+           detectionRectangleConfig = normalizeRectangle(detectionRectangleConfig);
+           fetch('/api/set_detection_rectangle', {
+             method: 'POST',
+             headers: {
+               'Content-Type': 'application/json',
+             },
+             body: JSON.stringify(detectionRectangleConfig),
+           });
+         }
+
+         countingModeInputs.forEach(input => {
+           input.addEventListener('change', () => {
+             countingMode = input.value;
+             renderCountingBoundary();
+             saveCountingMode();
+           });
          });
 
-         videoContainer.addEventListener('mousemove', (e) => {
-           if (isDragging) {
-             const rect = videoContainer.getBoundingClientRect();
-             const y = e.clientY - rect.top;
-             const height = rect.height;
-             let coefficient = y / height;
-             if (coefficient < 0) coefficient = 0;
-             if (coefficient > 1) coefficient = 1;
-             detectionLine.style.top = `${coefficient * 100}%`;
+         detectionLine.addEventListener('mousedown', (event) => {
+           dragState = { type: 'line' };
+           event.preventDefault();
+         });
+
+         detectionRectangle.addEventListener('mousedown', (event) => {
+           const pointer = getPointerCoefficient(event);
+           const handle = event.target.dataset.handle;
+           dragState = {
+             type: handle ? 'rectangle-resize' : 'rectangle-move',
+             handle,
+             startPointer: pointer,
+             startRectangle: { ...detectionRectangleConfig },
+           };
+           event.preventDefault();
+           event.stopPropagation();
+         });
+
+         function updateLineFromPointer(event) {
+           const pointer = getPointerCoefficient(event);
+           detectionLine.style.top = `${pointer.y * 100}%`;
+           return pointer.y;
+         }
+
+         function updateRectangleFromPointer(event) {
+           const pointer = getPointerCoefficient(event);
+           const start = dragState.startRectangle;
+
+           if (dragState.type === 'rectangle-move') {
+             const dx = pointer.x - dragState.startPointer.x;
+             const dy = pointer.y - dragState.startPointer.y;
+             detectionRectangleConfig = normalizeRectangle({
+               ...start,
+               x: start.x + dx,
+               y: start.y + dy,
+             });
+           } else if (dragState.type === 'rectangle-resize') {
+             let left = start.x;
+             let top = start.y;
+             let right = start.x + start.width;
+             let bottom = start.y + start.height;
+
+             if (dragState.handle.includes('w')) left = clamp(pointer.x, 0, right - minRectangleCoefficient);
+             if (dragState.handle.includes('e')) right = clamp(pointer.x, left + minRectangleCoefficient, 1);
+             if (dragState.handle.includes('n')) top = clamp(pointer.y, 0, bottom - minRectangleCoefficient);
+             if (dragState.handle.includes('s')) bottom = clamp(pointer.y, top + minRectangleCoefficient, 1);
+
+             detectionRectangleConfig = normalizeRectangle({
+               x: left,
+               y: top,
+               width: right - left,
+               height: bottom - top,
+             });
+           }
+           renderDetectionRectangle();
+         }
+
+         document.addEventListener('mousemove', (event) => {
+           if (!dragState) return;
+           if (dragState.type === 'line') {
+             updateLineFromPointer(event);
+           } else {
+             updateRectangleFromPointer(event);
            }
          });
 
-         videoContainer.addEventListener('mouseup', (e) => {
-           if (isDragging) {
-             isDragging = false;
-             const rect = videoContainer.getBoundingClientRect();
-             const y = e.clientY - rect.top;
-             const height = rect.height;
-             let coefficient = y / height;
-             if (coefficient < 0) coefficient = 0;
-             if (coefficient > 1) coefficient = 1;
-             
+         document.addEventListener('mouseup', (event) => {
+           if (!dragState) return;
+           const finishedDragType = dragState.type;
+           if (finishedDragType === 'line') {
+             const coefficient = updateLineFromPointer(event);
              fetch('/api/set_detection_line', {
                method: 'POST',
                headers: {
@@ -443,10 +684,16 @@ def index():
                },
                body: JSON.stringify({ coefficient: coefficient }),
              });
+           } else {
+             updateRectangleFromPointer(event);
+             saveDetectionRectangle();
            }
+           dragState = null;
          });
 
-         const controls = document.querySelectorAll('.control input');
+         renderCountingBoundary();
+
+         const controls = document.querySelectorAll('.control input[type="range"]');
          controls.forEach(control => {
              control.addEventListener('input', (e) => {
                  const valueSpan = document.getElementById(`${e.target.id}-value`);
@@ -475,7 +722,14 @@ def index():
      </body>
    </html>
    """
-    return render_template_string(html, detection_line_coefficient=detection_line_coefficient, camera_properties=camera_properties, entrance_position=entrance_position)
+    return render_template_string(
+        html,
+        detection_line_coefficient=detection_line_coefficient,
+        detection_rectangle=detection_rectangle,
+        counting_mode=counting_mode,
+        camera_properties=camera_properties,
+        entrance_position=entrance_position,
+    )
 
 @app.route("/api/set_camera_properties", methods=['POST'])
 def set_camera_properties():
@@ -511,6 +765,28 @@ def set_entrance_position():
     global entrance_position
     data = request.get_json()
     entrance_position = data['position']
+    save_settings()
+    return jsonify(success=True)
+
+@app.route("/api/set_counting_mode", methods=['POST'])
+def set_counting_mode():
+    global counting_mode
+    data = request.get_json() or {}
+    mode = data.get('mode')
+    if mode not in {'line', 'rectangle'}:
+        return jsonify(success=False, error="Counting mode must be 'line' or 'rectangle'"), 400
+    counting_mode = mode
+    save_settings()
+    return jsonify(success=True)
+
+@app.route("/api/set_detection_rectangle", methods=['POST'])
+def set_detection_rectangle():
+    global detection_rectangle
+    data = request.get_json() or {}
+    try:
+        detection_rectangle = normalize_detection_rectangle(data)
+    except (TypeError, ValueError) as error:
+        return jsonify(success=False, error=str(error)), 400
     save_settings()
     return jsonify(success=True)
 
@@ -735,7 +1011,19 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
         print(f"📹 Writing detections video with {detect_video_fps:.2f} FPS")
         detections_video_writer = VideoWriterFactory.create_writer(detections_video_file, detect_video_fps, (detect_video_width, detect_video_height))
         
-        count_bees_from_frames_async(frames_for_counting, total_interactions, output_video_path=detections_video_file, on_complete=upload_detect_file, detection_line_coefficient=detection_line_coefficient, video_writer=detections_video_writer, writer_fps=detect_video_fps, frame_shape=(detect_video_height, detect_video_width), entrance_position=entrance_position)
+        count_bees_from_frames_async(
+            frames_for_counting,
+            total_interactions,
+            output_video_path=detections_video_file,
+            on_complete=upload_detect_file,
+            detection_line_coefficient=detection_line_coefficient,
+            video_writer=detections_video_writer,
+            writer_fps=detect_video_fps,
+            frame_shape=(detect_video_height, detect_video_width),
+            entrance_position=entrance_position,
+            counting_mode=counting_mode,
+            detection_rectangle=detection_rectangle,
+        )
         delete_old_mp4_files()
 
 def warm_up_camera(camera, num_frames=10):
@@ -857,6 +1145,8 @@ def save_settings():
     settings = {
         "camera_properties": camera_properties,
         "detection_line_coefficient": detection_line_coefficient,
+        "counting_mode": counting_mode,
+        "detection_rectangle": normalize_detection_rectangle(detection_rectangle),
         "entrance_position": entrance_position
     }
     settings_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
@@ -866,13 +1156,17 @@ def save_settings():
         json.dump(settings, f, indent=4)
 
 def load_settings():
-    global camera_properties, detection_line_coefficient, entrance_position
+    global camera_properties, detection_line_coefficient, counting_mode, detection_rectangle, entrance_position
     try:
         settings_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'settings.json')
         with open(settings_path, 'r') as f:
             settings = json.load(f)
             camera_properties.update(settings.get("camera_properties", camera_properties))
             detection_line_coefficient = settings.get("detection_line_coefficient", detection_line_coefficient)
+            loaded_counting_mode = settings.get("counting_mode", counting_mode)
+            if loaded_counting_mode in {'line', 'rectangle'}:
+                counting_mode = loaded_counting_mode
+            detection_rectangle = normalize_detection_rectangle(settings.get("detection_rectangle", detection_rectangle))
             entrance_position = settings.get("entrance_position", entrance_position)
     except FileNotFoundError:
         save_settings()

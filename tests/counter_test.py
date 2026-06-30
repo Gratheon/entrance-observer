@@ -37,3 +37,82 @@ def test_count_bees():
     assert beesIn == 27, "Expected bees in the video"
     assert beesOut == 15, "Expected bees out of the video"
     assert detectedBees > 0, "Expected detected bees"
+
+
+class FakeIdList:
+    def __init__(self, ids):
+        self.ids = ids
+
+    def int(self):
+        return self
+
+    def cpu(self):
+        return self
+
+    def tolist(self):
+        return self.ids
+
+
+class FakeBoxList(list):
+    def cpu(self):
+        return self
+
+
+class FakeBoxes:
+    def __init__(self, boxes, ids):
+        self.is_track = True
+        self.xyxy = FakeBoxList(boxes)
+        self.id = FakeIdList(ids)
+
+
+class FakeResult:
+    def __init__(self, boxes, ids):
+        self.boxes = FakeBoxes(boxes, ids)
+
+
+def fake_frame_with_track(center_x, center_y, track_id=1, frame_size=(100, 100)):
+    half_size = 2
+    box = [center_x - half_size, center_y - half_size, center_x + half_size, center_y + half_size]
+    frame = cv2.UMat(frame_size[1], frame_size[0], cv2.CV_8UC3).get()
+    return frame, [FakeResult([box], [track_id])], time.monotonic()
+
+
+def test_count_bees_line_mode_remains_backward_compatible():
+    frames_for_counting = [
+        fake_frame_with_track(50, 40),
+        fake_frame_with_track(50, 60),
+    ]
+
+    beesIn, beesOut, detectedBees, _ = counter.countBees(
+        frames_for_counting,
+        detection_line_coefficient=0.5,
+        frame_shape=(100, 100),
+        writer_fps=30,
+        entrance_position='bottom',
+        counting_mode='line',
+    )
+
+    assert beesIn == 1
+    assert beesOut == 0
+    assert detectedBees == 1
+
+
+def test_count_bees_rectangle_mode_counts_entering_and_exiting_area():
+    rectangle = {"x": 0.4, "y": 0.4, "width": 0.2, "height": 0.2}
+    frames_for_counting = [
+        fake_frame_with_track(20, 50),
+        fake_frame_with_track(50, 50),
+        fake_frame_with_track(80, 50),
+    ]
+
+    beesIn, beesOut, detectedBees, _ = counter.countBees(
+        frames_for_counting,
+        frame_shape=(100, 100),
+        writer_fps=30,
+        counting_mode='rectangle',
+        detection_rectangle=rectangle,
+    )
+
+    assert beesIn == 1
+    assert beesOut == 1
+    assert detectedBees == 1

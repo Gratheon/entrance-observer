@@ -132,6 +132,15 @@ We use env vars and we load them from `.env` file for ease of management.
 | DETECT_VIDEO_HEIGHT            | Height of the preview video with bee detections.                                                                                                                                                                                                                                                                | 240                                        |
 | DETECT_VIDEO_RETENTION_MINUTES | The number of minutes to retain preview videos before deleting them. Defaults to 10 minutes.                                                                                                                                                                                                                    | 10                                         |
 
+
+### Counting boundary modes
+
+The local Web UI supports two counting boundary modes:
+
+- `Line` - the existing horizontal red line. Bees are counted by crossing the line, and the hive entrance marker controls whether crossing downward or upward means incoming.
+- `Rectangle` - a movable and resizable red rectangle. Place it over the hive entrance opening. A tracked bee is counted as incoming when its center enters the rectangle and outgoing when its center exits the rectangle.
+
+The selected mode and rectangle geometry are stored in `data/settings.json` as `counting_mode` and `detection_rectangle`. Rectangle values are normalized coefficients from `0` to `1`, so they scale with the video frame size.
 #### Listing cameras
 
 To list which cameras correspond to which devices in linux, you can use:
