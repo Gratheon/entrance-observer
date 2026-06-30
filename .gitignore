@@ -5,3 +5,4 @@ src/config/config.prod.ts
 src/__pycache__
 telemetry
 videos
+data/settings.json
