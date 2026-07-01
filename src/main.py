@@ -1,12 +1,15 @@
 import os
 import time
 import datetime
+import atexit
 import cv2
+import gc
 import platform
 import json
 import glob
 import shutil
 import subprocess
+import signal
 from flask import Flask, Response, render_template_string, jsonify, request, abort, send_file, send_from_directory
 import threading
 import logging
@@ -60,6 +63,8 @@ CAMERA_RETRY_INTERVAL_SECONDS = 10
 CAMERA_READ_FAILURE_TIMEOUT_SECONDS = 5
 CAMERA_STATUS_PLACEHOLDER_WIDTH = 960
 CAMERA_STATUS_PLACEHOLDER_HEIGHT = 540
+shutdown_requested = threading.Event()
+accelerator_cleanup_lock = threading.Lock()
 camera_status_lock = threading.Lock()
 camera_status = {
     "state": "starting",
@@ -72,6 +77,92 @@ camera_status = {
 weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weights', 'best.pt'))
 logging.getLogger('ultralytics').setLevel(logging.WARNING)
 model = YOLO(weights_path)
+
+
+def request_shutdown():
+    global capture_thread_running
+    shutdown_requested.set()
+    capture_thread_running = False
+
+
+def release_accelerator_memory():
+    global model
+    with accelerator_cleanup_lock:
+        try:
+            if model is not None:
+                predictor = getattr(model, "predictor", None)
+                if predictor is not None:
+                    predictor.model = None
+
+                backend_model = getattr(model, "model", None)
+                if backend_model is not None and hasattr(backend_model, "cpu"):
+                    try:
+                        backend_model.cpu()
+                    except Exception as exc:
+                        print(f"Failed to move YOLO model to CPU during cleanup: {exc}")
+
+                model = None
+        except Exception as exc:
+            print(f"Failed to release YOLO model during cleanup: {exc}")
+
+        gc.collect()
+
+        try:
+            import torch
+        except Exception as exc:
+            print(f"PyTorch unavailable during CUDA cleanup: {exc}")
+            return
+
+        try:
+            cuda_available = torch.cuda.is_available()
+        except Exception as exc:
+            print(f"Failed to check CUDA availability during cleanup: {exc}")
+            cuda_available = False
+
+        if not cuda_available:
+            return
+
+        for action_name, action in (
+            ("synchronize", torch.cuda.synchronize),
+            ("empty_cache", torch.cuda.empty_cache),
+            ("ipc_collect", getattr(torch.cuda, "ipc_collect", None)),
+        ):
+            if action is None:
+                continue
+            try:
+                action()
+            except Exception as exc:
+                print(f"CUDA cleanup step {action_name} failed: {exc}")
+
+
+def cleanup_observer_runtime(camera=None):
+    global camera_instance
+    active_camera = camera
+
+    with camera_lock:
+        if active_camera is None:
+            active_camera = camera_instance
+        if active_camera is camera_instance:
+            camera_instance = None
+
+    if active_camera is not None:
+        try:
+            active_camera.release()
+        except Exception as exc:
+            print(f"Failed to release camera during cleanup: {exc}")
+
+    try:
+        cv2.destroyAllWindows()
+    except Exception as exc:
+        print(f"Failed to destroy OpenCV windows during cleanup: {exc}")
+
+    release_accelerator_memory()
+
+
+def handle_shutdown_signal(signum, _frame):
+    print(f"Received signal {signum}; shutting down observer.")
+    request_shutdown()
+    raise SystemExit(0)
 
 
 def normalize_detection_rectangle(rectangle):
@@ -462,7 +553,7 @@ def get_browser_playback_video_path(source_path):
 
 
 def generate_frames(get_frame):
-    while True:
+    while not shutdown_requested.is_set():
         with frame_lock:
             frame = get_frame()
 
@@ -2902,7 +2993,7 @@ def frame_capture_thread(camera, video_queue, ai_queue):
     total_read_time = 0
     failed_reads = 0
     first_failed_read_at = None
-    
+
     while capture_thread_running:
         start_read_time = time.monotonic()
         ret, frame = camera.read()
@@ -3205,7 +3296,7 @@ def measure_actual_fps(camera, target_width, target_height, duration_sec=5):
     """Measures the actual frames per second of the camera."""
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, target_width)
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, target_height)
-    
+
     calib_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
     calib_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
     print(f"Calibrating camera FPS over {duration_sec} seconds at {calib_width}x{calib_height} resolution...")
@@ -3215,6 +3306,22 @@ def measure_actual_fps(camera, target_width, target_height, duration_sec=5):
 
     frame_count = 0
     start_time = time.time()
+    while (time.time() - start_time) < duration_sec:
+        ret, _ = camera.read()
+        if not ret:
+            break
+        frame_count += 1
+
+    end_time = time.time()
+    actual_duration = end_time - start_time
+    if actual_duration == 0:
+        print("⚠️ Calibration failed: duration was zero.")
+        return 0
+
+    fps = frame_count / actual_duration
+    print(f"✅ Calibration successful: {fps:.2f} FPS")
+    return fps
+
 def startObserverClient():
     global capture_thread_running, camera_instance
     load_settings()
@@ -3232,7 +3339,7 @@ def startObserverClient():
     target_height = HEIGHT_PX
 
     print(f"🖥️ Running on {platform.system()}")
-    while True:
+    while not shutdown_requested.is_set():
         camera = None
         cap_thread = None
         writer_thread = None
@@ -3263,7 +3370,7 @@ def startObserverClient():
                 camera_instance = None
             if camera:
                 camera.release()
-            time.sleep(CAMERA_RETRY_INTERVAL_SECONDS)
+            shutdown_requested.wait(CAMERA_RETRY_INTERVAL_SECONDS)
             continue
         
         print(f"🎯 Using resolution: {target_width}x{target_height}")
@@ -3296,45 +3403,49 @@ def startObserverClient():
         proc_thread.daemon = True
         proc_thread.start()
 
+        observer_failed = False
+
         try:
-            while cap_thread.is_alive() and writer_thread.is_alive() and proc_thread.is_alive():
+            while not shutdown_requested.is_set():
+                if not cap_thread.is_alive() or not writer_thread.is_alive() or not proc_thread.is_alive():
+                    observer_failed = True
+                    print("Observer worker thread stopped unexpectedly; cleaning up before restart.")
+                    break
                 time.sleep(1)
         except KeyboardInterrupt:
             print("🛑 Recording and uploading stopped by user")
+            request_shutdown()
             break
         finally:
             print("Cleaning up resources...")
-            capture_thread_running = False
-            for thread in (cap_thread, writer_thread, proc_thread):
+            shutdown_was_requested = shutdown_requested.is_set()
+            request_shutdown()
+
+            for thread_name, thread in (
+                ("capture", cap_thread),
+                ("writer", writer_thread),
+                ("processing", proc_thread),
+            ):
                 if thread and thread.is_alive():
-                    thread.join()
-            if camera:
-                camera.release()
-            with camera_lock:
-                camera_instance = None
+                    thread.join(timeout=10)
+                if thread and thread.is_alive():
+                    print(f"Timed out waiting for {thread_name} thread to stop.")
+
+            cleanup_observer_runtime(camera)
+
+            if observer_failed and not shutdown_was_requested:
+                print("Exiting after observer worker failure so Docker can restart the container.")
+                os._exit(1)
+
+        if shutdown_requested.is_set():
+            break
 
         set_camera_status(
             "missing",
             "Camera processing stopped",
             f"Observer worker stopped and will retry in {CAMERA_RETRY_INTERVAL_SECONDS}s unless the service is shutting down.",
         )
-        time.sleep(CAMERA_RETRY_INTERVAL_SECONDS)
-
-    try:
-        while cap_thread.is_alive() and writer_thread.is_alive() and proc_thread.is_alive():
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("🛑 Recording and uploading stopped by user")
-    finally:
-        print("Cleaning up resources...")
-        capture_thread_running = False
-        if 'cap_thread' in locals() and cap_thread.is_alive():
-            cap_thread.join()
-        if 'writer_thread' in locals() and writer_thread.is_alive():
-            writer_thread.join()
-        if 'proc_thread' in locals() and proc_thread.is_alive():
-            proc_thread.join()
-        camera.release()
+        shutdown_requested.wait(CAMERA_RETRY_INTERVAL_SECONDS)
 
 def save_settings():
     raw_settings = load_raw_settings()
@@ -3360,9 +3471,20 @@ def load_settings():
         save_settings()
 
 if __name__ == '__main__':
+    signal.signal(signal.SIGTERM, handle_shutdown_signal)
+    signal.signal(signal.SIGINT, handle_shutdown_signal)
+    atexit.register(cleanup_observer_runtime)
+
     observer_thread = threading.Thread(target=startObserverClient)
     observer_thread.daemon = True
     observer_thread.start()
     from waitress import serve
     print("🚀 --- Starting web server on http://0.0.0.0:3030 ---")
-    serve(app, host="0.0.0.0", port=3030)
+    try:
+        serve(app, host="0.0.0.0", port=3030)
+    finally:
+        request_shutdown()
+        observer_thread.join(timeout=45)
+        if observer_thread.is_alive():
+            print("Timed out waiting for observer thread to stop.")
+        cleanup_observer_runtime()

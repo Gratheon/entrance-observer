@@ -177,7 +177,7 @@ v4l2-ctl --list-devices
 
 Tested on these environments:
 ✅ Mac OSX
-✅ Jetson Orin Nano - Ubuntu 22 - Python 3.10 - Jetpack 6 - cuDNN 8
+✅ Jetson Orin Nano - Ubuntu 22 - Python 3.10 - JetPack 6.0 / L4T r36.3 / CUDA 12.2 / cuDNN 8
 
 ## Running natively (Mac)
 
@@ -189,8 +189,33 @@ PYTHONPATH=. python3 src/main.py
 If a specific Jetson needs local image customizations, create `Dockerfile.local` from `Dockerfile.local.example` and start compose with `DOCKERFILE_PATH=Dockerfile.local docker compose up --build`. `Dockerfile.local` is gitignored, so future pulls do not conflict with device-specific package changes.
 ### Running with Docker (Jetson Orin)
 
+The tracked `Dockerfile` pins `ultralytics/ultralytics:8.3.9-jetson-jetpack6` for JetPack 6.0 / L4T r36.3 hosts. Do not switch this back to the floating `latest-jetson-jetpack6` tag on those devices; newer images may target a newer CUDA runtime and fail with `CUDA error: device kernel image is invalid`.
+
 ```bash
 docker compose up --build
+```
+
+To restart the local compose project from the checked-out directory:
+
+```bash
+./restart.sh
+```
+
+### Starting on boot with systemd
+
+The included systemd unit starts the Docker Compose project after Docker and networking are available. It assumes the repo is checked out at `/home/gratheon/git/gratheon/entrance-observer`.
+
+```bash
+sudo install -m 0644 systemd/gratheon-entrance-observer.service /etc/systemd/system/gratheon-entrance-observer.service
+sudo systemctl daemon-reload
+sudo systemctl enable docker
+sudo systemctl enable --now gratheon-entrance-observer.service
+```
+
+Use this command after pulling updates or changing configuration:
+
+```bash
+sudo systemctl restart gratheon-entrance-observer.service
 ```
 
 ## URLs

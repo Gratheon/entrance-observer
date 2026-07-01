@@ -1,0 +1,18 @@
+[Unit]
+Description=Gratheon Entrance Observer
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/gratheon/git/gratheon/entrance-observer
+Environment=COMPOSE_PROJECT_NAME=gratheon
+ExecStart=/usr/bin/docker compose up -d --build --remove-orphans
+ExecStop=/usr/bin/docker compose down --timeout 45 --remove-orphans
+RemainAfterExit=yes
+TimeoutStartSec=0
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target

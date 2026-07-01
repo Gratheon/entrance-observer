@@ -1,6 +1,9 @@
-cd /www/beehive-entrance-video-processor/
-COMPOSE_PROJECT_NAME=gratheon docker-compose down
+#!/usr/bin/env bash
+set -euo pipefail
 
-chown www:www-data -R /www/beehive-entrance-video-processor
-sudo -H -u www bash -c 'cd /www/beehive-entrance-video-processor/' 
-COMPOSE_PROJECT_NAME=gratheon docker-compose up -d --build
+cd "$(dirname "$0")"
+
+export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-gratheon}"
+
+docker compose down --timeout 45 --remove-orphans
+docker compose up -d --build --remove-orphans

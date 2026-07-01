@@ -1,7 +1,10 @@
 # Use NVIDIA's official L4T base image for Jetson devices
 # This image includes the necessary drivers and libraries for GPU access
 # FROM dustynv/l4t-pytorch:r36.2.0
-FROM ultralytics/ultralytics:latest-jetson-jetpack6
+# jetson-orin is on L4T r36.3 / JetPack 6.0 (CUDA 12.2). The floating
+# latest-jetson-jetpack6 image currently targets newer JetPack 6.1+ runtimes
+# and can fail with "CUDA error: device kernel image is invalid" on this host.
+FROM ultralytics/ultralytics:8.3.9-jetson-jetpack6
 
 # Set the working directory inside the container
 WORKDIR /app

@@ -6,7 +6,10 @@ services:
       network: host
     privileged: true
     network_mode: host
+    init: true
     restart: always
+    stop_signal: SIGTERM
+    stop_grace_period: 45s
     runtime: nvidia # Enable NVIDIA GPU support
     ipc: host
     ports:
