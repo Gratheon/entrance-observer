@@ -42,6 +42,7 @@ RUN apt-get update && apt-get install -y \
     libxcb-xkb1 \
     libxkbcommon-x11-0 \
     libxrender1 \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 

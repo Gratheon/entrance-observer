@@ -48,7 +48,7 @@ def delete_files_older_than(directory: str, patterns: Iterable[str], max_age: ti
 def _managed_files(storage: dict) -> List[Tuple[float, int, str]]:
     managed = []
     patterns_by_dir = {
-        storage.get("videos_dir", "./videos"): ["*.mp4"],
+        storage.get("videos_dir", "./videos"): ["*.mp4", ".playback_cache/*.mp4"],
         storage.get("telemetry_dir", "./telemetry"): ["*.jsonl"],
         storage.get("runs_dir", "./runs"): ["**/*"],
     }

@@ -4,6 +4,8 @@ import datetime
 import cv2
 import platform
 import json
+import shutil
+import subprocess
 import glob
 from flask import Flask, Response, render_template_string, jsonify, request, abort
 import threading
@@ -270,7 +272,7 @@ def generate_frames(get_frame):
         yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
               bytearray(encodedImage) + b'\r\n')
 
-from flask import send_from_directory
+from flask import send_file, send_from_directory
 from urllib.parse import quote
 
 @app.route('/img/<path:path>')
@@ -299,12 +301,145 @@ def get_recorded_video_path(filename):
     return file_path
 
 
+def get_video_mimetype(file_path):
+    """Tell the browser the real container type for direct and cached playback files."""
+    _, extension = os.path.splitext(file_path)
+    extension = extension.lower()
+    if extension == '.webm':
+        return 'video/webm'
+    if extension == '.mov':
+        return 'video/quicktime'
+    return 'video/mp4'
+
+
+def get_playback_cache_directory():
+    """Keep browser-compatible derivatives out of the main video list."""
+    cache_dir = os.path.join(get_videos_directory(), '.playback_cache')
+    os.makedirs(cache_dir, exist_ok=True)
+    return cache_dir
+
+
+def get_playback_cache_path(source_path):
+    source_stat = os.stat(source_path)
+    source_name = os.path.basename(source_path)
+    cache_name = f"{source_name}.{source_stat.st_mtime_ns}.{source_stat.st_size}.h264.mp4"
+    return os.path.join(get_playback_cache_directory(), cache_name)
+
+
+def delete_playback_cache_files(filename):
+    """Remove cached browser-compatible derivatives when the source recording is deleted."""
+    cache_dir = os.path.join(get_videos_directory(), '.playback_cache')
+    if not os.path.isdir(cache_dir):
+        return
+
+    prefix = f"{filename}."
+    for cache_filename in os.listdir(cache_dir):
+        if not cache_filename.startswith(prefix) or not cache_filename.endswith('.h264.mp4'):
+            continue
+        try:
+            os.remove(os.path.join(cache_dir, cache_filename))
+        except OSError as error:
+            print(f"⚠️ Could not delete playback cache {cache_filename}: {error}")
+
+
+def has_browser_supported_video_codec(file_path):
+    """Return True when Chrome can usually play the file directly in an HTML video tag."""
+    ffprobe_path = shutil.which('ffprobe')
+    if not ffprobe_path:
+        # Without ffprobe we cannot prove the file is incompatible, so keep the old direct behavior.
+        return True
+
+    try:
+        result = subprocess.run(
+            [
+                ffprobe_path,
+                '-v',
+                'error',
+                '-select_streams',
+                'v:0',
+                '-show_entries',
+                'stream=codec_name',
+                '-of',
+                'default=noprint_wrappers=1:nokey=1',
+                file_path,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return True
+
+    codec_name = result.stdout.strip().splitlines()[0].lower() if result.stdout.strip() else ''
+    _, extension = os.path.splitext(file_path)
+    extension = extension.lower()
+    if extension in {'.mp4', '.m4v', '.mov'}:
+        return codec_name in {'h264', 'av1'}
+    if extension == '.webm':
+        return codec_name in {'vp8', 'vp9', 'av1'}
+    return False
+
+
+def get_browser_playback_video_path(source_path):
+    """Create an H.264 MP4 derivative for codecs like OpenCV mp4v that Chrome will not play."""
+    if has_browser_supported_video_codec(source_path):
+        return source_path
+
+    ffmpeg_path = shutil.which('ffmpeg')
+    if not ffmpeg_path:
+        print(f"⚠️ Cannot create browser-compatible video because ffmpeg is not installed: {source_path}")
+        return source_path
+
+    cache_path = get_playback_cache_path(source_path)
+    if os.path.isfile(cache_path):
+        return cache_path
+
+    tmp_cache_path = f"{cache_path}.tmp"
+    try:
+        subprocess.run(
+            [
+                ffmpeg_path,
+                '-y',
+                '-i',
+                source_path,
+                '-an',
+                '-c:v',
+                'libx264',
+                '-preset',
+                'veryfast',
+                '-crf',
+                '23',
+                '-pix_fmt',
+                'yuv420p',
+                '-movflags',
+                '+faststart',
+                tmp_cache_path,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        os.replace(tmp_cache_path, cache_path)
+        return cache_path
+    except (OSError, subprocess.SubprocessError) as error:
+        try:
+            if os.path.exists(tmp_cache_path):
+                os.remove(tmp_cache_path)
+        except OSError:
+            pass
+        print(f"⚠️ Failed to create browser-compatible video for {source_path}: {error}")
+        return source_path
+
+
 def delete_recorded_video(filename):
     file_path = get_recorded_video_path(filename)
     if not os.path.isfile(file_path):
         return False
 
     os.remove(file_path)
+    delete_playback_cache_files(filename)
     return True
 
 
@@ -2447,15 +2582,16 @@ def delete_videos():
 
 @app.route("/local_videos/<path:filename>")
 def local_video(filename):
-    if filename != os.path.basename(filename):
+    try:
+        source_path = get_recorded_video_path(filename)
+    except ValueError:
         abort(404)
 
-    videos_dir = get_videos_directory()
-    _, extension = os.path.splitext(filename)
-    if extension.lower() not in VIDEO_FILE_EXTENSIONS:
+    if not os.path.isfile(source_path):
         abort(404)
 
-    return send_from_directory(videos_dir, filename, conditional=True)
+    playback_path = get_browser_playback_video_path(source_path)
+    return send_file(playback_path, mimetype=get_video_mimetype(playback_path), conditional=True, download_name=filename)
 
 
 @app.route("/api/set_entrance_position", methods=['POST'])
