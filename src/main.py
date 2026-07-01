@@ -111,6 +111,35 @@ def draw_detection_rectangles(frame, boxes):
 
     return annotated_frame
 
+
+def get_track_color(track_id):
+    """Return a stable BGR color so a bee trail keeps the same color between frames."""
+    numeric_id = int(track_id)
+    hashed_id = numeric_id * 2654435761
+    return (
+        hashed_id & 0xFF,
+        (hashed_id >> 8) & 0xFF,
+        (hashed_id >> 16) & 0xFF,
+    )
+
+
+def draw_tracking_trail(frame, track, track_id):
+    """Draw movement trails without reintroducing YOLO labels or confidence text."""
+    if len(track) < 2:
+        return
+
+    track_np = np.array(track, dtype=np.int32).reshape((-1, 1, 2))
+    cv2.polylines(frame, [track_np], isClosed=False, color=get_track_color(track_id), thickness=2)
+
+
+def get_detection_runtime_settings():
+    """Read live AI thresholds per frame so UI changes apply without a server restart."""
+    video_settings = get_video_settings()
+    return {
+        "bee_confidence_threshold": float(video_settings.get("bee_confidence_threshold", 0.5)),
+        "bee_max_detections": int(video_settings.get("bee_max_detections", 1000) or 1000),
+    }
+
 def generate_frames(get_frame):
     while True:
         with frame_lock:
@@ -2616,8 +2645,6 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
 
         video_settings = get_video_settings()
         video_chunk_length = int(video_settings.get("video_chunk_length_sec", 20))
-        bee_confidence_threshold = float(video_settings.get("bee_confidence_threshold", 0.5))
-        bee_max_detections = int(video_settings.get("bee_max_detections", 1000) or 1000)
         
         # We'll process as many frames as we can in the chunk duration
         frames_for_counting = []
@@ -2637,14 +2664,15 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
                 # If the queue is empty, we can wait a bit for new frames
                 continue
             
+            detection_runtime_settings = get_detection_runtime_settings()
             start_inference_time = time.monotonic()
-            # Ultralytics defaults max_det to a lower value, which can clip dense bee traffic.
-            # Keep it configurable while drawing our own minimal overlay without labels.
+            # Read confidence/max_det right before inference so saved UI settings affect the next frame.
+            # This keeps the service responsive without restarting the camera or Flask process.
             results = model.track(
                 frame,
                 persist=True,
-                conf=bee_confidence_threshold,
-                max_det=bee_max_detections,
+                conf=detection_runtime_settings["bee_confidence_threshold"],
+                max_det=detection_runtime_settings["bee_max_detections"],
             )
             inference_duration = time.monotonic() - start_inference_time
             total_inference_time += inference_duration
@@ -2663,7 +2691,7 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
                     if i < j:
                         total_interactions += 1
 
-            # Keep track history for derived metrics, but do not draw IDs, labels, confidences, or trails.
+            # Keep track history for derived metrics and draw compact movement trails.
             if boxes.is_track:
                 for box, track_id in zip(boxes.xyxy.cpu(), boxes.id.int().cpu().tolist()):
                     bbox_center = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
@@ -2671,6 +2699,7 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
                     track.append((float(bbox_center[0]), float(bbox_center[1])))
                     if len(track) > 30:
                         track.pop(0)
+                    draw_tracking_trail(annotated_frame, track, track_id)
 
             with frame_lock:
                 video_frame = frame.copy()

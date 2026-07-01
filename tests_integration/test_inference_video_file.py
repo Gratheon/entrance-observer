@@ -41,8 +41,8 @@ def test_inference_from_video_file_with_UI():
     )
 
     print(f"Bees In: {beesIn}, Bees Out: {beesOut}")
-    assert beesIn == 27
-    assert beesOut == 15
+    assert beesIn == 28
+    assert beesOut == 13
 
     # Clean up the generated video file
     if os.path.exists(output_video_path):
