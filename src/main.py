@@ -583,52 +583,139 @@ def index():
          .settings-subsection {
            display: flex;
            flex-direction: column;
-           gap: 8px;
+           gap: 10px;
+           margin-top: 16px;
+           padding-top: 16px;
+           border-top: 1px solid #e7e7e7;
+         }
+
+         .settings-subsection:first-of-type {
+           margin-top: 10px;
+           padding-top: 0;
+           border-top: 0;
          }
 
          .settings-subsection h4 {
-           color: #424242;
-           font-size: 14px;
-           margin: 8px 0 0;
+           color: #6b7280;
+           font-size: 12px;
+           font-weight: 700;
+           letter-spacing: 0.06em;
+           margin: 0;
+           text-transform: uppercase;
          }
 
          .settings-form {
-           display: grid;
-           grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-           gap: 12px;
+           display: flex;
+           flex-direction: column;
+           gap: 0;
+           overflow: hidden;
+           border: 1px solid #dddddd;
+           border-radius: 12px;
+           background: #ffffff;
          }
 
          .settings-field {
-           display: flex;
-           flex-direction: column;
-           gap: 6px;
-           padding: 12px;
-           border: 1px solid var(--color-border);
-           border-radius: 8px;
-           background: var(--color-menu);
+           --field-width: 260px;
+           display: grid;
+           grid-template-columns: minmax(170px, 240px) minmax(0, 1fr);
+           align-items: start;
+           column-gap: 18px;
+           row-gap: 6px;
+           padding: 14px 16px;
+           border: 0;
+           border-bottom: 1px solid #e7e7e7;
+           background: linear-gradient(90deg, #fafafa 0, #ffffff 42%);
          }
 
-         .settings-field label {
+         .settings-field:last-child {
+           border-bottom: 0;
+         }
+
+         .settings-field:hover {
+           background: #ffffff;
+         }
+
+         .settings-field > label {
            color: #424242;
            font-size: 13px;
            font-weight: 700;
+           line-height: 1.35;
+           padding-top: 10px;
          }
 
          .settings-field input[type='text'],
          .settings-field input[type='password'],
          .settings-field input[type='number'],
          .settings-field select {
-           width: 100%;
+           width: min(100%, var(--field-width));
+           max-width: 100%;
+           min-height: 40px;
            border: 1px solid var(--color-border);
-           border-radius: 6px;
-           padding: 9px 10px;
+           border-radius: 8px;
+           padding: 9px 11px;
            background: #ffffff;
            color: var(--color-text);
            font-size: 14px;
+           box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+           transition: border-color 0.15s ease, box-shadow 0.15s ease;
+         }
+
+         .settings-field input[type='text']:focus,
+         .settings-field input[type='password']:focus,
+         .settings-field input[type='number']:focus,
+         .settings-field select:focus {
+           border-color: var(--color-accent);
+           box-shadow: 0 0 0 3px rgba(2, 72, 255, 0.12);
+           outline: none;
+         }
+
+         /* Field width utilities keep IDs compact while URLs and paths remain readable. */
+
+         .field-compact {
+           --field-width: 100px;
+         }
+
+         .field-short {
+           --field-width: 140px;
+         }
+
+         .field-medium {
+           --field-width: 220px;
+         }
+
+         .field-secret,
+         .field-directory,
+         .field-path {
+           --field-width: 360px;
+         }
+
+         .field-url {
+           --field-width: 520px;
+         }
+
+         .field-wide {
+           --field-width: 680px;
          }
 
          .settings-field .hint {
+           grid-column: 2;
            line-height: 1.35;
+           max-width: var(--field-width);
+         }
+
+         .settings-field.toggle-label {
+           grid-template-columns: minmax(170px, 1fr) auto;
+           align-items: center;
+           cursor: pointer;
+         }
+
+         .settings-field.toggle-label input[type='checkbox'] {
+           grid-column: 2;
+           grid-row: 1;
+           justify-self: start;
+           width: 18px;
+           height: 18px;
+           margin: 0;
          }
 
          .settings-actions {
@@ -912,6 +999,20 @@ def index():
              width: 110px;
            }
 
+          .settings-field,
+          .settings-field.toggle-label {
+            grid-template-columns: 1fr;
+          }
+
+          .settings-field > label {
+            padding-top: 0;
+          }
+
+          .settings-field .hint,
+          .settings-field.toggle-label input[type='checkbox'] {
+            grid-column: 1;
+          }
+
            .control {
              grid-template-columns: 1fr;
              gap: 8px;
@@ -1058,35 +1159,50 @@ def index():
               <div class="settings-group">
                 <div class="card">
                   <h3>Telemetry</h3>
-                  <div class="settings-form">
-                    <div class="settings-field">
-                      <label for="api_token">API token</label>
-                      <input type="password" id="api_token" name="api_token" autocomplete="off" placeholder="{{ 'Configured' if api_token_configured else 'Paste token' }}">
-                      <span class="hint">Leave blank to keep the current token. Stored locally in settings.</span>
+                  <div class="settings-subsection">
+                    <h4>Credentials</h4>
+                    <div class="settings-form">
+                      <div class="settings-field field-secret">
+                        <label for="api_token">API token</label>
+                        <input type="password" id="api_token" name="api_token" autocomplete="off" placeholder="{{ 'Configured' if api_token_configured else 'Paste token' }}">
+                        <span class="hint">Leave blank to keep the current token. Stored locally in settings.</span>
+                      </div>
                     </div>
-                    <div class="settings-field">
-                      <label for="hive_id">Hive ID</label>
-                      <input type="text" id="hive_id" name="hive_id" value="{{ telemetry_settings.hive_id }}">
+                  </div>
+
+                  <div class="settings-subsection">
+                    <h4>Hive mapping</h4>
+                    <div class="settings-form">
+                      <div class="settings-field field-short">
+                        <label for="hive_id">Hive ID</label>
+                        <input type="text" id="hive_id" name="hive_id" value="{{ telemetry_settings.hive_id }}">
+                      </div>
+                      <div class="settings-field field-short">
+                        <label for="section_id">Section / box ID</label>
+                        <input type="text" id="section_id" name="section_id" value="{{ telemetry_settings.section_id }}">
+                      </div>
                     </div>
-                    <div class="settings-field">
-                      <label for="section_id">Section / box ID</label>
-                      <input type="text" id="section_id" name="section_id" value="{{ telemetry_settings.section_id }}">
-                    </div>
-                    <div class="settings-field">
-                      <label for="base_url">Telemetry base URL</label>
-                      <input type="text" id="base_url" name="base_url" value="{{ telemetry_settings.base_url }}">
-                    </div>
-                    <div class="settings-field">
-                      <label for="upload_path">Telemetry upload path</label>
-                      <input type="text" id="upload_path" name="upload_path" value="{{ telemetry_settings.upload_path }}">
-                    </div>
-                    <div class="settings-field">
-                      <label for="upload_url">Full telemetry upload URL override</label>
-                      <input type="text" id="upload_url" name="upload_url" value="{{ telemetry_settings.upload_url }}" placeholder="Optional">
-                    </div>
-                    <div class="settings-field">
-                      <label for="video_upload_url">Video upload GraphQL URL</label>
-                      <input type="text" id="video_upload_url" name="video_upload_url" value="{{ telemetry_settings.video_upload_url }}">
+                  </div>
+
+                  <div class="settings-subsection">
+                    <h4>Telemetry endpoints</h4>
+                    <div class="settings-form">
+                      <div class="settings-field field-url">
+                        <label for="base_url">Telemetry base URL</label>
+                        <input type="text" id="base_url" name="base_url" value="{{ telemetry_settings.base_url }}">
+                      </div>
+                      <div class="settings-field field-path">
+                        <label for="upload_path">Telemetry upload path</label>
+                        <input type="text" id="upload_path" name="upload_path" value="{{ telemetry_settings.upload_path }}">
+                      </div>
+                      <div class="settings-field field-url">
+                        <label for="upload_url">Full telemetry upload URL override</label>
+                        <input type="text" id="upload_url" name="upload_url" value="{{ telemetry_settings.upload_url }}" placeholder="Optional">
+                      </div>
+                      <div class="settings-field field-url">
+                        <label for="video_upload_url">Video upload GraphQL URL</label>
+                        <input type="text" id="video_upload_url" name="video_upload_url" value="{{ telemetry_settings.video_upload_url }}">
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1114,12 +1230,12 @@ def index():
                       <input type="checkbox" id="night_mode_enabled" name="enabled" {% if night_mode_settings.enabled %}checked{% endif %}>
                       Pause recording and AI processing at night
                     </label>
-                    <div class="settings-field">
+                    <div class="settings-field field-compact">
                       <label for="day_start_hour">Day starts at hour</label>
                       <input type="number" id="day_start_hour" name="day_start_hour" min="0" max="23" value="{{ night_mode_settings.day_start_hour }}">
                       <span class="hint">0-23, default 6.</span>
                     </div>
-                    <div class="settings-field">
+                    <div class="settings-field field-compact">
                       <label for="day_end_hour">Day ends at hour</label>
                       <input type="number" id="day_end_hour" name="day_end_hour" min="0" max="23" value="{{ night_mode_settings.day_end_hour }}">
                       <span class="hint">0-23, default 22. Set start and end equal to process all day.</span>
@@ -1146,37 +1262,37 @@ def index():
                 <div class="card">
                   <h3>Video capture and upload</h3>
                   <div class="settings-form">
-                    <div class="settings-field">
+                    <div class="settings-field field-compact">
                       <label for="video_fps">Requested camera FPS</label>
                       <input type="number" id="video_fps" min="1" max="120" value="{{ video_settings.fps }}">
                     </div>
-                    <div class="settings-field">
+                    <div class="settings-field field-short">
                       <label for="width_px">Capture width</label>
                       <input type="number" id="width_px" min="160" max="3840" value="{{ video_settings.width_px }}">
                     </div>
-                    <div class="settings-field">
+                    <div class="settings-field field-short">
                       <label for="height_px">Capture height</label>
                       <input type="number" id="height_px" min="120" max="2160" value="{{ video_settings.height_px }}">
                     </div>
-                    <div class="settings-field">
+                    <div class="settings-field field-short">
                       <label for="detect_video_width">Detection upload width</label>
                       <input type="number" id="detect_video_width" min="160" max="3840" value="{{ video_settings.detect_video_width }}">
                       <span class="hint">Lower this when network upload bandwidth is limited.</span>
                     </div>
-                    <div class="settings-field">
+                    <div class="settings-field field-short">
                       <label for="detect_video_height">Detection upload height</label>
                       <input type="number" id="detect_video_height" min="120" max="2160" value="{{ video_settings.detect_video_height }}">
                     </div>
-                    <div class="settings-field">
+                    <div class="settings-field field-short">
                       <label for="video_chunk_length_sec">Video chunk length, seconds</label>
                       <input type="number" id="video_chunk_length_sec" min="5" max="600" value="{{ video_settings.video_chunk_length_sec }}">
                     </div>
-                    <div class="settings-field">
+                    <div class="settings-field field-compact">
                       <label for="upload_max_fps">Upload video FPS cap</label>
                       <input type="number" id="upload_max_fps" min="0" max="120" value="{{ video_settings.upload_max_fps }}">
                       <span class="hint">0 disables the cap. Lower values reduce uploaded detection video size.</span>
                     </div>
-                    <div class="settings-field">
+                    <div class="settings-field field-compact">
                       <label for="bee_confidence_threshold">Bee confidence threshold</label>
                       <input type="number" id="bee_confidence_threshold" min="0" max="1" step="0.01" value="{{ video_settings.bee_confidence_threshold }}">
                       <span class="hint">Detections below this confidence are not shown in preview or used for counting. 0.5 means 50%.</span>
@@ -1213,15 +1329,15 @@ def index():
                   <div class="settings-subsection">
                     <h4>Video recordings</h4>
                     <div class="settings-form">
-                      <div class="settings-field">
+                      <div class="settings-field field-directory">
                         <label for="videos_dir">Videos directory</label>
                         <input type="text" id="videos_dir" value="{{ storage_settings.videos_dir }}">
                       </div>
-                      <div class="settings-field">
+                      <div class="settings-field field-short">
                         <label for="video_retention_minutes">Raw video retention, minutes</label>
                         <input type="number" id="video_retention_minutes" min="1" value="{{ storage_settings.video_retention_minutes }}">
                       </div>
-                      <div class="settings-field">
+                      <div class="settings-field field-short">
                         <label for="detect_video_retention_minutes">Detection video retention, minutes</label>
                         <input type="number" id="detect_video_retention_minutes" min="1" value="{{ storage_settings.detect_video_retention_minutes }}">
                       </div>
@@ -1235,12 +1351,12 @@ def index():
                   <div class="settings-subsection">
                     <h4>Telemetry logs</h4>
                     <div class="settings-form">
-                      <div class="settings-field">
+                      <div class="settings-field field-directory">
                         <label for="telemetry_dir">Telemetry directory</label>
                         <input type="text" id="telemetry_dir" value="{{ storage_settings.telemetry_dir }}">
                         <span class="hint">Local JSONL metrics and track history.</span>
                       </div>
-                      <div class="settings-field">
+                      <div class="settings-field field-short">
                         <label for="telemetry_retention_days">Telemetry retention, days</label>
                         <input type="number" id="telemetry_retention_days" min="1" value="{{ storage_settings.telemetry_retention_days }}">
                       </div>
@@ -1250,12 +1366,12 @@ def index():
                   <div class="settings-subsection">
                     <h4>Processing run artifacts</h4>
                     <div class="settings-form">
-                      <div class="settings-field">
+                      <div class="settings-field field-directory">
                         <label for="runs_dir">Run artifacts directory</label>
                         <input type="text" id="runs_dir" value="{{ storage_settings.runs_dir }}">
                         <span class="hint">Temporary/debug files produced by detection or training runs.</span>
                       </div>
-                      <div class="settings-field">
+                      <div class="settings-field field-short">
                         <label for="runs_retention_days">Run artifacts retention, days</label>
                         <input type="number" id="runs_retention_days" min="1" value="{{ storage_settings.runs_retention_days }}">
                       </div>
@@ -1265,12 +1381,12 @@ def index():
                   <div class="settings-subsection">
                     <h4>Disk guard</h4>
                     <div class="settings-form">
-                      <div class="settings-field">
+                      <div class="settings-field field-medium">
                         <label for="min_free_disk_mb">Minimum free disk, MB</label>
                         <input type="number" id="min_free_disk_mb" min="0" value="{{ storage_settings.min_free_disk_mb }}">
                         <span class="hint">Old managed files are deleted until at least this much disk is free.</span>
                       </div>
-                      <div class="settings-field">
+                      <div class="settings-field field-medium">
                         <label for="max_managed_storage_mb">Max managed storage, MB</label>
                         <input type="number" id="max_managed_storage_mb" min="0" value="{{ storage_settings.max_managed_storage_mb }}">
                         <span class="hint">0 means unlimited; disk free guard still applies.</span>
