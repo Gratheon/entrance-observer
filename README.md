@@ -91,6 +91,11 @@ pip3 install -r requirements.macos.txt
 # pip3 install -r requirements.jetson.txt
 ```
 
+cp data/settings.example.json data/settings.json
+
+# Optional Jetson-only image tweaks without changing tracked files
+cp Dockerfile.local.example Dockerfile.local
+
 - Generate API token in https://app.gratheon.com/account
 - Open your hive entrance view, ex https://app.gratheon.com/apiaries/55/hives/68/box/250 and use BOX_ID from the end of URL, ex. 250.
 - Edit `.env` and configure values (see Configuration section below)
@@ -109,7 +114,17 @@ Time taken for countBeesAndReportTelemetry: 28.31 seconds
 
 ### Configuration
 
-Most runtime settings are configured from the local web UI Settings page and persisted in `data/settings.json`. Env vars loaded from `.env` are still supported as fallback for deployment and hardware/video parameters.
+Most runtime settings are configured from the local web UI Settings page and persisted in `data/settings.json`. The repository tracks `data/settings.example.json` as the baseline template, while `data/settings.json` is intentionally local-only to avoid `git pull` conflicts on deployed devices. Env vars loaded from `.env` are still supported as fallback for deployment and hardware/video parameters.
+
+Existing deployed devices can migrate safely with:
+
+```bash
+git pull
+[ -f data/settings.json ] || cp data/settings.example.json data/settings.json
+[ -f Dockerfile.local ] || cp Dockerfile.local.example Dockerfile.local
+```
+
+This keeps existing local `data/settings.json` untouched and only bootstraps missing local files after the pull.
 
 | var                            | description                                                                                                                                                                                                                                                                                                     | example                                    |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
@@ -170,6 +185,8 @@ Tested on these environments:
 PYTHONPATH=. python3 src/main.py
 ```
 
+
+If a specific Jetson needs local image customizations, create `Dockerfile.local` from `Dockerfile.local.example` and start compose with `DOCKERFILE_PATH=Dockerfile.local docker compose up --build`. `Dockerfile.local` is gitignored, so future pulls do not conflict with device-specific package changes.
 ### Running with Docker (Jetson Orin)
 
 ```bash
@@ -194,12 +211,16 @@ python heatmap_generator.py telemetry/track_history_2025-09-07.jsonl -o heatmap-
 
 ## Development
 
+
+The real-video regression test in `tests/counter_test.py` uses the currently shipped YOLO weights and a recorded clip. If the model or tracker behavior changes intentionally, update the regression snapshot only after confirming the new result is stable across repeated local runs.
 ### Unit tests
 
 We use [`just`](https://github.com/casey/just) to run commands instead of `make`. Under the hood it relies on pytest. Unit tests check simple functions:
 
-```
+```bash
 just test
+# Equivalent direct command used in CI-style debugging:
+PYTHONPATH=src .venv/bin/pytest tests -q
 ```
 
 ### Integration tests

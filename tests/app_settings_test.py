@@ -65,3 +65,17 @@ def test_video_settings_keep_explicit_confidence_threshold_over_env(monkeypatch)
     })
 
     assert video['bee_confidence_threshold'] == 0.6
+
+
+def test_load_raw_settings_uses_tracked_template_when_local_settings_are_missing(monkeypatch, tmp_path):
+    data_dir = tmp_path / 'data'
+    data_dir.mkdir()
+    template_path = data_dir / 'settings.example.json'
+    template_path.write_text('{"telemetry": {"hive_id": "template-hive"}}\n', encoding='utf-8')
+
+    monkeypatch.setattr(app_settings, 'SETTINGS_PATH', str(data_dir / 'settings.json'))
+    monkeypatch.setattr(app_settings, 'SETTINGS_TEMPLATE_PATH', str(template_path))
+
+    settings = app_settings.load_raw_settings()
+
+    assert settings['telemetry']['hive_id'] == 'template-hive'

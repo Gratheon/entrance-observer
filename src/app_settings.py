@@ -6,6 +6,9 @@ from typing import Any, Dict, Optional
 SETTINGS_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "data", "settings.json")
 )
+SETTINGS_TEMPLATE_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "data", "settings.example.json")
+)
 
 DEFAULT_CAMERA_PROPERTIES = {
     "brightness": 40,
@@ -158,14 +161,16 @@ def _env_float(name: str) -> Optional[float]:
 
 
 def load_raw_settings() -> Dict[str, Any]:
-    try:
-        with open(SETTINGS_PATH, "r") as settings_file:
-            return json.load(settings_file)
-    except FileNotFoundError:
-        return {}
-    except json.JSONDecodeError as error:
-        print(f"⚠️ Failed to parse settings file {SETTINGS_PATH}: {error}")
-        return {}
+    for candidate_path in (SETTINGS_PATH, SETTINGS_TEMPLATE_PATH):
+        try:
+            with open(candidate_path, "r") as settings_file:
+                return json.load(settings_file)
+        except FileNotFoundError:
+            continue
+        except json.JSONDecodeError as error:
+            print(f"⚠️ Failed to parse settings file {candidate_path}: {error}")
+            return {}
+    return {}
 
 
 def merge_settings(settings: Dict[str, Any]) -> Dict[str, Any]:

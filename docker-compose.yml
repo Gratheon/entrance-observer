@@ -2,6 +2,7 @@ services:
   entrance-observer:
     build:
       context: .
+      dockerfile: ${DOCKERFILE_PATH:-Dockerfile}
       network: host
     privileged: true
     network_mode: host

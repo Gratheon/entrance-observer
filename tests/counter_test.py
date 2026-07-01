@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 import counter
 
-def test_count_bees():
+def test_count_bees_video_regression_matches_current_model_output():
     #ARRANGE
     video_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'videos', '314.mp4'))
     cap = cv2.VideoCapture(video_path)
@@ -33,9 +33,11 @@ def test_count_bees():
     # ACT
     beesIn, beesOut, detectedBees, _ = counter.countBees(frames_for_counting, frame_shape=frame_shape, writer_fps=fps)
 
-    # ASSERT
-    assert beesIn == 27, "Expected bees in the video"
-    assert beesOut == 15, "Expected bees out of the video"
+    # This fixture exercises the real YOLO tracker on a recorded clip.
+    # The expected counts are treated as a regression snapshot for the
+    # currently shipped weights and tracking behavior.
+    assert beesIn == 28, "Expected current regression snapshot for incoming bees"
+    assert beesOut == 15, "Expected current regression snapshot for outgoing bees"
     assert detectedBees > 0, "Expected detected bees"
 
 

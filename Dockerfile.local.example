@@ -1,0 +1,6 @@
+# Copy this file to Dockerfile.local when a device needs local image tweaks.
+# docker compose will automatically prefer Dockerfile.local over Dockerfile.
+FROM ultralytics/ultralytics:latest-jetson-jetpack6
+
+# Example local override:
+# RUN apt-get update && apt-get install -y tcpdump && rm -rf /var/lib/apt/lists/*

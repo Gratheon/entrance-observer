@@ -5,6 +5,12 @@
 # Python cache
 __pycache__/
 *.pyc
+.venv/
+.pytest_cache/
+
+# Local runtime configuration that must stay on the device
+data/settings.json
+Dockerfile.local
 
 # Large data and media directories that should not be in the image
 videos/

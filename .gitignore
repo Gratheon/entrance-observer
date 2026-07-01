@@ -1,8 +1,13 @@
 .idea
 .env
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
 src/config/config.dev.ts
 src/config/config.prod.ts
-src/__pycache__
-telemetry
-videos
+telemetry/
+videos/
+runs/
 data/settings.json
+Dockerfile.local
