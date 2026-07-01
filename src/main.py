@@ -4,10 +4,10 @@ import datetime
 import cv2
 import platform
 import json
+import glob
 import shutil
 import subprocess
-import glob
-from flask import Flask, Response, render_template_string, jsonify, request, abort
+from flask import Flask, Response, render_template_string, jsonify, request, abort, send_file, send_from_directory
 import threading
 import logging
 from ultralytics import YOLO
@@ -56,6 +56,17 @@ detection_rectangle = DEFAULT_DETECTION_RECTANGLE.copy()
 entrance_position = 'bottom'
 track_history = defaultdict(list)
 VIDEO_FILE_EXTENSIONS = {'.mp4', '.mov', '.m4v', '.webm', '.avi', '.mkv'}
+CAMERA_RETRY_INTERVAL_SECONDS = 10
+CAMERA_READ_FAILURE_TIMEOUT_SECONDS = 5
+CAMERA_STATUS_PLACEHOLDER_WIDTH = 960
+CAMERA_STATUS_PLACEHOLDER_HEIGHT = 540
+camera_status_lock = threading.Lock()
+camera_status = {
+    "state": "starting",
+    "message": "Camera is starting...",
+    "detail": "Waiting for the observer worker to initialize camera capture.",
+    "updated_at": datetime.datetime.utcnow().isoformat() + "Z",
+}
 
 
 weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','weights', 'best.pt'))
@@ -118,6 +129,65 @@ def draw_detection_rectangles(frame, boxes):
     return annotated_frame
 
 
+def set_camera_status(state, message, detail=None):
+    """Store camera health so the MJPEG preview and UI can explain hardware failures."""
+    with camera_status_lock:
+        camera_status.update({
+            "state": state,
+            "message": message,
+            "detail": detail or "",
+            "updated_at": datetime.datetime.utcnow().isoformat() + "Z",
+        })
+
+
+def get_camera_status():
+    with camera_status_lock:
+        return camera_status.copy()
+
+
+def draw_centered_text(frame, lines, color=(255, 255, 255), line_height=34):
+    """Draw readable centered text on generated status frames without needing templates."""
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    y = (frame.shape[0] - (len(lines) - 1) * line_height) // 2
+    for line in lines:
+        text_size = cv2.getTextSize(line, font, 0.78, 2)[0]
+        x = max(20, (frame.shape[1] - text_size[0]) // 2)
+        cv2.putText(frame, line, (x, y), font, 0.78, color, 2, cv2.LINE_AA)
+        y += line_height
+
+
+def create_camera_status_frame(width=CAMERA_STATUS_PLACEHOLDER_WIDTH, height=CAMERA_STATUS_PLACEHOLDER_HEIGHT):
+    status = get_camera_status()
+    frame = np.zeros((height, width, 3), dtype=np.uint8)
+    frame[:] = (30, 30, 30)
+
+    state = status.get("state", "unknown")
+    is_error = state in {"missing", "read_error", "error"}
+    accent = (55, 93, 245) if is_error else (40, 160, 90)
+    cv2.rectangle(frame, (0, 0), (width, 72), accent, -1)
+    cv2.putText(frame, "Entrance Observer", (28, 46), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2, cv2.LINE_AA)
+
+    title = status.get("message") or "Camera preview unavailable"
+    detail = status.get("detail") or "Check camera connection and service logs."
+    updated_at = status.get("updated_at", "")
+    lines = [title, detail]
+    if updated_at:
+        lines.append(f"Last update: {updated_at}")
+    draw_centered_text(frame, lines, color=(245, 245, 245))
+    return frame
+
+
+def put_camera_status_overlay(frame, message, detail=None):
+    """Overlay transient status on a real camera frame while keeping calibration guides visible."""
+    overlay = frame.copy()
+    cv2.rectangle(overlay, (0, 0), (frame.shape[1], 56), (0, 0, 0), -1)
+    cv2.addWeighted(overlay, 0.55, frame, 0.45, 0, frame)
+    cv2.putText(frame, message, (18, 36), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 230, 255), 2, cv2.LINE_AA)
+    if detail:
+        cv2.putText(frame, detail, (18, 82), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (220, 220, 220), 1, cv2.LINE_AA)
+    return frame
+
+
 def get_track_color(track_id):
     """Return a stable BGR color so a bee trail keeps the same color between frames."""
     numeric_id = int(track_id)
@@ -136,8 +206,6 @@ def draw_tracking_trail(frame, track, track_id):
 
     track_np = np.array(track, dtype=np.int32).reshape((-1, 1, 2))
     cv2.polylines(frame, [track_np], isClosed=False, color=get_track_color(track_id), thickness=2)
-
-
 def get_detection_runtime_settings():
     """Read live AI thresholds per frame so UI changes apply without a server restart."""
     video_settings = get_video_settings()
@@ -145,6 +213,7 @@ def get_detection_runtime_settings():
         "bee_confidence_threshold": float(video_settings.get("bee_confidence_threshold", 0.5)),
         "bee_max_detections": int(video_settings.get("bee_max_detections", 1000) or 1000),
     }
+
 
 def parse_telemetry_timestamp(value):
     """Return a UTC-aware datetime for JSONL telemetry timestamps."""
@@ -258,47 +327,6 @@ def load_recent_bee_counts_history(now_utc=None):
         bee_counts_history.extend(entry for _, entry in records)
         prune_bee_counts_history_locked(now_utc.astimezone().replace(tzinfo=None))
     print(f"📈 Loaded {len(bee_counts_history)} bee count rows from the last {BEE_COUNTS_HISTORY_HOURS}h.")
-
-
-def generate_frames(get_frame):
-    while True:
-        with frame_lock:
-            frame = get_frame()
-            if frame is None:
-                continue
-            (flag, encodedImage) = cv2.imencode(".jpg", frame)
-            if not flag:
-                continue
-        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
-              bytearray(encodedImage) + b'\r\n')
-
-from flask import send_file, send_from_directory
-from urllib.parse import quote
-
-@app.route('/img/<path:path>')
-def send_img(path):
-    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'img'), path)
-
-
-def get_videos_directory():
-    storage_settings = get_storage_settings()
-    return os.path.abspath(storage_settings.get('videos_dir', './videos'))
-
-
-def get_recorded_video_path(filename):
-    if not filename or filename != os.path.basename(filename):
-        raise ValueError('Invalid video filename')
-
-    _, extension = os.path.splitext(filename)
-    if extension.lower() not in VIDEO_FILE_EXTENSIONS:
-        raise ValueError('Invalid video file type')
-
-    videos_dir = get_videos_directory()
-    file_path = os.path.abspath(os.path.join(videos_dir, filename))
-    if os.path.commonpath([videos_dir, file_path]) != videos_dir:
-        raise ValueError('Invalid video path')
-
-    return file_path
 
 
 def get_video_mimetype(file_path):
@@ -431,6 +459,52 @@ def get_browser_playback_video_path(source_path):
             pass
         print(f"⚠️ Failed to create browser-compatible video for {source_path}: {error}")
         return source_path
+
+
+def generate_frames(get_frame):
+    while True:
+        with frame_lock:
+            frame = get_frame()
+
+        if frame is None:
+            # Keep preview clients informed instead of leaving the MJPEG response empty
+            # when the USB camera is missing, unplugged, or still starting.
+            frame = create_camera_status_frame()
+            time.sleep(1)
+
+        flag, encodedImage = cv2.imencode(".jpg", frame)
+        if not flag:
+            time.sleep(0.2)
+            continue
+        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' +
+              bytearray(encodedImage) + b'\r\n')
+
+from urllib.parse import quote
+
+@app.route('/img/<path:path>')
+def send_img(path):
+    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'img'), path)
+
+
+def get_videos_directory():
+    storage_settings = get_storage_settings()
+    return os.path.abspath(storage_settings.get('videos_dir', './videos'))
+
+
+def get_recorded_video_path(filename):
+    if not filename or filename != os.path.basename(filename):
+        raise ValueError('Invalid video filename')
+
+    _, extension = os.path.splitext(filename)
+    if extension.lower() not in VIDEO_FILE_EXTENSIONS:
+        raise ValueError('Invalid video file type')
+
+    videos_dir = get_videos_directory()
+    file_path = os.path.abspath(os.path.join(videos_dir, filename))
+    if os.path.commonpath([videos_dir, file_path]) != videos_dir:
+        raise ValueError('Invalid video path')
+
+    return file_path
 
 
 def delete_recorded_video(filename):
@@ -697,6 +771,43 @@ def index():
            display: none;
          }
 
+
+         .camera-status-banner {
+           display: flex;
+           flex-direction: column;
+           gap: 4px;
+           margin-bottom: 12px;
+           padding: 12px 14px;
+           border: 1px solid #f2c94c;
+           border-radius: 8px;
+           background: #fff8db;
+           color: #624a00;
+         }
+
+         .camera-status-banner[data-state="ok"] {
+           border-color: #b7e4c7;
+           background: #eefaf2;
+           color: #1b5e20;
+         }
+
+         .camera-status-banner[data-state="starting"] {
+           border-color: #b8d7ff;
+           background: #eef6ff;
+           color: #17456b;
+         }
+
+         .camera-status-banner[hidden] {
+           display: none;
+         }
+
+         .camera-status-banner strong {
+           font-size: 14px;
+         }
+
+         .camera-status-banner span {
+           font-size: 13px;
+           line-height: 1.35;
+         }
          .section-header {
            display: flex;
            align-items: flex-start;
@@ -1405,6 +1516,10 @@ def index():
                  </div>
                </div>
 
+               <div id="camera-status-banner" class="camera-status-banner" data-state="starting" role="status" aria-live="polite">
+                 <strong id="camera-status-message">Camera is starting...</strong>
+                 <span id="camera-status-detail">Waiting for the observer worker to initialize camera capture.</span>
+               </div>
                <div class="card preview-card">
                  <div class="preview-toolbar">
                    <label class="toggle-label">
@@ -2247,16 +2362,41 @@ def index():
          }
 
          function getPointerCoefficient(event) {
-           const rect = videoContainer.getBoundingClientRect();
-           return {
-             x: clamp((event.clientX - rect.left) / rect.width, 0, 1),
-             y: clamp((event.clientY - rect.top) / rect.height, 0, 1),
-           };
+      <script>
+         const feedToggle = document.getElementById('feed-toggle');
+         const videoFeedImg = document.getElementById('video-feed-img');
+         const cameraStatusBanner = document.getElementById('camera-status-banner');
+         const cameraStatusMessage = document.getElementById('camera-status-message');
+         const cameraStatusDetail = document.getElementById('camera-status-detail');
+         const liveFeedUrl = "{{ url_for('video_feed') }}";
+         const yoloFeedUrl = "{{ url_for('video_feed_yolo') }}";
+
+         feedToggle.addEventListener('change', () => {
+           videoFeedImg.src = feedToggle.checked ? liveFeedUrl : yoloFeedUrl;
+         });
+
+         function renderCameraStatus(status) {
+           const state = status.state || 'unknown';
+           cameraStatusBanner.dataset.state = state;
+           cameraStatusMessage.textContent = status.message || 'Camera status unavailable';
+           cameraStatusDetail.textContent = status.detail || '';
+           cameraStatusBanner.hidden = state === 'ok';
          }
 
-         function normalizeRectangle(rectangle) {
-           const width = clamp(Number(rectangle.width) || 0.25, minRectangleCoefficient, 1);
-           const height = clamp(Number(rectangle.height) || 0.2, minRectangleCoefficient, 1);
+         function fetchCameraStatus() {
+           fetch('/api/camera_status')
+             .then(response => response.json())
+             .then(renderCameraStatus)
+             .catch(() => renderCameraStatus({
+               state: 'error',
+               message: 'Unable to load camera status',
+               detail: 'The local observer UI could not reach its status endpoint.',
+             }));
+         }
+
+         setInterval(fetchCameraStatus, 5000);
+         fetchCameraStatus();
+       </script>
            return {
              x: clamp(Number(rectangle.x) || 0, 0, 1 - width),
              y: clamp(Number(rectangle.y) || 0, 0, 1 - height),
@@ -2433,6 +2573,7 @@ def index():
                headers: {
                  'Content-Type': 'application/json',
                },
+
                body: JSON.stringify({
                  telemetry,
                  night_mode: {
@@ -2545,6 +2686,11 @@ def video_feed():
 def video_feed_yolo():
     return Response(generate_frames(lambda: yolo_frame),
                     mimetype="multipart/x-mixed-replace; boundary=frame")
+
+@app.route("/api/camera_status")
+def camera_status_api():
+    return jsonify(get_camera_status())
+
 
 @app.route("/api/bee_counts")
 def bee_counts():
@@ -2755,6 +2901,7 @@ def frame_capture_thread(camera, video_queue, ai_queue):
     frame_count = 0
     total_read_time = 0
     failed_reads = 0
+    first_failed_read_at = None
     
     while capture_thread_running:
         start_read_time = time.monotonic()
@@ -2772,6 +2919,10 @@ def frame_capture_thread(camera, video_queue, ai_queue):
             total_read_time = 0
 
         if ret and frame is not None:
+            first_failed_read_at = None
+            status = get_camera_status()
+            if status.get("state") != "ok":
+                set_camera_status("ok", "Camera connected", "Live frames are being captured.")
             capture_time = time.monotonic()
             
             # Try to put frame in video queue (non-blocking)
@@ -2797,8 +2948,17 @@ def frame_capture_thread(camera, video_queue, ai_queue):
                     pass
         else:
             failed_reads += 1
-            # If reading fails, wait a very short time before trying again
-            time.sleep(0.001)
+            if first_failed_read_at is None:
+                first_failed_read_at = time.monotonic()
+            failed_for = time.monotonic() - first_failed_read_at
+            if failed_for >= CAMERA_READ_FAILURE_TIMEOUT_SECONDS:
+                set_camera_status(
+                    "read_error",
+                    "Camera is connected but no frames are arriving",
+                    "Check USB bandwidth, camera power, and whether another process is using the device.",
+                )
+            # Wait briefly to avoid busy-looping on unplugged or stalled devices.
+            time.sleep(0.05)
             
     print("🛑 Stopping frame capture thread...")
 
@@ -2922,14 +3082,30 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
             
             detection_runtime_settings = get_detection_runtime_settings()
             start_inference_time = time.monotonic()
-            # Read confidence/max_det right before inference so saved UI settings affect the next frame.
-            # This keeps the service responsive without restarting the camera or Flask process.
-            results = model.track(
-                frame,
-                persist=True,
-                conf=detection_runtime_settings["bee_confidence_threshold"],
-                max_det=detection_runtime_settings["bee_max_detections"],
-            )
+            try:
+                results = model.track(
+                    frame,
+                    persist=True,
+                    conf=detection_runtime_settings["bee_confidence_threshold"],
+                    max_det=detection_runtime_settings["bee_max_detections"],
+                )
+            except Exception as error:
+                print(f"❌ AI processing failed: {error}")
+                set_camera_status(
+                    "error",
+                    "AI processing failed",
+                    "Preview remains available, but detection is paused. Check CUDA/PyTorch compatibility in service logs.",
+                )
+                error_frame = put_camera_status_overlay(
+                    frame.copy(),
+                    "AI processing failed",
+                    "Check CUDA/PyTorch compatibility in service logs.",
+                )
+                with frame_lock:
+                    video_frame = frame.copy()
+                    yolo_frame = error_frame
+                time.sleep(5)
+            inference_duration = time.monotonic() - start_inference_time
             inference_duration = time.monotonic() - start_inference_time
             total_inference_time += inference_duration
             frames_processed += 1
@@ -3039,22 +3215,6 @@ def measure_actual_fps(camera, target_width, target_height, duration_sec=5):
 
     frame_count = 0
     start_time = time.time()
-    while (time.time() - start_time) < duration_sec:
-        ret, _ = camera.read()
-        if not ret:
-            break
-        frame_count += 1
-    
-    end_time = time.time()
-    actual_duration = end_time - start_time
-    if actual_duration == 0:
-        print("⚠️ Calibration failed: duration was zero.")
-        return 0
-    
-    fps = frame_count / actual_duration
-    print(f"✅ Calibration successful: {fps:.2f} FPS")
-    return fps
-
 def startObserverClient():
     global capture_thread_running, camera_instance
     load_settings()
@@ -3068,58 +3228,97 @@ def startObserverClient():
     HEIGHT_PX = int(video_settings.get("height_px", 480))
     DETECT_VIDEO_WIDTH = int(video_settings.get("detect_video_width", 320))
     DETECT_VIDEO_HEIGHT = int(video_settings.get("detect_video_height", 240))
-
-    print(f"🖥️ Running on {platform.system()}")
-    available_cameras = list_available_cameras()
-    print(f"📷 Available cameras: {available_cameras}")
-
-    camera_config = get_default_camera_config()
-    device = camera_config["device"]
-    backend = camera_config["backend"]
-    
-    if available_cameras and device not in available_cameras:
-        device = available_cameras[0]
-        print(f"⚠️ Default camera not available, using: {device}")
-
     target_width = WIDTH_PX
     target_height = HEIGHT_PX
-    
-    with camera_lock:
-        camera_instance = initialize_camera(device, backend, target_width, target_height, FPS, camera_properties)
-        camera = camera_instance
 
-    if not camera.isOpened():
-        print(f"❌ Failed to open any camera.")
-        return
-    
-    print(f"🎯 Using resolution: {target_width}x{target_height}")
+    print(f"🖥️ Running on {platform.system()}")
+    while True:
+        camera = None
+        cap_thread = None
+        writer_thread = None
+        proc_thread = None
+        capture_thread_running = False
+        set_camera_status("starting", "Looking for camera", "Checking configured and available camera devices.")
 
-    if video_settings.get("auto_calibrate_fps", True):
-        # Calibrate at the target resolution to get the true sustainable FPS.
-        writer_fps = measure_actual_fps(camera, target_width, target_height)
-        if writer_fps < 1:
-            print(f"⚠️ FPS calibration failed. Falling back to requested FPS: {FPS}")
+        available_cameras = list_available_cameras()
+        print(f"📷 Available cameras: {available_cameras}")
+
+        camera_config = get_default_camera_config()
+        device = camera_config["device"]
+        backend = camera_config["backend"]
+        
+        if available_cameras and device not in available_cameras:
+            device = available_cameras[0]
+            print(f"⚠️ Default camera not available, using: {device}")
+
+        with camera_lock:
+            camera_instance = initialize_camera(device, backend, target_width, target_height, FPS, camera_properties)
+            camera = camera_instance
+
+        if not camera or not camera.isOpened():
+            detail = f"Configured device {device} is not available. Connect USB/camera and the observer will retry in {CAMERA_RETRY_INTERVAL_SECONDS}s."
+            print(f"❌ Failed to open any camera. {detail}")
+            set_camera_status("missing", "Camera not found", detail)
+            with camera_lock:
+                camera_instance = None
+            if camera:
+                camera.release()
+            time.sleep(CAMERA_RETRY_INTERVAL_SECONDS)
+            continue
+        
+        print(f"🎯 Using resolution: {target_width}x{target_height}")
+        set_camera_status("starting", "Camera connected", "Calibrating frame rate before live processing starts.")
+
+        if video_settings.get("auto_calibrate_fps", True):
+            # Calibrate at the target resolution to get the true sustainable FPS.
+            writer_fps = measure_actual_fps(camera, target_width, target_height)
+            if writer_fps < 1:
+                print(f"⚠️ FPS calibration failed. Falling back to requested FPS: {FPS}")
+                writer_fps = FPS
+        else:
             writer_fps = FPS
-    else:
-        writer_fps = FPS
 
-    # Optimize queue sizes for better performance and lower memory usage
-    # Use smaller queues to reduce latency and memory consumption
-    video_queue = queue.Queue(maxsize=max(10, int(writer_fps * 1.5)))
-    ai_queue = queue.Queue(maxsize=max(10, int(writer_fps * 1.5)))
+        # Optimize queue sizes for better performance and lower memory usage.
+        # Smaller queues reduce latency and avoid unbounded memory usage when processing lags.
+        video_queue = queue.Queue(maxsize=max(10, int(writer_fps * 1.5)))
+        ai_queue = queue.Queue(maxsize=max(10, int(writer_fps * 1.5)))
 
-    capture_thread_running = True
-    cap_thread = threading.Thread(target=frame_capture_thread, args=(camera, video_queue, ai_queue))
-    cap_thread.daemon = True
-    cap_thread.start()
+        capture_thread_running = True
+        cap_thread = threading.Thread(target=frame_capture_thread, args=(camera, video_queue, ai_queue))
+        cap_thread.daemon = True
+        cap_thread.start()
 
-    writer_thread = threading.Thread(target=video_writer_thread, args=(video_queue, writer_fps, target_width, target_height))
-    writer_thread.daemon = True
-    writer_thread.start()
+        writer_thread = threading.Thread(target=video_writer_thread, args=(video_queue, writer_fps, target_width, target_height))
+        writer_thread.daemon = True
+        writer_thread.start()
 
-    proc_thread = threading.Thread(target=processing_thread, args=(ai_queue, writer_fps, target_width, target_height, DETECT_VIDEO_WIDTH, DETECT_VIDEO_HEIGHT))
-    proc_thread.daemon = True
-    proc_thread.start()
+        proc_thread = threading.Thread(target=processing_thread, args=(ai_queue, writer_fps, target_width, target_height, DETECT_VIDEO_WIDTH, DETECT_VIDEO_HEIGHT))
+        proc_thread.daemon = True
+        proc_thread.start()
+
+        try:
+            while cap_thread.is_alive() and writer_thread.is_alive() and proc_thread.is_alive():
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("🛑 Recording and uploading stopped by user")
+            break
+        finally:
+            print("Cleaning up resources...")
+            capture_thread_running = False
+            for thread in (cap_thread, writer_thread, proc_thread):
+                if thread and thread.is_alive():
+                    thread.join()
+            if camera:
+                camera.release()
+            with camera_lock:
+                camera_instance = None
+
+        set_camera_status(
+            "missing",
+            "Camera processing stopped",
+            f"Observer worker stopped and will retry in {CAMERA_RETRY_INTERVAL_SECONDS}s unless the service is shutting down.",
+        )
+        time.sleep(CAMERA_RETRY_INTERVAL_SECONDS)
 
     try:
         while cap_thread.is_alive() and writer_thread.is_alive() and proc_thread.is_alive():

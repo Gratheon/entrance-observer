@@ -48,3 +48,35 @@ def test_detection_runtime_settings_are_read_from_current_settings(monkeypatch):
 
     assert first == {'bee_confidence_threshold': 0.2, 'bee_max_detections': 1000}
     assert second == {'bee_confidence_threshold': 0.8, 'bee_max_detections': 2500}
+
+
+def test_camera_status_api_returns_current_status():
+    main.set_camera_status('missing', 'Camera not found', 'Connect USB camera')
+
+    response = main.app.test_client().get('/api/camera_status')
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload['state'] == 'missing'
+    assert payload['message'] == 'Camera not found'
+    assert payload['detail'] == 'Connect USB camera'
+    assert payload['updated_at'].endswith('Z')
+
+
+def test_camera_status_frame_is_rendered_when_no_preview_frame():
+    main.set_camera_status('missing', 'Camera not found', 'Connect USB camera')
+
+    frame = main.create_camera_status_frame(width=320, height=180)
+
+    assert frame.shape == (180, 320, 3)
+    assert np.count_nonzero(frame) > 0
+
+
+def test_generate_frames_yields_placeholder_when_frame_is_missing(monkeypatch):
+    main.set_camera_status('missing', 'Camera not found', 'Connect USB camera')
+    monkeypatch.setattr(main.time, 'sleep', lambda *_args, **_kwargs: None)
+
+    chunk = next(main.generate_frames(lambda: None))
+
+    assert chunk.startswith(b'--frame\r\nContent-Type: image/jpeg')
+    assert b'\xff\xd8' in chunk
