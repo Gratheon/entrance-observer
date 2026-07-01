@@ -43,7 +43,8 @@
         "auto_calibrate_fps": true,
         "upload_videos_enabled": true,
         "upload_max_fps": 0,
-        "bee_confidence_threshold": 0.5
+        "bee_confidence_threshold": 0.5,
+        "bee_max_detections": 1000
     },
     "storage": {
         "videos_dir": "./videos",

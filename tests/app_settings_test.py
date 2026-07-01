@@ -67,6 +67,14 @@ def test_video_settings_keep_explicit_confidence_threshold_over_env(monkeypatch)
     assert video['bee_confidence_threshold'] == 0.6
 
 
+def test_video_settings_support_max_detections_from_env(monkeypatch):
+    monkeypatch.setenv('BEE_MAX_DETECTIONS', '1500')
+
+    video = app_settings.get_video_settings({'video': {}})
+
+    assert video['bee_max_detections'] == 1500
+
+
 def test_load_raw_settings_uses_tracked_template_when_local_settings_are_missing(monkeypatch, tmp_path):
     data_dir = tmp_path / 'data'
     data_dir.mkdir()

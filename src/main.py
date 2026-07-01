@@ -11,7 +11,6 @@ from ultralytics import YOLO
 from collections import deque, defaultdict
 import queue
 import numpy as np
-import random
 from scipy.spatial.distance import pdist, squareform
 
 from src.cameras import list_available_cameras, get_default_camera_config, initialize_camera
@@ -50,7 +49,6 @@ counting_mode = 'line'
 detection_rectangle = DEFAULT_DETECTION_RECTANGLE.copy()
 entrance_position = 'bottom'
 track_history = defaultdict(list)
-track_colors = {}
 VIDEO_FILE_EXTENSIONS = {'.mp4', '.mov', '.m4v', '.webm', '.avi', '.mkv'}
 
 
@@ -99,6 +97,19 @@ def is_day_time():
 
     # Supports schedules crossing midnight, e.g. active from 22:00 to 06:00.
     return current_hour >= day_start_hour or current_hour < day_end_hour
+
+
+def draw_detection_rectangles(frame, boxes):
+    """Draw only bee bounding rectangles so the preview stays readable during dense traffic."""
+    annotated_frame = frame.copy()
+    if boxes is None or len(boxes.xyxy) == 0:
+        return annotated_frame
+
+    for box in boxes.xyxy.cpu().tolist():
+        x1, y1, x2, y2 = [int(value) for value in box]
+        cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (255, 0, 0), 3)
+
+    return annotated_frame
 
 def generate_frames(get_frame):
     while True:
@@ -1297,6 +1308,11 @@ def index():
                       <input type="number" id="bee_confidence_threshold" min="0" max="1" step="0.01" value="{{ video_settings.bee_confidence_threshold }}">
                       <span class="hint">Detections below this confidence are not shown in preview or used for counting. 0.5 means 50%.</span>
                     </div>
+                    <div class="settings-field field-compact">
+                      <label for="bee_max_detections">Max bees per frame</label>
+                      <input type="number" id="bee_max_detections" min="1" max="5000" value="{{ video_settings.bee_max_detections }}">
+                      <span class="hint">YOLO max_det limit. Increase this when dense entrance traffic clips detections.</span>
+                    </div>
                     <label class="settings-field toggle-label" for="auto_calibrate_fps">
                       <input type="checkbox" id="auto_calibrate_fps" {% if video_settings.auto_calibrate_fps %}checked{% endif %}>
                       Auto-calibrate sustainable camera FPS
@@ -2151,6 +2167,7 @@ def index():
                    video_chunk_length_sec: numberValue('video_chunk_length_sec'),
                    upload_max_fps: numberValue('upload_max_fps'),
                    bee_confidence_threshold: numberValue('bee_confidence_threshold'),
+                   bee_max_detections: numberValue('bee_max_detections'),
                    auto_calibrate_fps: document.getElementById('auto_calibrate_fps').checked,
                    upload_videos_enabled: document.getElementById('upload_videos_enabled').checked,
                  },
@@ -2383,6 +2400,7 @@ def set_app_settings():
             "detect_video_height": (120, 2160),
             "video_chunk_length_sec": (5, 600),
             "upload_max_fps": (0, 120),
+            "bee_max_detections": (1, 5000),
         }
         for key, (min_value, max_value) in allowed_video_ints.items():
             if key not in video_payload:
@@ -2599,6 +2617,7 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
         video_settings = get_video_settings()
         video_chunk_length = int(video_settings.get("video_chunk_length_sec", 20))
         bee_confidence_threshold = float(video_settings.get("bee_confidence_threshold", 0.5))
+        bee_max_detections = int(video_settings.get("bee_max_detections", 1000) or 1000)
         
         # We'll process as many frames as we can in the chunk duration
         frames_for_counting = []
@@ -2619,15 +2638,22 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
                 continue
             
             start_inference_time = time.monotonic()
-            results = model.track(frame, persist=True, conf=bee_confidence_threshold)
+            # Ultralytics defaults max_det to a lower value, which can clip dense bee traffic.
+            # Keep it configurable while drawing our own minimal overlay without labels.
+            results = model.track(
+                frame,
+                persist=True,
+                conf=bee_confidence_threshold,
+                max_det=bee_max_detections,
+            )
             inference_duration = time.monotonic() - start_inference_time
             total_inference_time += inference_duration
             frames_processed += 1
 
-            annotated_frame = results[0].plot()
-
-            # Interaction detection
             boxes = results[0].boxes
+            annotated_frame = draw_detection_rectangles(frame, boxes)
+
+            # Interaction detection is still used for metrics, but markers are not drawn in the preview.
             if boxes.is_track and len(boxes.xyxy) > 1:
                 coords = np.array([((box[0] + box[2]) / 2, (box[1] + box[3]) / 2) for box in boxes.xyxy.cpu()])
                 dist_matrix = squareform(pdist(coords))
@@ -2636,13 +2662,8 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
                 for i, j in close_pairs:
                     if i < j:
                         total_interactions += 1
-                        x1, y1 = coords[i]
-                        x2, y2 = coords[j]
-                        cv2.circle(annotated_frame, (int(x1), int(y1)), 5, (0, 255, 255), -1)
-                        cv2.circle(annotated_frame, (int(x2), int(y2)), 5, (0, 255, 255), -1)
-                        cv2.line(annotated_frame, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
 
-            # Draw the tracking lines
+            # Keep track history for derived metrics, but do not draw IDs, labels, confidences, or trails.
             if boxes.is_track:
                 for box, track_id in zip(boxes.xyxy.cpu(), boxes.id.int().cpu().tolist()):
                     bbox_center = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
@@ -2650,13 +2671,6 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
                     track.append((float(bbox_center[0]), float(bbox_center[1])))
                     if len(track) > 30:
                         track.pop(0)
-
-                    if track_id not in track_colors:
-                        track_colors[track_id] = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-
-                    if len(track) > 1:
-                        track_np = np.array(track, dtype=np.int32).reshape((-1, 1, 2))
-                        cv2.polylines(annotated_frame, [track_np], isClosed=False, color=track_colors[track_id], thickness=2)
 
             with frame_lock:
                 video_frame = frame.copy()

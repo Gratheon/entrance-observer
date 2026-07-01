@@ -49,6 +49,7 @@ DEFAULT_VIDEO_SETTINGS = {
     "upload_videos_enabled": True,
     "upload_max_fps": 0,
     "bee_confidence_threshold": 0.5,
+    "bee_max_detections": 1000,
 }
 
 DEFAULT_STORAGE_SETTINGS = {
@@ -106,6 +107,7 @@ VIDEO_ENV_MAP = {
     "detect_video_height": "DETECT_VIDEO_HEIGHT",
     "video_chunk_length_sec": "VIDEO_CHUNK_LENGTH_SEC",
     "upload_max_fps": "UPLOAD_MAX_FPS",
+    "bee_max_detections": "BEE_MAX_DETECTIONS",
 }
 
 STORAGE_ENV_MAP = {
