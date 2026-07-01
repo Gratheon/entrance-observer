@@ -4,6 +4,7 @@ import datetime
 import cv2
 import platform
 import json
+import glob
 from flask import Flask, Response, render_template_string, jsonify, request, abort
 import threading
 import logging
@@ -39,7 +40,10 @@ app = Flask(__name__)
 video_frame = None
 yolo_frame = None
 frame_lock = threading.Lock()
-bee_counts_history = deque(maxlen=3600)  # Store up to last 10h. 10*60*6 entries (1 hour if updated every 10 sec)
+bee_counts_history = deque(maxlen=5000)  # Keep 24h even with 20-second detection chunks (4320 rows).
+bee_counts_history_lock = threading.Lock()
+BEE_COUNTS_HISTORY_HOURS = 24
+BEE_COUNTS_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 capture_thread_running = False
 camera_properties = DEFAULT_CAMERA_PROPERTIES.copy()
 camera_lock = threading.Lock()
@@ -139,6 +143,120 @@ def get_detection_runtime_settings():
         "bee_confidence_threshold": float(video_settings.get("bee_confidence_threshold", 0.5)),
         "bee_max_detections": int(video_settings.get("bee_max_detections", 1000) or 1000),
     }
+
+def parse_telemetry_timestamp(value):
+    """Return a UTC-aware datetime for JSONL telemetry timestamps."""
+    if not value:
+        return None
+    try:
+        normalized_value = str(value).replace("Z", "+00:00")
+        parsed = datetime.datetime.fromisoformat(normalized_value)
+    except ValueError:
+        return None
+
+    if parsed.tzinfo is None:
+        # telemetry.save_telemetry_locally stores datetime.utcnow().isoformat(),
+        # so naive timestamps in local JSONL files are UTC values.
+        return parsed.replace(tzinfo=datetime.timezone.utc)
+    return parsed.astimezone(datetime.timezone.utc)
+
+
+def format_bee_count_time(timestamp_utc):
+    """Format UTC JSONL timestamps for the UI in the device's local timezone."""
+    return timestamp_utc.astimezone().strftime(BEE_COUNTS_TIME_FORMAT)
+
+
+def parse_bee_count_display_time(value):
+    try:
+        return datetime.datetime.strptime(str(value), BEE_COUNTS_TIME_FORMAT)
+    except (TypeError, ValueError):
+        return None
+
+
+def is_recent_bee_count(entry, cutoff_local):
+    entry_time = parse_bee_count_display_time(entry.get("time"))
+    return entry_time is None or entry_time >= cutoff_local
+
+
+def prune_bee_counts_history_locked(now_local=None):
+    """Keep only the configured rolling window in memory while preserving insertion order."""
+    now_local = now_local or datetime.datetime.now()
+    cutoff_local = now_local - datetime.timedelta(hours=BEE_COUNTS_HISTORY_HOURS)
+    recent_entries = [
+        entry for entry in bee_counts_history
+        if is_recent_bee_count(entry, cutoff_local)
+    ]
+    bee_counts_history.clear()
+    bee_counts_history.extend(recent_entries)
+
+
+def append_bee_count(metrics_data, now_local=None):
+    """Add one metrics row to the UI history and prune rows older than 24h."""
+    now_local = now_local or datetime.datetime.now()
+    entry = dict(metrics_data or {})
+    entry.setdefault("time", now_local.strftime(BEE_COUNTS_TIME_FORMAT))
+    with bee_counts_history_lock:
+        bee_counts_history.append(entry)
+        prune_bee_counts_history_locked(now_local)
+
+
+def iter_recent_telemetry_metric_entries(telemetry_dir, now_utc=None):
+    """Yield metrics rows from local telemetry JSONL files inside the last 24h window."""
+    now_utc = now_utc or datetime.datetime.now(datetime.timezone.utc)
+    cutoff_utc = now_utc - datetime.timedelta(hours=BEE_COUNTS_HISTORY_HOURS)
+    cutoff_local = now_utc.astimezone().replace(tzinfo=None) - datetime.timedelta(hours=BEE_COUNTS_HISTORY_HOURS)
+    file_pattern = os.path.join(telemetry_dir, "metrics_*.jsonl")
+
+    for file_path in sorted(glob.glob(file_pattern)):
+        try:
+            with open(file_path, "r") as metrics_file:
+                for line in metrics_file:
+                    try:
+                        payload = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+
+                    metrics = payload.get("metrics") if isinstance(payload, dict) else None
+                    if not isinstance(metrics, dict):
+                        continue
+
+                    entry = dict(metrics)
+                    timestamp_utc = parse_telemetry_timestamp(payload.get("timestamp"))
+                    if timestamp_utc is not None:
+                        if timestamp_utc < cutoff_utc:
+                            continue
+                        entry.setdefault("time", format_bee_count_time(timestamp_utc))
+                        yield timestamp_utc, entry
+                        continue
+
+                    display_time = parse_bee_count_display_time(entry.get("time"))
+                    if display_time is None or display_time < cutoff_local:
+                        continue
+                    # Local display-only timestamps are older legacy rows. Sort them with
+                    # an approximate local timestamp for deterministic charts.
+                    yield display_time.astimezone(), entry
+        except OSError as error:
+            print(f"⚠️ Could not read bee count history from {file_path}: {error}")
+
+
+def load_recent_bee_counts_history(now_utc=None):
+    """Restore chart/table history from local metrics JSONL after service restarts."""
+    storage_settings = get_storage_settings()
+    telemetry_dir = os.path.abspath(storage_settings.get("telemetry_dir", "./telemetry"))
+    if not os.path.isdir(telemetry_dir):
+        return
+
+    now_utc = now_utc or datetime.datetime.now(datetime.timezone.utc)
+    records = sorted(
+        iter_recent_telemetry_metric_entries(telemetry_dir, now_utc),
+        key=lambda item: item[0],
+    )
+    with bee_counts_history_lock:
+        bee_counts_history.clear()
+        bee_counts_history.extend(entry for _, entry in records)
+        prune_bee_counts_history_locked(now_utc.astimezone().replace(tzinfo=None))
+    print(f"📈 Loaded {len(bee_counts_history)} bee count rows from the last {BEE_COUNTS_HISTORY_HOURS}h.")
+
 
 def generate_frames(get_frame):
     while True:
@@ -2295,7 +2413,9 @@ def video_feed_yolo():
 
 @app.route("/api/bee_counts")
 def bee_counts():
-    return jsonify(list(bee_counts_history))
+    with bee_counts_history_lock:
+        prune_bee_counts_history_locked()
+        return jsonify(list(bee_counts_history))
 
 
 @app.route("/api/videos")
@@ -2721,8 +2841,7 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
         start_time_utc = datetime.datetime.utcnow()
 
         def upload_detect_file(file_path, metrics_data):
-            metrics_data["time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            bee_counts_history.append(metrics_data)
+            append_bee_count(metrics_data)
             
             if metrics_data["bees_in"] > 0 or metrics_data["bees_out"] > 0 or metrics_data["detected_bees"] > 0:
                 print(f"☁️ Uploading debug file: {file_path}")
@@ -2806,6 +2925,7 @@ def startObserverClient():
     video_settings = get_video_settings()
     storage_manager.ensure_managed_directories()
     storage_manager.cleanup_storage()
+    load_recent_bee_counts_history()
 
     FPS = int(video_settings.get("fps", 30))
     WIDTH_PX = int(video_settings.get("width_px", 640))
