@@ -154,7 +154,8 @@ def cleanup_observer_runtime(camera=None):
     try:
         cv2.destroyAllWindows()
     except Exception as exc:
-        print(f"Failed to destroy OpenCV windows during cleanup: {exc}")
+        if "The function is not implemented" not in str(exc):
+            print(f"Failed to destroy OpenCV windows during cleanup: {exc}")
 
     release_accelerator_memory()
 
@@ -3447,6 +3448,16 @@ def startObserverClient():
         )
         shutdown_requested.wait(CAMERA_RETRY_INTERVAL_SECONDS)
 
+
+def run_observer_client():
+    try:
+        startObserverClient()
+    except Exception:
+        logging.exception("Observer client crashed; exiting so Docker can restart the container.")
+        request_shutdown()
+        os._exit(1)
+
+
 def save_settings():
     raw_settings = load_raw_settings()
     settings = merge_settings(raw_settings)
@@ -3475,7 +3486,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, handle_shutdown_signal)
     atexit.register(cleanup_observer_runtime)
 
-    observer_thread = threading.Thread(target=startObserverClient)
+    observer_thread = threading.Thread(target=run_observer_client)
     observer_thread.daemon = True
     observer_thread.start()
     from waitress import serve

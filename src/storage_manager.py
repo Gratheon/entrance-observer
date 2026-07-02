@@ -32,15 +32,27 @@ def _iter_files(directory: str, patterns: Iterable[str]) -> Iterable[str]:
         return []
 
     files = []
+    seen = set()
     for pattern in patterns:
-        files.extend(glob.glob(os.path.join(directory, pattern), recursive=True))
-    return [path for path in files if os.path.isfile(path)]
+        for path in glob.glob(os.path.join(directory, pattern), recursive=True):
+            if path in seen:
+                continue
+            seen.add(path)
+            if os.path.isfile(path):
+                files.append(path)
+    return files
 
 
 def delete_files_older_than(directory: str, patterns: Iterable[str], max_age: timedelta, label: str) -> None:
     now = datetime.now()
     for file_path in _iter_files(directory, patterns):
-        file_mtime = datetime.fromtimestamp(os.path.getmtime(file_path))
+        try:
+            file_mtime = datetime.fromtimestamp(os.path.getmtime(file_path))
+        except FileNotFoundError:
+            continue
+        except OSError as error:
+            print(f"⚠️ Could not stat {file_path} for {label} cleanup: {error}")
+            continue
         if now - file_mtime > max_age:
             _remove_file(file_path, f"{label} retention exceeded")
 
