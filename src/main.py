@@ -1636,8 +1636,8 @@ def index():
                    <div id="hive-entrance-label" class="entrance-label {% if counting_mode != 'line' %}hidden-overlay{% endif %}">&darr; Hive Entrance &darr;</div>
                    <div id="video-container">
                      <img id="video-feed-img" src="{{ url_for('video_feed_yolo') }}" alt="Camera stream with bee detection overlay">
-                     <div id="detection-line" aria-label="Detection line"></div>
-                     <div id="detection-rectangle" aria-label="Detection rectangle">
+                     <div id="detection-line" class="{% if counting_mode != 'line' %}hidden-overlay{% endif %}" aria-label="Detection line"></div>
+                     <div id="detection-rectangle" class="{% if counting_mode != 'rectangle' %}hidden-overlay{% endif %}" aria-label="Detection rectangle">
                        <span class="rectangle-handle nw" data-handle="nw"></span>
                        <span class="rectangle-handle ne" data-handle="ne"></span>
                        <span class="rectangle-handle sw" data-handle="sw"></span>
@@ -2432,31 +2432,6 @@ def index():
        <script>
          const feedToggle = document.getElementById('feed-toggle');
          const videoFeedImg = document.getElementById('video-feed-img');
-         const liveFeedUrl = "{{ url_for('video_feed') }}";
-         const yoloFeedUrl = "{{ url_for('video_feed_yolo') }}";
-
-         feedToggle.addEventListener('change', () => {
-           videoFeedImg.src = feedToggle.checked ? liveFeedUrl : yoloFeedUrl;
-         });
-       </script>
-       <script>
-         const detectionLine = document.getElementById('detection-line');
-         const detectionRectangle = document.getElementById('detection-rectangle');
-         const countingModeHint = document.getElementById('counting-mode-hint');
-         const countingModeInputs = Array.from(document.querySelectorAll('input[name="counting-mode"]'));
-         let countingMode = '{{ counting_mode }}';
-         let detectionRectangleConfig = {{ detection_rectangle | tojson }};
-         let dragState = null;
-         const minRectangleCoefficient = 0.03;
-
-         function clamp(value, min, max) {
-           return Math.min(Math.max(value, min), max);
-         }
-
-         function getPointerCoefficient(event) {
-      <script>
-         const feedToggle = document.getElementById('feed-toggle');
-         const videoFeedImg = document.getElementById('video-feed-img');
          const cameraStatusBanner = document.getElementById('camera-status-banner');
          const cameraStatusMessage = document.getElementById('camera-status-message');
          const cameraStatusDetail = document.getElementById('camera-status-detail');
@@ -2489,6 +2464,32 @@ def index():
          setInterval(fetchCameraStatus, 5000);
          fetchCameraStatus();
        </script>
+       <script>
+         const detectionLine = document.getElementById('detection-line');
+         const detectionRectangle = document.getElementById('detection-rectangle');
+         const countingModeHint = document.getElementById('counting-mode-hint');
+         const countingModeInputs = Array.from(document.querySelectorAll('input[name="counting-mode"]'));
+         let countingMode = '{{ counting_mode }}';
+         let detectionRectangleConfig = {{ detection_rectangle | tojson }};
+         let dragState = null;
+         const minRectangleCoefficient = 0.03;
+
+         function clamp(value, min, max) {
+           return Math.min(Math.max(value, min), max);
+         }
+
+         function getPointerCoefficient(event) {
+           const rect = videoContainer.getBoundingClientRect();
+           return {
+             x: clamp((event.clientX - rect.left) / rect.width, 0, 1),
+             y: clamp((event.clientY - rect.top) / rect.height, 0, 1),
+           };
+         }
+
+         function normalizeRectangle(rectangle) {
+           rectangle = rectangle || {};
+           const width = clamp(Number(rectangle.width) || 0.5, minRectangleCoefficient, 1);
+           const height = clamp(Number(rectangle.height) || 0.2, minRectangleCoefficient, 1);
            return {
              x: clamp(Number(rectangle.x) || 0, 0, 1 - width),
              y: clamp(Number(rectangle.y) || 0, 0, 1 - height),
