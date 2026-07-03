@@ -58,6 +58,7 @@ def countBeesAndReportTelemetry(frames, total_interactions, output_video_path=No
     metrics_data["net_flow"] = beesIn - beesOut
     
     telemetry.save_track_history_locally(final_track_history, frame_shape)
+    telemetry.report_heatmap_trajectories_async(final_track_history, frame_shape)
     
     telemetry_settings = app_settings.get_telemetry_settings()
     telemetry.report_telemetry(

@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 import os
 import app_settings
+import uploader
 
 def _resolve_telemetry_upload_url(base_url, telemetry_settings=None):
     telemetry_settings = telemetry_settings or app_settings.get_telemetry_settings()
@@ -77,6 +78,53 @@ def save_telemetry_locally(metrics_data):
         print(f"✅ Telemetry saved locally to {file_path}.")
     except Exception as e:
         print(f"❌ Error saving telemetry locally: {e}")
+
+
+def report_heatmap_trajectories_async(track_history, frame_shape):
+    upload_thread = threading.Thread(target=report_heatmap_trajectories, args=(track_history, frame_shape))
+    upload_thread.daemon = True
+    upload_thread.start()
+
+
+def report_heatmap_trajectories(track_history, frame_shape):
+    """Sends raw bee trajectories to gate-video-stream for centralized daily heatmap generation."""
+    telemetry_settings = app_settings.get_telemetry_settings()
+    box_id = telemetry_settings.get("section_id")
+    if not telemetry_settings.get("api_token") or not box_id:
+        print("ℹ️ Skipping heatmap trajectory upload because API token or section ID is missing.")
+        return
+
+    if not track_history:
+        print("ℹ️ Skipping heatmap trajectory upload because track history is empty.")
+        return
+
+    serializable_history = {
+        str(k): [[int(round(coord[0])), int(round(coord[1]))] for coord in v]
+        for k, v in track_history.items()
+        if v
+    }
+    if not serializable_history:
+        return
+
+    payload = {
+        "boxId": box_id,
+        "timestamp": datetime.utcnow().isoformat(),
+        "frameDimensions": {
+            "height": frame_shape[0],
+            "width": frame_shape[1],
+        },
+        "trackHistory": serializable_history,
+    }
+
+    try:
+        response = uploader._post_video_service_json('/api/entrance-heatmaps/trajectories', payload, timeout=120)
+        if response.status_code in (200, 201):
+            print("✅ Heatmap trajectories uploaded successfully.")
+        else:
+            print("❌ Error uploading heatmap trajectories:", response.status_code)
+            print(response.text)
+    except Exception as error:
+        print(f"❌ Error sending heatmap trajectories: {error}")
 
 def report_telemetry_async(metrics_data, bearer_token=None, hiveId=None, boxId=None, base_url=None, telemetry_settings=None):
     telemetry_thread = threading.Thread(target=report_telemetry, args=(metrics_data, bearer_token, hiveId, boxId, base_url, telemetry_settings))
