@@ -222,10 +222,13 @@ def start_live_command_loop(stop_event, status_supplier=None, frame_supplier=Non
 
     active_publishers = {}
 
-    report_live_event(box_id, 'DEVICE_ONLINE', payload={
-        'cameraStatus': 'ok',
-        'publisherState': 'idle',
-    })
+    try:
+        report_live_event(box_id, 'DEVICE_ONLINE', payload={
+            'cameraStatus': 'ok',
+            'publisherState': 'idle',
+        })
+    except Exception as error:
+        print(f"⚠️ Could not report live device online event: {error}")
 
     while not stop_event.is_set():
         try:

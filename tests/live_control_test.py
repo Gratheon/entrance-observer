@@ -1,5 +1,6 @@
 import os
 import sys
+import threading
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
@@ -130,3 +131,23 @@ def test_report_live_device_status_uses_gate_video_stream_rest_api(mock_post):
     assert kwargs['json']['cameraStatus'] == 'ok'
     assert kwargs['json']['publisherState'] == 'idle'
     assert kwargs['json']['status']['fps'] == 0
+
+
+def test_start_live_command_loop_continues_when_online_event_report_fails():
+    stop_event = threading.Event()
+
+    def poll_once(status_override=None):
+        stop_event.set()
+        return []
+
+    telemetry_settings = {
+        'api_token': 'secret',
+        'section_id': '42',
+    }
+
+    with patch('uploader.app_settings.get_telemetry_settings', return_value=telemetry_settings), \
+            patch('uploader.report_live_event', side_effect=Exception('event endpoint missing')), \
+            patch('uploader.poll_live_commands', side_effect=poll_once) as mock_poll:
+        uploader.start_live_command_loop(stop_event)
+
+    mock_poll.assert_called_once()
