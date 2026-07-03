@@ -87,3 +87,12 @@ def test_load_raw_settings_uses_tracked_template_when_local_settings_are_missing
     settings = app_settings.load_raw_settings()
 
     assert settings['telemetry']['hive_id'] == 'template-hive'
+
+
+def test_telemetry_settings_support_live_control_poll_interval_from_env(monkeypatch):
+    monkeypatch.setenv('LIVE_CONTROL_POLL_INTERVAL_SEC', '9')
+
+    telemetry = app_settings.get_telemetry_settings({'telemetry': {}})
+
+    assert telemetry['live_control_poll_interval_sec'] == 9
+

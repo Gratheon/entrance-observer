@@ -34,7 +34,11 @@ from app_settings import (
     merge_settings,
     save_settings_file,
 )
-from uploader import upload_file_async, delete_old_mp4_files
+from uploader import (
+    upload_file_async,
+    delete_old_mp4_files,
+    start_live_command_loop,
+)
 import storage_manager
 from counter import count_bees_from_frames_async
 
@@ -235,6 +239,22 @@ def set_camera_status(state, message, detail=None):
 def get_camera_status():
     with camera_status_lock:
         return camera_status.copy()
+
+
+def get_live_control_status():
+    status = get_camera_status()
+    return {
+        "cameraStatus": status.get("state") or "unknown",
+        "publisherState": "active" if capture_thread_running else "idle",
+        "status": {
+            "cameraMessage": status.get("message"),
+            "cameraDetail": status.get("detail"),
+            "captureThreadRunning": capture_thread_running,
+            "liveRelayProtocol": "http-jpeg-push",
+            "livePlaybackProtocol": "multipart/x-mixed-replace",
+            "liveFrameContentType": "image/jpeg",
+        },
+    }
 
 
 def draw_centered_text(frame, lines, color=(255, 255, 255), line_height=34):
@@ -568,6 +588,20 @@ def generate_frames(get_frame):
         if not flag:
             time.sleep(0.2)
             continue
+
+
+def get_live_frame_jpeg_bytes():
+    with frame_lock:
+        frame = yolo_frame.copy() if yolo_frame is not None else video_frame.copy() if video_frame is not None else None
+
+    if frame is None:
+        frame = create_camera_status_frame()
+
+    flag, encoded_image = cv2.imencode(".jpg", frame)
+    if not flag:
+        return None
+
+    return encoded_image.tobytes()
         yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' +
               bytearray(encodedImage) + b'\r\n')
 
@@ -3490,6 +3524,13 @@ if __name__ == '__main__':
     observer_thread = threading.Thread(target=run_observer_client)
     observer_thread.daemon = True
     observer_thread.start()
+
+    live_control_thread = threading.Thread(
+        target=start_live_command_loop,
+        args=(shutdown_requested, get_live_control_status, get_live_frame_jpeg_bytes),
+    )
+    live_control_thread.daemon = True
+    live_control_thread.start()
     from waitress import serve
     print("🚀 --- Starting web server on http://0.0.0.0:3030 ---")
     try:
@@ -3499,4 +3540,7 @@ if __name__ == '__main__':
         observer_thread.join(timeout=45)
         if observer_thread.is_alive():
             print("Timed out waiting for observer thread to stop.")
+        live_control_thread.join(timeout=15)
+        if live_control_thread.is_alive():
+            print("Timed out waiting for live control thread to stop.")
         cleanup_observer_runtime()

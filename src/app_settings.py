@@ -30,6 +30,7 @@ DEFAULT_TELEMETRY_SETTINGS = {
     "upload_path": "/entrance/v1/movement",
     "upload_url": "",
     "video_upload_url": "https://video.gratheon.com/graphql",
+    "live_control_poll_interval_sec": 5,
 }
 
 DEFAULT_NIGHT_MODE_SETTINGS = {
@@ -92,6 +93,7 @@ TELEMETRY_ENV_MAP = {
     "upload_path": "TELEMETRY_UPLOAD_PATH",
     "upload_url": "TELEMETRY_UPLOAD_URL",
     "video_upload_url": "VIDEO_UPLOAD_URL",
+    "live_control_poll_interval_sec": "LIVE_CONTROL_POLL_INTERVAL_SEC",
 }
 
 NIGHT_MODE_ENV_MAP = {
@@ -197,6 +199,12 @@ def get_telemetry_settings(raw_settings: Optional[Dict[str, Any]] = None) -> Dic
     raw_telemetry = raw_settings.get("telemetry", {}) if isinstance(raw_settings, dict) else {}
 
     for key, env_name in TELEMETRY_ENV_MAP.items():
+        if isinstance(telemetry.get(key), int):
+            env_value = _env_int(env_name)
+            if env_value is not None and (key not in raw_telemetry or telemetry.get(key) in (None, "")):
+                telemetry[key] = env_value
+            continue
+
         env_value = os.getenv(env_name)
         if env_value and (key not in raw_telemetry or telemetry.get(key) in (None, "")):
             telemetry[key] = env_value
