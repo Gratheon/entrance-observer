@@ -589,6 +589,9 @@ def generate_frames(get_frame):
             time.sleep(0.2)
             continue
 
+        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' +
+              bytearray(encodedImage) + b'\r\n')
+
 
 def get_live_frame_jpeg_bytes():
     with frame_lock:
@@ -602,8 +605,6 @@ def get_live_frame_jpeg_bytes():
         return None
 
     return encoded_image.tobytes()
-        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' +
-              bytearray(encodedImage) + b'\r\n')
 
 from urllib.parse import quote
 
