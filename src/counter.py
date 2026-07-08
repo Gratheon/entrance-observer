@@ -57,8 +57,17 @@ def countBeesAndReportTelemetry(frames, total_interactions, output_video_path=No
     metrics_data.update(derived_metrics)
     metrics_data["net_flow"] = beesIn - beesOut
     
-    telemetry.save_track_history_locally(final_track_history, frame_shape)
-    telemetry.report_heatmap_trajectories_async(final_track_history, frame_shape)
+    telemetry_frame_shape = frame_shape
+    if frames:
+        first_frame = frames[0][0]
+        if getattr(first_frame, "shape", None) is not None:
+            # WHY: YOLO track coordinates are in the processed frame coordinate space,
+            # while frame_shape can be the resized debug-video writer size. Heatmap
+            # ingestion must receive the same dimensions as the tracked points.
+            telemetry_frame_shape = first_frame.shape[:2]
+
+    telemetry.save_track_history_locally(final_track_history, telemetry_frame_shape)
+    telemetry.report_heatmap_trajectories_async(final_track_history, telemetry_frame_shape)
     
     telemetry_settings = app_settings.get_telemetry_settings()
     telemetry.report_telemetry(
