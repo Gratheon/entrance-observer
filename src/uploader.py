@@ -101,6 +101,75 @@ def poll_live_commands(status_override=None, limit=10):
     return body.get("commands") or []
 
 
+
+def _live_events_url(status_override=None, limit=10):
+    payload = build_live_device_status(status_override)
+    if not payload:
+        return None
+
+    settings = app_settings.get_telemetry_settings()
+    upload_url = settings.get("video_upload_url") or "https://video.gratheon.com/graphql"
+    base_url = _video_service_base_url(upload_url)
+    params = {
+        "boxId": payload.get("boxId"),
+        "deviceId": payload.get("deviceId"),
+        "appVersion": payload.get("appVersion"),
+        "cameraStatus": payload.get("cameraStatus"),
+        "publisherState": payload.get("publisherState"),
+        "limit": limit,
+    }
+    query = "&".join(
+        f"{key}={requests.utils.quote(str(value), safe='')}"
+        for key, value in params.items()
+        if value is not None
+    )
+    return f"{base_url}/api/entrance-live/device/events?{query}"
+
+
+def iter_live_command_events(stop_event, status_override=None, limit=10):
+    settings = app_settings.get_telemetry_settings()
+    bearer_token = settings.get("api_token")
+    events_url = _live_events_url(status_override=status_override, limit=limit)
+    if not bearer_token or not events_url:
+        return
+
+    # WHY: A long-lived SSE stream replaces periodic device/poll HTTP requests,
+    # reducing cloud access-log volume while still using an outbound HTTPS-only channel.
+    with requests.get(
+        events_url,
+        headers={
+            'Authorization': f'Bearer {bearer_token}',
+            'Accept': 'text/event-stream',
+        },
+        stream=True,
+        timeout=(10, 70),
+        allow_redirects=True,
+    ) as response:
+        response.raise_for_status()
+        event_name = None
+        data_lines = []
+        for raw_line in response.iter_lines(decode_unicode=True):
+            if stop_event.is_set():
+                break
+
+            line = raw_line or ""
+            if line.startswith(":"):
+                continue
+            if line.startswith("event:"):
+                event_name = line[6:].strip()
+                continue
+            if line.startswith("data:"):
+                data_lines.append(line[5:].strip())
+                continue
+            if line == "" and data_lines:
+                payload = json.loads("\n".join(data_lines))
+                if event_name == "commands":
+                    for command in payload.get("commands") or []:
+                        yield command
+                event_name = None
+                data_lines = []
+
+
 def acknowledge_live_command(box_id, command_id, status, payload=None):
     response = _post_video_service_json('/api/entrance-live/device/command-ack', {
         "boxId": box_id,
@@ -221,6 +290,8 @@ def start_live_command_loop(stop_event, status_supplier=None, frame_supplier=Non
         return
 
     active_publishers = {}
+    next_sse_attempt_at = 0
+    sse_failure_logged = False
 
     try:
         report_live_event(box_id, 'DEVICE_ONLINE', payload={
@@ -230,88 +301,106 @@ def start_live_command_loop(stop_event, status_supplier=None, frame_supplier=Non
     except Exception as error:
         print(f"⚠️ Could not report live device online event: {error}")
 
+    def handle_live_command(command):
+        command_type = command.get('commandType')
+        session_id = command.get('sessionId')
+        payload = command.get('payload') or {}
+        command_id = command.get('id')
+
+        if command_type == 'START_STREAM':
+            acknowledge_live_command(box_id, command_id, 'accepted', {
+                'sessionId': session_id,
+                'relayProtocol': payload.get('relayProtocol'),
+            })
+
+            publisher_url = payload.get('publisherUrl')
+            publish_token = payload.get('publishToken')
+            relay_protocol = payload.get('relayProtocol')
+            if relay_protocol != 'http-jpeg-push' or not publisher_url or not publish_token:
+                report_live_event(box_id, 'STREAM_FAILED', session_id=session_id, payload={
+                    'cameraStatus': 'error',
+                    'publisherState': 'error',
+                    'relayProtocol': relay_protocol,
+                    'errorCode': 'UNSUPPORTED_RELAY_PROTOCOL',
+                    'message': f'Unsupported or incomplete relay config: {relay_protocol}',
+                })
+                return
+
+            existing_publisher = active_publishers.pop(session_id, None)
+            if existing_publisher:
+                existing_publisher['stop_event'].set()
+                existing_publisher['thread'].join(timeout=5)
+
+            publisher_stop_event = threading.Event()
+            publisher_thread = threading.Thread(
+                target=run_live_frame_publisher,
+                args=(publisher_stop_event, session_id, publisher_url, publish_token, frame_supplier, status_supplier),
+            )
+            publisher_thread.daemon = True
+            publisher_thread.start()
+            active_publishers[session_id] = {
+                'stop_event': publisher_stop_event,
+                'thread': publisher_thread,
+            }
+
+            report_live_event(box_id, 'STREAM_STARTING', session_id=session_id, payload={
+                'cameraStatus': 'ok',
+                'publisherState': 'starting',
+                'qualityProfile': payload.get('qualityProfile'),
+                'recordingMode': payload.get('recordingMode'),
+                'relayProtocol': relay_protocol,
+                'publisherUrl': publisher_url,
+            })
+            report_live_event(box_id, 'STREAM_ACTIVE', session_id=session_id, payload={
+                'cameraStatus': 'ok',
+                'publisherState': 'active',
+                'qualityProfile': payload.get('qualityProfile'),
+                'recordingMode': payload.get('recordingMode'),
+                'relayProtocol': relay_protocol,
+                'publisherUrl': publisher_url,
+                'clipHandoffEnabled': bool(payload.get('clipHandoffEnabled')),
+            })
+        elif command_type == 'STOP_STREAM':
+            existing_publisher = active_publishers.pop(session_id, None)
+            if existing_publisher:
+                existing_publisher['stop_event'].set()
+                existing_publisher['thread'].join(timeout=5)
+
+            acknowledge_live_command(box_id, command_id, 'accepted', {
+                'sessionId': session_id,
+            })
+            report_live_event(box_id, 'STREAM_STOPPED', session_id=session_id, payload={
+                'cameraStatus': 'ok',
+                'publisherState': 'idle',
+                'reason': 'commanded-stop',
+            })
+        else:
+            acknowledge_live_command(box_id, command_id, 'ignored', {
+                'sessionId': session_id,
+                'reason': f'Unsupported command type {command_type}',
+            })
+
     while not stop_event.is_set():
+        status_override = None
         try:
             status_override = status_supplier() if callable(status_supplier) else None
+            if time.time() >= next_sse_attempt_at:
+                for command in iter_live_command_events(stop_event, status_override=status_override):
+                    handle_live_command(command)
+                if stop_event.is_set():
+                    break
+                next_sse_attempt_at = time.time() + 1
+                continue
+        except Exception as error:
+            if not sse_failure_logged:
+                print(f"⚠️ Live command SSE stream unavailable, falling back to REST polling: {error}")
+                sse_failure_logged = True
+            next_sse_attempt_at = time.time() + 60
+
+        try:
             commands = poll_live_commands(status_override=status_override)
             for command in commands:
-                command_type = command.get('commandType')
-                session_id = command.get('sessionId')
-                payload = command.get('payload') or {}
-                command_id = command.get('id')
-
-                if command_type == 'START_STREAM':
-                    acknowledge_live_command(box_id, command_id, 'accepted', {
-                        'sessionId': session_id,
-                        'relayProtocol': payload.get('relayProtocol'),
-                    })
-
-                    publisher_url = payload.get('publisherUrl')
-                    publish_token = payload.get('publishToken')
-                    relay_protocol = payload.get('relayProtocol')
-                    if relay_protocol != 'http-jpeg-push' or not publisher_url or not publish_token:
-                        report_live_event(box_id, 'STREAM_FAILED', session_id=session_id, payload={
-                            'cameraStatus': 'error',
-                            'publisherState': 'error',
-                            'relayProtocol': relay_protocol,
-                            'errorCode': 'UNSUPPORTED_RELAY_PROTOCOL',
-                            'message': f'Unsupported or incomplete relay config: {relay_protocol}',
-                        })
-                        continue
-
-                    existing_publisher = active_publishers.pop(session_id, None)
-                    if existing_publisher:
-                        existing_publisher['stop_event'].set()
-                        existing_publisher['thread'].join(timeout=5)
-
-                    publisher_stop_event = threading.Event()
-                    publisher_thread = threading.Thread(
-                        target=run_live_frame_publisher,
-                        args=(publisher_stop_event, session_id, publisher_url, publish_token, frame_supplier, status_supplier),
-                    )
-                    publisher_thread.daemon = True
-                    publisher_thread.start()
-                    active_publishers[session_id] = {
-                        'stop_event': publisher_stop_event,
-                        'thread': publisher_thread,
-                    }
-
-                    report_live_event(box_id, 'STREAM_STARTING', session_id=session_id, payload={
-                        'cameraStatus': 'ok',
-                        'publisherState': 'starting',
-                        'qualityProfile': payload.get('qualityProfile'),
-                        'recordingMode': payload.get('recordingMode'),
-                        'relayProtocol': relay_protocol,
-                        'publisherUrl': publisher_url,
-                    })
-                    report_live_event(box_id, 'STREAM_ACTIVE', session_id=session_id, payload={
-                        'cameraStatus': 'ok',
-                        'publisherState': 'active',
-                        'qualityProfile': payload.get('qualityProfile'),
-                        'recordingMode': payload.get('recordingMode'),
-                        'relayProtocol': relay_protocol,
-                        'publisherUrl': publisher_url,
-                        'clipHandoffEnabled': bool(payload.get('clipHandoffEnabled')),
-                    })
-                elif command_type == 'STOP_STREAM':
-                    existing_publisher = active_publishers.pop(session_id, None)
-                    if existing_publisher:
-                        existing_publisher['stop_event'].set()
-                        existing_publisher['thread'].join(timeout=5)
-
-                    acknowledge_live_command(box_id, command_id, 'accepted', {
-                        'sessionId': session_id,
-                    })
-                    report_live_event(box_id, 'STREAM_STOPPED', session_id=session_id, payload={
-                        'cameraStatus': 'ok',
-                        'publisherState': 'idle',
-                        'reason': 'commanded-stop',
-                    })
-                else:
-                    acknowledge_live_command(box_id, command_id, 'ignored', {
-                        'sessionId': session_id,
-                        'reason': f'Unsupported command type {command_type}',
-                    })
+                handle_live_command(command)
         except Exception as error:
             print(f"⚠️ Live command loop error: {error}")
             try:

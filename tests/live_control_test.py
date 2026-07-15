@@ -65,6 +65,38 @@ def test_poll_live_commands_passes_limit_to_rest_api(mock_post):
     assert kwargs['json']['limit'] == 3
 
 
+
+@patch('uploader.requests.get')
+def test_iter_live_command_events_streams_sse_commands(mock_get):
+    mock_response = MagicMock()
+    mock_response.raise_for_status.return_value = None
+    mock_response.iter_lines.return_value = iter([
+        'event: ready',
+        'data: {"ok": true}',
+        '',
+        ': keepalive 2026-07-15T00:00:00Z',
+        'event: commands',
+        'data: {"commands": [{"id": 11, "sessionId": "session-1", "commandType": "START_STREAM", "payload": {}}]}',
+        '',
+    ])
+    mock_get.return_value.__enter__.return_value = mock_response
+
+    with patch('uploader.app_settings.get_telemetry_settings', return_value={
+        'api_token': 'secret',
+        'section_id': '42',
+        'video_upload_url': 'https://video.gratheon.com/graphql',
+    }):
+        commands = list(uploader.iter_live_command_events(threading.Event()))
+
+    assert commands[0]['commandType'] == 'START_STREAM'
+    mock_get.assert_called_once()
+    args, kwargs = mock_get.call_args
+    assert args[0].startswith('https://video.gratheon.com/api/entrance-live/device/events?')
+    assert 'boxId=42' in args[0]
+    assert kwargs['headers']['Accept'] == 'text/event-stream'
+    assert kwargs['headers']['Authorization'] == 'Bearer secret'
+    assert kwargs['stream'] is True
+
 @patch('uploader.requests.post')
 def test_acknowledge_live_command_uses_gate_video_stream_rest_api(mock_post):
     mock_response = MagicMock()
