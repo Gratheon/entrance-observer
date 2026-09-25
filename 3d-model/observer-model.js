@@ -12,8 +12,9 @@
 // entrance floor on the front face of the hive; +Z points away from the hive.
 //
 // Layout rules:
-// - One arch: two side cheeks, the head across the top, the canopy over it and
-//   the landing board hinged between the cheeks. The entrance stays free.
+// - One slim arch: two side arms, the head across the top, a small ridged roof
+//   over the middle and the landing board hinged between the arms. The entrance
+//   stays free.
 // - The camera looks straight down at the board. Nothing but the board, the
 //   entrance edge and bees is in its field of view: cheeks, cables and the
 //   head are all outside it.
@@ -32,9 +33,9 @@ export const DEFAULTS = {
   hive: { w: 506, d: 450, h: 285, lid: 80, bottomBoard: 60, entrance: 300, slot: 15 }, // Estonian hive (outer)
   stand: 200, // wooden hive stand height
   arch: { inner: 440, cheek: 14, depth: 268, board: 212 }, // inner width between cheeks, cheek thickness, cheek depth, board depth
-  canopy: { back: 330, z0: 8, len: 292, w: 486, t: 5, slope: 8 }, // underside height at the back, start z, length, width, sheet, degrees
-  head: { y: 236, z: 100, w: 438, h: 56, d: 110 }, // underside height, centre z, size
-  camera: { eye: 218, hfov: 80, aspect: 16 / 9, px: 3840 }, // lens height above the entrance floor, degrees, sensor width px
+  canopy: { ridge: 284, z0: 22, len: 150, w: 480, t: 4, slope: 4 }, // ridge underside height, start z, length, width, sheet, degrees each side
+  head: { y: 203, z: 97, w: 438, h: 50, d: 90 }, // underside height, centre z, size
+  camera: { eye: 185, hfov: 90, aspect: 16 / 9, px: 3840 }, // lens height above the entrance floor, degrees, sensor width px
   boardSlope: 6, // degrees
   scale: { feet: 25, height: 112, deck: { w: 560, d: 510 }, base: { w: 504, d: 454, h: 60 } }, // from beehive-sensors DEFAULTS
   robot: { plinth: 200, bottomBoard: 150, post: { x: 372, z: 302 }, e: 22, clad: 18 }, // from robotic-beehive DEFAULTS
@@ -45,33 +46,33 @@ export const DEFAULTS = {
 // ---------------------------------------------------------------------------
 export const PARTS = {
   plate: ['Entrance plate', 'Aluminium plate screwed to the bottom board with four stainless wood screws beside the entrance (a paper drill template is in the box). Its window matches the 300 × 15 mm entrance, and its two bent ears are all the Observer hangs on. The plate stays on the hive; the Observer lifts off in seconds for an inspection, a move or winter.'],
-  riser: ['Scale risers', 'Two printed ASA brackets that hook onto the front rail of the beehive scale and carry the same ears as the entrance plate. The Observer then hangs on the scale base, not on the hive, so its own weight, the bees on the board and snow on the canopy are never weighed.'],
+  riser: ['Scale risers', 'Two printed ASA brackets that hook onto the front rail of the beehive scale and carry the same ears as the entrance plate. The Observer then hangs on the scale base, not on the hive, so its own weight, the bees on the board and snow on the roof are never weighed.'],
   robotFront: ['Robot entrance frame', 'The Robotic Beehive entrance tunnels end in the same ears, so the same Observer hangs on the cabinet front. Power and data come from the robot PoE switch inside a corner post, and the robot can use the entrance counts to choose when to inspect.'],
-  thumb: ['Thumbscrews', 'One captive thumbscrew per side, through the ear into the cheek. Hang the Observer on the ears, turn two screws and it is done: no tools, and the camera lands in exactly the same place every time.'],
-  cheek: ['Side cheeks', 'Folded 2 mm aluminium box sections, powder-coated graphite. They carry the head and canopy and keep low side sun and wind off the landing board. The field of view stops 25 mm short of their inner faces, so they never show in the video.'],
-  channel: ['Cable channel', 'The right cheek is hollow. The PoE cable enters it from below and runs up inside it to the head, so no cable is in the sun, in the rain or in front of the lens.'],
-  gland: ['Cable entries', 'Under the right cheek, facing the ground: the PoE cable gland and the accessory socket. Water runs off them, not into them, and the cable leaves with a drip loop.'],
+  thumb: ['Thumbscrews', 'One captive thumbscrew per side, through the ear into the arm. Hang the Observer on the ears, turn two screws and it is done: no tools, and the camera lands in exactly the same place every time.'],
+  cheek: ['Side arms', 'Folded 2 mm aluminium box sections, powder-coated graphite, leaning forward from the entrance plate to the head. They are only as wide as they need to be to carry the head, so the arch stays light and open and bees can also fly in from the sides. The field of view stops short of their inner faces, so they never show in the video.'],
+  channel: ['Cable channel', 'The right arm is hollow. The PoE cable enters it from below and runs up inside it to the head, so no cable is in the sun, in the rain or in front of the lens.'],
+  gland: ['Cable entries', 'Under the right arm, facing the ground: the PoE cable gland and the accessory socket. Water runs off them, not into them, and the cable leaves with a drip loop.'],
   m12: ['Accessory port', 'M12 8-pin socket with the pinout of the beehive scale front connector: 5 V out, ground, 1-Wire, UART, wake and shield. One short lead to the scale powers the scale pod from the Observer and shares time and readings, so the scale needs no solar board and both upload through one link.'],
-  head: ['Head', 'Extruded aluminium housing, IP65, across the top of the arch. It is also the heatsink: the compute sled presses onto it through a thermal pad, and the fins on top shed heat into the ventilated gap under the canopy. No fan to clog with dust or propolis.'],
-  camera: ['Camera module', '8 MP (3840 × 2160) Sony STARVIS 2 sensor on its own MIPI CSI board with a locked-focus M12 lens, 80° wide. It looks straight down from 220 mm, so the board is seen without perspective: about 10 px per mm, a bee is about 140 px long and a varroa mite about 15 px, which is enough for pose keypoints and mites. A global-shutter module can replace it without changing the housing.'],
-  hood: ['Lens hood + window', 'Matt black cone with a flat AR-coated glass window at its tip, facing the ground. Rain cannot reach it, the sky never reflects in it and the canopy keeps direct sun off it. A 0.3 W heater film clears dew on cold mornings.'],
+  head: ['Head', 'Extruded aluminium housing, IP65, across the top of the arch. It is also the heatsink: the compute sled presses onto it through a thermal pad, and the fins on top shed heat into the open gap under the roof. No fan to clog with dust or propolis.'],
+  camera: ['Camera module', '8 MP (3840 × 2160) Sony STARVIS 2 sensor on its own MIPI CSI board with a locked-focus, low-distortion M12 lens, 90° wide. It looks straight down from 185 mm, so the board is seen from above in true proportions: about 10 px per mm, a bee is about 140 px long and a varroa mite about 15 px, which is enough for pose keypoints and mites. A global-shutter module can replace it without changing the housing.'],
+  hood: ['Lens hood + window', 'Matt black cone with a flat AR-coated glass window at its tip, facing the ground. Rain cannot reach it, the sky never reflects in it and the roof keeps direct sun off it. A 0.3 W heater film clears dew on cold mornings.'],
   led: ['Light bars', 'Two diffused LED bars beside the lens, with crossed polarisers on the LEDs and the lens to remove glints from shiny bees and wet pollen. They only flash in sync with the exposure at dusk or in deep shade, so they add less than 0.3 W on average.'],
   mic: ['Microphone', 'MEMS microphone behind a mesh under the head. Entrance audio (drone flight, piping, hornets, fanning) is stored with the counts for audio + video models.'],
   sensor: ['Light + climate sensor', 'Ambient light, temperature and humidity. The supervisor uses them to decide when bees can fly, which is when the computer has to run.'],
   supervisor: ['Supervisor board', 'Always-on ESP32-S3 board, the same carrier design as the beehive scale: PoE+ input, 12–24 V DC input, solar charger, fuel gauge and a load switch for the compute sled. It idles at about 0.1 W and only powers the computer when bees can fly (light, temperature, no rain, schedule). It also keeps time and forwards the scale readings.'],
-  compute: ['Compute cassette', 'Raspberry Pi 5 (8 GB), Hailo-8 26 TOPS accelerator and 256 GB NVMe on one sled. It slides out of the right cheek after a quarter-turn, like the beehive scale pod. The sled is the upgrade path: housing, camera, power and connectors stay the same, and a Jetson Orin NX or the next accelerator slides into the same bay when pose models need more compute.'],
+  compute: ['Compute cassette', 'Raspberry Pi 5 (8 GB), Hailo-8 26 TOPS accelerator and 256 GB NVMe on one sled. It slides out of the right arm after a quarter-turn, like the beehive scale pod. The sled is the upgrade path: housing, camera, power and connectors stay the same, and a Jetson Orin NX or the next accelerator slides into the same bay when pose models need more compute.'],
   face: ['Service face', 'Honey-yellow face of the compute cassette: status ring, setup button and a USB-C port under a flap for copying full-resolution research clips on site.'],
-  battery: ['Battery cassette', 'Solar version: four LiFePO4 32700 cells (12.8 V, 77 Wh) on a sled in the left bay, charged from the canopy panel. LiFePO4 tolerates the heat under a summer canopy better than Li-ion. In the PoE version this bay is empty or holds an LTE modem.'],
+  battery: ['Battery cassette', 'Solar version: four LiFePO4 32700 cells (12.8 V, 77 Wh) on a sled in the left bay, charged from the roof panels. LiFePO4 tolerates the heat of a summer day in the head better than Li-ion. In the PoE version this bay is empty or holds an LTE modem.'],
   blank: ['Left bay cover', 'Cover of the left bay. Behind it goes the battery cassette (solar version) or an LTE modem for apiaries without Wi-Fi or Ethernet.'],
-  canopy: ['Opal canopy', '5 mm opal (light-diffusing), UV-stabilised polycarbonate, sloped 8° forward with drip edges. It turns direct sun into soft, even light on the board: no hard bee shadows, no bright patches, no glare. Rain drips off in front of the board, outside the view, and heat from the head escapes through the gap at the back.'],
-  solarCanopy: ['Solar canopy', 'The same canopy with a 20 W ETFE panel laminated on top. The board is then in open shade rather than diffused light, which the exposure profile handles. Bees fly when the sun shines, so the panel produces the most when the Observer has the most to do.'],
-  board: ['Landing board', '10 mm HDPE, hinged between the cheeks at a 6° slope so rain drains off. It is the background of every frame, so it is part of the product: matt, neutral light grey. White would overexpose in the sun and hide pale pollen loads.'],
+  canopy: ['Roof', '480 × 150 mm of 4 mm opal (light-diffusing), UV-stabilised polycarbonate, cold-bent into a shallow ridge and set on four standoffs over the head. It keeps sun and rain off the head and the lens. Rain runs to the two side eaves and drips beside the landing board, outside the view. Being opal, it casts only a faint, soft shadow on the board, which does not cut bees in half in the image.'],
+  solarCanopy: ['Solar roof', 'The same roof with two 5 W ETFE panels laminated on its slopes (10 W). Bees fly when the sun shines, so the panels produce the most when the Observer has the most to do. The solar version samples (2 minutes in every 15) rather than recording all day.'],
+  board: ['Landing board', '10 mm HDPE, hinged between the arms at a 6° slope so rain drains off. It is the background of every frame, so it is part of the product: matt, neutral light grey. White would overexpose in the sun and hide pale pollen loads.'],
   insert: ['Board insert', 'The top 3 mm layer slides out forward for washing off droppings, dead bees and propolis. Spare inserts are cheap to keep.'],
   marker: ['Calibration markers', 'Four ArUco markers and a millimetre scale on the insert. The software finds them in every frame, so it knows the exact mm per pixel for bee size and speed, straightens the view, and raises an alert if the Observer has been knocked.'],
   hinge: ['Board hinge', 'Stainless pins. The board folds up flat for shipping and swings down if something hits it.'],
-  harness: ['Internal harness', 'PoE and accessory lines from the entries under the right cheek, up the cable channel to the supervisor board in the head.'],
-  cable: ['Cables', 'One PoE cable (power and data, up to 100 m) from under the right cheek, run along the ground. With the scale, one short M12 lead joins the Observer and the scale.'],
-  fov: ['Camera field of view', 'What the camera sees: about 370–400 × 220 mm of the landing board (wider at the front, where the board slopes away) and the entrance edge. The cheeks, head, canopy and cables are all outside it.'],
+  harness: ['Internal harness', 'PoE and accessory lines from the entries under the right arm, up the cable channel to the supervisor board in the head.'],
+  cable: ['Cables', 'One PoE cable (power and data, up to 100 m) from under the right arm, run along the ground. With the scale, one short M12 lead joins the Observer and the scale.'],
+  fov: ['Camera field of view', 'What the camera sees: about 370–400 × 220 mm of the landing board (wider at the front, where the board slopes away) and the entrance edge. The arms, head, roof and cables are all outside it.'],
   bee: ['Bees', 'Honey bees on the landing board. At 4K each worker is about 140 px long, big enough for pose keypoints, pollen loads and mites.'],
   hive: ['Hive', 'A standard hive: bottom board, bodies and lid. The only change is the entrance plate screwed to the bottom board.'],
   stand: ['Hive stand', 'Any stand works: the Observer hangs on the hive entrance and does not touch the stand.'],
@@ -106,9 +107,7 @@ export function derive(p) {
     entranceY = hiveBase + 12;
     origin = [0, entranceY, H.d / 2];
   }
-  const C = p.canopy, cam = p.camera;
-  const tanC = Math.tan(rad(C.slope));
-  const canopyUnder = (z) => C.back - (z - C.z0) * tanC; // canopy underside height at local z
+  const cam = p.camera;
   const tanB = Math.tan(rad(p.boardSlope));
   const boardY = (z) => -2 - (z - 5) * tanB; // board surface height at local z
   const vfov = 2 * Math.atan(Math.tan(rad(cam.hfov / 2)) / cam.aspect);
@@ -122,7 +121,7 @@ export function derive(p) {
   const fovW = corners[1].x - corners[0].x;
   const fovD = corners[2].z - corners[1].z;
   return {
-    origin, hiveBase, bottomBoard, entranceY, canopyUnder, boardY, tanC, tanB, eye, corners, vfov,
+    origin, hiveBase, bottomBoard, entranceY, boardY, tanB, eye, corners, vfov,
     fovW, fovD, pxPerMm: cam.px / fovW,
     lidTop: hiveBase + bottomBoard + p.boxes * H.h + H.lid,
   };
@@ -135,9 +134,9 @@ export const ENERGY = {
   activeW: 9, // Pi 5 + Hailo-8 + 4K camera + Ethernet while observing
   bootJ: 125, // ≈25 s boot at 5 W before the first frame
   flightHours: 12, // summer day with flight weather
-  sample: { on: 120, period: 600 }, // sampled mode: record 2 min every 10 min
+  sample: { on: 120, period: 900 }, // sampled mode: record 2 min every 15 min
   batteryWh: 77, depth: 0.9,
-  panelW: 20, sunHours: 4.5, systemEff: 0.7, // May–August average for Estonia, near-horizontal panel
+  panelW: 10, sunHours: 4.5, systemEff: 0.7, // May–August average for Estonia, near-horizontal panel
 };
 export function energy(e = ENERGY) {
   const base = e.supervisorW * 24;
@@ -317,7 +316,8 @@ export function buildObserver(options = {}) {
   // ----- side cheeks (extruded profile, box section) -------------------------
   const cheekShape = () => {
     const s = new THREE.Shape();
-    const pts = [[4, -30], [64, -30], [A.board + 10, -12], [A.board + 10, 24], [A.depth, d.canopyUnder(A.depth) - 1], [4, d.canopyUnder(4) - 1]];
+    const top = HD.y + HD.h + 1, z0 = HD.z - HD.d / 2 - 6, z1 = HD.z + HD.d / 2 + 6;
+    const pts = [[4, -30], [58, -30], [58, 10], [z1, HD.y - 30], [z1, top], [z0, top], [4, 70]];
     s.moveTo(pts[0][0] * MM, pts[0][1] * MM);
     for (const [u, v] of pts.slice(1)) s.lineTo(u * MM, v * MM);
     s.closePath();
@@ -347,8 +347,8 @@ export function buildObserver(options = {}) {
   const bayZ0 = HD.z - HD.d / 2 + 6, bayD = HD.d - 12, bayY0 = HD.y + 4, bayH = HD.h - 8;
 
   // ----- internal harness (inside the right cheek; seen in the exploded view)
-  cable(obs, [[OUT - 7, -30, 18], [OUT - 7, -10, 20], [OUT - 7, 120, 30], [OUT - 7, 200, 40], [OUT - 8, HD.y + 14, HD.z - 30], [IN - 20, HD.y + 20, HD.z - 30]], 2.4, M.cable, 'harness');
-  cable(obs, [[OUT - 7, -30, 46], [OUT - 9, 40, 44], [OUT - 9, 200, 46], [IN - 20, HD.y + 26, HD.z - 24]], 1.8, M.cable, 'harness');
+  cable(obs, [[OUT - 7, -30, 18], [OUT - 7, 0, 22], [OUT - 7, 80, 40], [OUT - 7, 150, 62], [OUT - 8, HD.y + 14, HD.z - 20], [IN - 20, HD.y + 20, HD.z - 20]], 2.4, M.cable, 'harness');
+  cable(obs, [[OUT - 7, -30, 46], [OUT - 9, 20, 44], [OUT - 9, 150, 70], [IN - 20, HD.y + 26, HD.z - 12]], 1.8, M.cable, 'harness');
 
   // ----- head --------------------------------------------------------------------
   const head = explodable(group(obs, 'head', 0, HD.y, HD.z, 'head'), 0, 170, 0);
@@ -361,7 +361,7 @@ export function buildObserver(options = {}) {
   // rounded front/back edges read as an extrusion
   for (const s of [-1, 1]) cyl(head, 4, hw, M.anod, 0, 4, s * (hd / 2 - 3), 'x', 'head', 12);
   // cooling fins on top, running front-to-back under the canopy
-  for (let x = -200; x <= 200; x += 20) box(head, 2.5, 9, hd - 10, M.anod, x, hh + 4.5, 0, 'head');
+  for (let x = -200; x <= 200; x += 20) box(head, 2.5, 7, hd - 10, M.anod, x, hh + 3.5, 0, 'head');
   // Gratheon stripe on the front face
   box(head, 140, 6, 1, M.pod, 0, hh / 2, hd / 2 + 0.5, 'head');
   // underside: light bars, microphone, light/climate sensor
@@ -433,17 +433,31 @@ export function buildObserver(options = {}) {
   nodes.eye = eye;
 
   // ----- canopy ----------------------------------------------------------------
-  const canopy = explodable(group(obs, 'canopy', 0, C.back, C.z0, solar ? 'solarCanopy' : 'canopy'), 0, 330, 0);
-  canopy.rotation.x = rad(C.slope);
+  const canopy = explodable(group(obs, 'canopy', 0, C.ridge, C.z0, solar ? 'solarCanopy' : 'canopy'), 0, 220, 0);
   nodes.canopy = canopy;
   const cPart = solar ? 'solarCanopy' : 'canopy';
   const sheet = solar ? M.acm : M.opal;
-  box(canopy, C.w, C.t, C.len, sheet, 0, C.t / 2, C.len / 2, cPart);
-  box(canopy, C.w, 22, 3, solar ? M.acm : M.opalEdge, 0, C.t - 11, C.len + 1.5, cPart); // front drip edge
-  for (const s of [-1, 1]) box(canopy, 3, 16, C.len, solar ? M.acm : M.opalEdge, s * (C.w / 2 - 1.5), C.t - 8, C.len / 2, cPart);
-  // four captive screws into the cheek tops
-  for (const sx of [-1, 1]) for (const z of [30, A.depth - 30]) cyl(canopy, 5, 2, M.steel, sx * (IN + A.cheek / 2), C.t + 1, z - C.z0, 'y', cPart, 16);
-  box(canopy, 180, 5, 0.6, M.pod, 0, C.t - 9, C.len + 3.3, cPart); // honey-yellow accent on the drip edge
+  const halfW = C.w / 2;
+  // Two slopes meeting at a ridge along Z: rain runs to the side eaves, beside the board.
+  for (const s of [-1, 1]) {
+    const half = group(canopy, s > 0 ? 'roofRight' : 'roofLeft', 0, 0, 0, cPart);
+    half.rotation.z = -s * rad(C.slope);
+    box(half, halfW, C.t, C.len, sheet, (s * halfW) / 2, C.t / 2, C.len / 2, cPart);
+    box(half, 3, 12, C.len, solar ? M.acm : M.opalEdge, s * (halfW - 1.5), C.t - 6, C.len / 2, cPart); // eave drip edge
+    if (solar) {
+      box(half, halfW - 26, 1.2, C.len - 20, M.solar, s * (halfW / 2 + 2), C.t + 0.6, C.len / 2, 'solarCanopy');
+      for (let i = 1; i < 4; i++) box(half, 0.8, 1.5, C.len - 20, M.solarGrid, s * (14 + (i * (halfW - 26)) / 4), C.t + 0.7, C.len / 2, 'solarCanopy');
+      box(half, halfW - 26, 1.5, 0.8, M.solarGrid, s * (halfW / 2 + 2), C.t + 0.7, C.len / 2, 'solarCanopy');
+    }
+  }
+  box(canopy, 10, 3, C.len + 2, M.pod, 0, C.t + 1, C.len / 2, cPart); // honey-yellow ridge cap
+  // four standoffs from the head roof up to the underside of the roof
+  const headTop = HD.y + HD.h;
+  for (const sx of [-1, 1]) for (const dz of [-28, 28]) {
+    const x = sx * 150, under = -Math.abs(x) * Math.tan(rad(C.slope));
+    const len = C.ridge + under - headTop;
+    cyl(canopy, 5, len, M.steel, x, under - len / 2, HD.z + dz - C.z0, 'y', cPart, 12);
+  }
   if (!solar) {
     // Opal diffuses the sun: the canopy and the head under it cast no hard shadow on the board.
     canopy.traverse((o) => { if (o.isMesh) o.castShadow = false; });

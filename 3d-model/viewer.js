@@ -31,15 +31,15 @@ const SPECS = (s) => {
   const e = { ...ENERGY, ...energy() };
   const r = (v) => Math.round(v);
   return [
-    ['Size', `${p.canopy.w} × 360 × ${p.arch.depth + 30} mm (w × h × d)`],
-    ['Camera', '8 MP 3840 × 2160, locked M12 lens, 80°'],
+    ['Size', `${p.canopy.w} × ${r(p.canopy.ridge + p.canopy.t + 33)} × 225 mm (w × h × d)`],
+    ['Camera', `8 MP 3840 × 2160, locked M12 lens, ${p.camera.hfov}°, ${p.camera.eye} mm above the board`],
     ['Board in view', `${r(d.fovW)} × ${r(d.fovD)} mm · ${d.pxPerMm.toFixed(1)} px/mm`],
     ['Bee / varroa', `≈ ${r(13 * d.pxPerMm)} px / ≈ ${r(1.5 * d.pxPerMm)} px long`],
     ['Compute', 'swappable sled: Pi 5 + Hailo-8 (Jetson Orin NX option)'],
     ['Supervisor', 'ESP32-S3, always on, ≈ 0.1 W'],
-    ['Power in', p.power === 'solar' ? `${e.panelW} W canopy panel + ${e.batteryWh} Wh LiFePO4` : 'PoE+ (802.3at) or 12–24 V DC'],
+    ['Power in', p.power === 'solar' ? `${e.panelW} W roof panels + ${e.batteryWh} Wh LiFePO4` : 'PoE+ (802.3at) or 12–24 V DC'],
     ['Draw', `≈ 9 W observing · ${e.standby.toFixed(1)} Wh/day asleep`],
-    ['Per flight day', `≈ ${r(e.continuous)} Wh continuous · ≈ ${r(e.sampled)} Wh sampled (2 of 10 min)`],
+    ['Per flight day', `≈ ${r(e.continuous)} Wh continuous · ≈ ${r(e.sampled)} Wh sampled (2 of 15 min)`],
     ['Autonomy', p.power === 'solar' ? `≈ ${r(e.harvest)} Wh/day harvest in season · ${r(e.standbyDays)} days asleep on battery` : 'unlimited on PoE'],
     ['Links', 'Ethernet (PoE) · Wi-Fi · BLE setup · M12 accessory'],
     ['Mounting', { hive: 'entrance plate, 4 screws; hangs on 2 thumbscrews', scale: 'risers on the scale front rail (not weighed)', robot: 'robot entrance frame, same ears' }[p.context]],
@@ -141,7 +141,7 @@ export function mountEntranceObserver(root) {
     const [ox, oy, oz] = model.derived.origin.map((v) => v * 0.001);
     const at = (tx, ty, tz, cx, cy, cz) => { controls.target.set(ox + tx, oy + ty, oz + tz); camera.position.set(ox + cx, oy + cy, oz + cz); };
     const view = hash.get('cam');
-    if (view === 'hero') at(0.02, 0.16, 0.04, 1.2, 0.62, 1.5);
+    if (view === 'hero') at(0.02, 0.12, 0.06, 1.0, 0.52, 1.28);
     else if (view === 'close') at(0.02, 0.12 + explode * 0.12, 0.1, 0.95 + explode * 0.3, 0.42 + explode * 0.25, 1.05 + explode * 0.3);
     else if (view === 'side') at(0, 0.12, 0.1, -0.45, 0.62, 0.95);
     else if (view === 'front') at(0, 0.14, 0.1, 0.2, 0.34, 1.35);
