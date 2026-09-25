@@ -19,7 +19,8 @@ import { buildObserver, energy, ENERGY, PARTS } from './observer-model.js';
 
 // Parts list order in the panel, grouped by assembly.
 const PART_ORDER = [
-  ['Optics', ['camera', 'hood', 'led', 'board', 'insert', 'marker', 'hinge', 'fov']],
+  ['Optics', ['camera', 'hood', 'led', 'fov']],
+  ['Entrance', ['porch', 'reducer', 'countLine', 'board', 'insert', 'marker', 'hinge']],
   ['Head', ['head', 'compute', 'face', 'supervisor', 'battery', 'blank', 'mic', 'sensor']],
   ['Arch', ['canopy', 'solarCanopy', 'cheek', 'channel', 'harness', 'gland', 'm12', 'thumb']],
   ['Mount', ['plate', 'riser', 'robotFront', 'cable']],
@@ -32,8 +33,10 @@ const SPECS = (s) => {
   const r = (v) => Math.round(v);
   return [
     ['Size', `${p.canopy.w} × ${r(p.canopy.ridge + p.canopy.t + 33)} × 225 mm (w × h × d)`],
-    ['Camera', `8 MP 3840 × 2160, locked M12 lens, ${p.camera.hfov}°, ${p.camera.eye} mm above the board`],
-    ['Board in view', `${r(d.fovW)} × ${r(d.fovD)} mm · ${d.pxPerMm.toFixed(1)} px/mm`],
+    ['Camera', `8 MP 3840 × 2160, locked M12 lens, ${p.camera.hfov}°, ${p.camera.eye} mm up, tilted ${p.camera.tilt}° to the hive`],
+    ['In view', `${r(d.fovW)} mm across · board to ${r(d.corners[2].z)} of ${r(d.boardFront)} mm · ${r(d.wallSeen)} mm of hive wall`],
+    ['Counting line', `porch mouth, ${p.porch.depth} mm in front of the hive`],
+    ['Resolution', `≈ ${d.pxPerMm.toFixed(1)} px/mm on the board`],
     ['Bee / varroa', `≈ ${r(13 * d.pxPerMm)} px / ≈ ${r(1.5 * d.pxPerMm)} px long`],
     ['Compute', 'swappable sled: Pi 5 + Hailo-8 (Jetson Orin NX option)'],
     ['Supervisor', 'ESP32-S3, always on, ≈ 0.1 W'],
@@ -308,6 +311,7 @@ export function mountEntranceObserver(root) {
 
   // Inset: what the Observer camera sees, in the top-right corner of the stage.
   const eyePos = new THREE.Vector3();
+  const aimPos = new THREE.Vector3();
   const insetRect = () => {
     const w = Math.round(Math.min(size.w * 0.34, 340));
     const h = Math.round((w * 9) / 16);
@@ -320,7 +324,8 @@ export function mountEntranceObserver(root) {
     lensCam.fov = THREE.MathUtils.radToDeg(model.derived.vfov);
     lensCam.aspect = 16 / 9;
     lensCam.updateProjectionMatrix();
-    lensCam.lookAt(eyePos.x, eyePos.y - 1, eyePos.z);
+    model.nodes.aim.getWorldPosition(aimPos);
+    lensCam.lookAt(aimPos);
     const fovWas = model.nodes.fov.visible;
     model.nodes.fov.visible = false;
     const yGL = size.h - y - h;

@@ -15,9 +15,12 @@
 // - One slim arch: two side arms, the head across the top, a small ridged roof
 //   over the middle and the landing board hinged between the arms. The entrance
 //   stays free.
-// - The camera looks straight down at the board. Nothing but the board, the
-//   entrance edge and bees is in its field of view: cheeks, cables and the
-//   head are all outside it.
+// - The doorway is moved forward onto the board by a short porch, so every bee
+//   that goes in or out crosses the porch mouth on the board, even if it
+//   landed on the hive wall. The mouth is the counting line.
+// - The camera looks down at the board, tilted toward the hive so it also sees
+//   the porch roof and the bottom of the hive wall. Arms, cables and the head
+//   are outside its field of view.
 // - Every cable enters from below, under the right cheek, and runs inside it.
 // - The Observer hangs on two ears (entrance plate, scale risers or the robot
 //   entrance frame), so the camera lands in the same place on every hive.
@@ -32,10 +35,11 @@ export const DEFAULTS = {
   boxes: 2, // hive bodies
   hive: { w: 506, d: 450, h: 285, lid: 80, bottomBoard: 60, entrance: 300, slot: 15 }, // Estonian hive (outer)
   stand: 200, // wooden hive stand height
-  arch: { inner: 440, cheek: 14, depth: 268, board: 212 }, // inner width between cheeks, cheek thickness, cheek depth, board depth
-  canopy: { ridge: 284, z0: 22, len: 150, w: 480, t: 4, slope: 4 }, // ridge underside height, start z, length, width, sheet, degrees each side
-  head: { y: 203, z: 97, w: 438, h: 50, d: 90 }, // underside height, centre z, size
-  camera: { eye: 185, hfov: 90, aspect: 16 / 9, px: 3840 }, // lens height above the entrance floor, degrees, sensor width px
+  arch: { inner: 440, cheek: 14, board: 190 }, // inner width between the arms, arm thickness, board depth
+  canopy: { ridge: 284, z0: 60, len: 150, w: 480, t: 4, slope: 4 }, // ridge underside height, start z, length, width, sheet, degrees each side
+  head: { y: 203, z: 135, w: 438, h: 50, d: 90 }, // underside height, centre z, size
+  camera: { eye: 185, hfov: 90, aspect: 16 / 9, px: 3840, tilt: 16 }, // lens height above the entrance floor, degrees, sensor width px, degrees toward the hive
+  porch: { depth: 40, w: 312, wall: 4, roof: 4 }, // entrance porch: mouth distance from the hive face, inner width, wall and roof thickness
   boardSlope: 6, // degrees
   scale: { feet: 25, height: 112, deck: { w: 560, d: 510 }, base: { w: 504, d: 454, h: 60 } }, // from beehive-sensors DEFAULTS
   robot: { plinth: 200, bottomBoard: 150, post: { x: 372, z: 302 }, e: 22, clad: 18 }, // from robotic-beehive DEFAULTS
@@ -45,16 +49,19 @@ export const DEFAULTS = {
 // Part descriptions (shown on hover in the viewer, exported as glTF extras)
 // ---------------------------------------------------------------------------
 export const PARTS = {
-  plate: ['Entrance plate', 'Aluminium plate screwed to the bottom board with four stainless wood screws beside the entrance (a paper drill template is in the box). Its window matches the 300 × 15 mm entrance, and its two bent ears are all the Observer hangs on. The plate stays on the hive; the Observer lifts off in seconds for an inspection, a move or winter.'],
+  plate: ['Entrance plate', 'Aluminium plate, powder-coated matt grey because its top edge is in the camera view, screwed to the bottom board with four stainless wood screws beside the entrance (a paper drill template is in the box). Its window matches the 300 × 15 mm entrance, it carries the entrance porch, and its two bent ears are all the Observer hangs on. The plate stays on the hive; the Observer lifts off in seconds for an inspection, a move or winter.'],
   riser: ['Scale risers', 'Two printed ASA brackets that hook onto the front rail of the beehive scale and carry the same ears as the entrance plate. The Observer then hangs on the scale base, not on the hive, so its own weight, the bees on the board and snow on the roof are never weighed.'],
   robotFront: ['Robot entrance frame', 'The Robotic Beehive entrance tunnels end in the same ears, so the same Observer hangs on the cabinet front. Power and data come from the robot PoE switch inside a corner post, and the robot can use the entrance counts to choose when to inspect.'],
+  porch: ['Entrance porch', 'A 40 mm deep, 15 mm high tunnel across the full entrance, moulded in the same matt grey as the board. It moves the doorway forward onto the landing board. A bee that lands on the hive wall has to walk down onto the porch roof and step off its front edge, so every bee going in or out crosses the porch mouth, in full view. The mouth is the counting line. It is shorter than the tunnels of most electronic bee counters and open to the air, with no glass to clean or fog up.'],
+  reducer: ['Entrance reducer', 'Grey slide in the porch roof (not yellow: it is where bees walk, so it must not look like a bee). Pushed forward it narrows the porch mouth against robbing, hornets or cold; parked back it leaves the full width open. It sits in the camera view, so the software knows its position.'],
+  countLine: ['Counting line', 'A faint printed line just in front of the porch mouth, for people, not for the software: the software counts a track as in when it ends inside the porch and out when it starts there.'],
   thumb: ['Thumbscrews', 'One captive thumbscrew per side, through the ear into the arm. Hang the Observer on the ears, turn two screws and it is done: no tools, and the camera lands in exactly the same place every time.'],
   cheek: ['Side arms', 'Folded 2 mm aluminium box sections, powder-coated graphite, leaning forward from the entrance plate to the head. They are only as wide as they need to be to carry the head, so the arch stays light and open and bees can also fly in from the sides. The field of view stops short of their inner faces, so they never show in the video.'],
   channel: ['Cable channel', 'The right arm is hollow. The PoE cable enters it from below and runs up inside it to the head, so no cable is in the sun, in the rain or in front of the lens.'],
   gland: ['Cable entries', 'Under the right arm, facing the ground: the PoE cable gland and the accessory socket. Water runs off them, not into them, and the cable leaves with a drip loop.'],
   m12: ['Accessory port', 'M12 8-pin socket with the pinout of the beehive scale front connector: 5 V out, ground, 1-Wire, UART, wake and shield. One short lead to the scale powers the scale pod from the Observer and shares time and readings, so the scale needs no solar board and both upload through one link.'],
   head: ['Head', 'Extruded aluminium housing, IP65, across the top of the arch. It is also the heatsink: the compute sled presses onto it through a thermal pad, and the fins on top shed heat into the open gap under the roof. No fan to clog with dust or propolis.'],
-  camera: ['Camera module', '8 MP (3840 × 2160) Sony STARVIS 2 sensor on its own MIPI CSI board with a locked-focus, low-distortion M12 lens, 90° wide. It looks straight down from 185 mm, so the board is seen from above in true proportions: about 10 px per mm, a bee is about 140 px long and a varroa mite about 15 px, which is enough for pose keypoints and mites. A global-shutter module can replace it without changing the housing.'],
+  camera: ['Camera module', '8 MP (3840 × 2160) Sony STARVIS 2 sensor on its own MIPI CSI board with a locked-focus, low-distortion M12 lens, 90° wide. It sits 185 mm above the board, about 135 mm out from the hive, and is tilted 16° back toward the hive. It sees nearly the whole board, the porch roof and the bottom 35 mm of the hive wall, so bees that land on the wall are tracked from the moment they land. On the board that gives about 10 px per mm, a bee is about 140 px long and a varroa mite about 15 px, which is enough for pose keypoints and mites. A global-shutter module can replace it without changing the housing.'],
   hood: ['Lens hood + window', 'Matt black cone with a flat AR-coated glass window at its tip, facing the ground. Rain cannot reach it, the sky never reflects in it and the roof keeps direct sun off it. A 0.3 W heater film clears dew on cold mornings.'],
   led: ['Light bars', 'Two diffused LED bars beside the lens, with crossed polarisers on the LEDs and the lens to remove glints from shiny bees and wet pollen. They only flash in sync with the exposure at dusk or in deep shade, so they add less than 0.3 W on average.'],
   mic: ['Microphone', 'MEMS microphone behind a mesh under the head. Entrance audio (drone flight, piping, hornets, fanning) is stored with the counts for audio + video models.'],
@@ -72,7 +79,7 @@ export const PARTS = {
   hinge: ['Board hinge', 'Stainless pins. The board folds up flat for shipping and swings down if something hits it.'],
   harness: ['Internal harness', 'PoE and accessory lines from the entries under the right arm, up the cable channel to the supervisor board in the head.'],
   cable: ['Cables', 'One PoE cable (power and data, up to 100 m) from under the right arm, run along the ground. With the scale, one short M12 lead joins the Observer and the scale.'],
-  fov: ['Camera field of view', 'What the camera sees: about 370–400 × 220 mm of the landing board (wider at the front, where the board slopes away) and the entrance edge. The arms, head, roof and cables are all outside it.'],
+  fov: ['Camera field of view', 'What the camera sees: the bottom of the hive wall, the porch and the landing board, about 400 mm across. The arms, head, roof and cables are all outside it.'],
   bee: ['Bees', 'Honey bees on the landing board. At 4K each worker is about 140 px long, big enough for pose keypoints, pollen loads and mites.'],
   hive: ['Hive', 'A standard hive: bottom board, bodies and lid. The only change is the entrance plate screwed to the bottom board.'],
   stand: ['Hive stand', 'Any stand works: the Observer hangs on the hive entrance and does not touch the stand.'],
@@ -94,8 +101,8 @@ export function derive(p) {
     hiveBase = deckTop;
     bottomBoard = H.bottomBoard;
     entranceY = hiveBase + 12;
-    // In front of the deck (railZ + 6), just below the deck top: nothing touches the weighed part.
-    origin = [0, deckTop - 1, S.deck.d / 2 + 14];
+    // In front of the deck (railZ + 6), at entrance level: only the porch touches the weighed hive.
+    origin = [0, entranceY, S.deck.d / 2 + 14];
   } else if (p.context === 'robot') {
     hiveBase = R.plinth + R.bottomBoard;
     bottomBoard = R.bottomBoard;
@@ -107,22 +114,42 @@ export function derive(p) {
     entranceY = hiveBase + 12;
     origin = [0, entranceY, H.d / 2];
   }
-  const cam = p.camera;
+  const cam = p.camera, P = p.porch;
   const tanB = Math.tan(rad(p.boardSlope));
   const boardY = (z) => -2 - (z - 5) * tanB; // board surface height at local z
   const vfov = 2 * Math.atan(Math.tan(rad(cam.hfov / 2)) / cam.aspect);
-  // Field of view on the board: intersect the four corner rays with the board plane.
-  const eye = new THREE.Vector3(0, cam.eye, p.head.z);
-  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sz]) => {
-    const a = sx * Math.tan(rad(cam.hfov / 2)), b = sz * Math.tan(vfov / 2);
-    const t = (eye.y + 2 + (eye.z - 5) * tanB) / (1 - b * tanB);
-    return new THREE.Vector3(eye.x + a * t, eye.y - t, eye.z + b * t);
-  });
-  const fovW = corners[1].x - corners[0].x;
-  const fovD = corners[2].z - corners[1].z;
+  const wallZ = H.d / 2 - origin[2]; // hive front face in the observer frame (≤ 0)
+  const porchTop = H.slot + 2 + P.roof; // top of the porch roof
+  // The lens hangs 18 mm under the head floor and swings with the camera tilt.
+  const tilt = rad(cam.tilt), drop = p.head.y - cam.eye;
+  const eye = new THREE.Vector3(0, p.head.y - drop * Math.cos(tilt), p.head.z - drop * Math.sin(tilt));
+  // A camera ray (a across, b along the image height) tilted toward the hive.
+  const ray = (a, b) => new THREE.Vector3(a, -1, b).applyAxisAngle(new THREE.Vector3(1, 0, 0), tilt);
+  // First surface a ray meets: porch roof, hive wall or landing board.
+  const hit = (dir) => {
+    let best = (eye.y + 2 + (eye.z - 5) * tanB) / (-dir.y - dir.z * tanB); // board plane
+    const tr = (eye.y - porchTop) / -dir.y;
+    const pr = eye.clone().addScaledVector(dir, tr);
+    if (tr > 0 && tr < best && pr.z >= wallZ && pr.z <= P.depth && Math.abs(pr.x) <= P.w / 2 + P.wall) best = tr;
+    if (dir.z < 0) {
+      const tw = (wallZ - eye.z) / dir.z;
+      if (tw > 0 && tw < best && eye.y + dir.y * tw > porchTop) best = tw;
+    }
+    return eye.clone().addScaledVector(dir, best);
+  };
+  const ta = Math.tan(rad(cam.hfov / 2)), tb = Math.tan(vfov / 2);
+  // Outline of the view, sampled along the frame edges so it bends over the wall, porch and board.
+  const outline = [];
+  const edge = (a0, b0, a1, b1) => { for (let i = 0; i < 24; i++) { const u = i / 24; outline.push(hit(ray(a0 + (a1 - a0) * u, b0 + (b1 - b0) * u))); } };
+  edge(-ta, -tb, ta, -tb); edge(ta, -tb, ta, tb); edge(ta, tb, -ta, tb); edge(-ta, tb, -ta, -tb);
+  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sz]) => hit(ray(sx * ta, sz * tb)));
+  const centre = hit(ray(0, 0));
+  const fovW = 2 * ta * centre.distanceTo(eye); // across the image, at the optical axis
+  const fovD = corners[2].z - wallZ; // from the hive face to the front of the view
+  const wallSeen = Math.max(0, corners[0].y - porchTop); // hive wall visible above the porch
   return {
-    origin, hiveBase, bottomBoard, entranceY, boardY, tanB, eye, corners, vfov,
-    fovW, fovD, pxPerMm: cam.px / fovW,
+    origin, hiveBase, bottomBoard, entranceY, boardY, tanB, eye, corners, outline, vfov, wallZ, porchTop,
+    fovW, fovD, wallSeen, pxPerMm: cam.px / fovW, boardFront: 5 + p.arch.board * Math.cos(rad(p.boardSlope)),
     lidTop: hiveBase + bottomBoard + p.boxes * H.h + H.lid,
   };
 }
@@ -179,6 +206,10 @@ function makeMaterials() {
     insert: std(0xb9bcb7, { roughness: 0.97 }), // neutral light grey (≈ N7), matt
     markBlack: std(0x101010, { roughness: 0.9 }),
     markWhite: std(0xf4f4f0, { roughness: 0.9 }),
+    markGrey: std(0x6f736f, { roughness: 0.9 }),
+    porch: std(0xaeb1ac, { roughness: 0.95 }), // same matt grey family as the board
+    porchDark: std(0x8e928d, { roughness: 0.95 }),
+    plate: std(0x9ea29d, { roughness: 0.9 }), // matt powder coat: the plate is in the camera view
     opal: new THREE.MeshStandardMaterial({ color: 0xf6f5f0, roughness: 0.35, transparent: true, opacity: 0.8, side: THREE.DoubleSide }),
     opalEdge: std(0xe9e7e0, { roughness: 0.4 }),
     acm: std(0xeeeeea, { roughness: 0.5 }), // aluminium composite, white
@@ -292,14 +323,14 @@ export function buildObserver(options = {}) {
   // ears: bent forward at both ends, outside the cheeks
   const earBottom = p.context === 'hive' ? -12 : -40;
   for (const s of [-1, 1]) {
-    slab(mount, s > 0 ? OUT + 1 : -OUT - 4, earBottom, 0, 3, 52 - earBottom, 34, M.alu, mountPart);
+    slab(mount, s > 0 ? OUT + 1 : -OUT - 4, earBottom, 0, 3, 52 - earBottom, 34, M.plate, mountPart);
   }
   if (p.context === 'hive') {
     // plate with a window matching the entrance slot, four screws beside it
     const E2 = H.entrance / 2 + 4, S = H.slot + 2;
-    slab(mount, -OUT - 4, -12, 0, 2 * OUT + 8, 12, 3, M.alu, 'plate');
-    slab(mount, -OUT - 4, S, 0, 2 * OUT + 8, 44 - S, 3, M.alu, 'plate');
-    for (const s of [-1, 1]) slab(mount, s > 0 ? E2 : -OUT - 4, 0, 0, OUT + 4 - E2, S, 3, M.alu, 'plate');
+    slab(mount, -OUT - 4, -12, 0, 2 * OUT + 8, 12, 3, M.plate, 'plate');
+    slab(mount, -OUT - 4, S, 0, 2 * OUT + 8, 44 - S, 3, M.plate, 'plate');
+    for (const s of [-1, 1]) slab(mount, s > 0 ? E2 : -OUT - 4, 0, 0, OUT + 4 - E2, S, 3, M.plate, 'plate');
     for (const sx of [-1, 1]) for (const y of [-6, 36]) cyl(mount, 4, 1.5, M.steel, sx * (E2 + 30), y, 3.6, 'z', 'plate', 12);
   } else if (p.context === 'scale') {
     // printed risers from the scale rail up to the ears
@@ -309,9 +340,23 @@ export function buildObserver(options = {}) {
       slab(mount, s > 0 ? IN : -OUT, railTop - 4, -18, A.cheek, 10, 10, M.asa, 'riser'); // hook over the rail
     }
   } else {
-    slab(mount, -OUT - 4, -14, -2, 2 * OUT + 8, 12, 5, M.alu, 'robotFront');
-    slab(mount, -OUT - 4, H.slot + 2, -2, 2 * OUT + 8, 36, 5, M.alu, 'robotFront');
+    slab(mount, -OUT - 4, -14, -2, 2 * OUT + 8, 12, 5, M.plate, 'robotFront');
+    slab(mount, -OUT - 4, H.slot + 2, -2, 2 * OUT + 8, 36, 5, M.plate, 'robotFront');
   }
+
+  // ----- entrance porch: moves the doorway forward onto the board ---------------
+  // Bees that land on the hive wall must walk over the porch roof and step down
+  // onto the board, so every bee in or out crosses the porch mouth in view.
+  const PO = p.porch, PW2 = PO.w / 2, pTop = H.slot + 2; // roof underside
+  const porch = group(obs, 'porch', 0, 0, 0, 'porch');
+  const pz0 = Math.min(d.wallZ, 0) + (p.context === 'hive' ? 3 : 0), plen = PO.depth - pz0;
+  slab(porch, -PW2 - PO.wall, pTop, pz0, PO.w + 2 * PO.wall, PO.roof, plen, M.porch, 'porch');
+  for (const s of [-1, 1]) slab(porch, s > 0 ? PW2 : -PW2 - PO.wall, -2, pz0, PO.wall, pTop + 2, plen, M.porch, 'porch');
+  box(porch, PO.w + 2 * PO.wall, 1.5, 1.5, M.board, 0, pTop - 0.2, PO.depth - 0.75, 'porch'); // drip nose on the mouth
+  if (pz0 < 0) slab(porch, -PW2, -3, pz0, PO.w, 3, 8 - pz0, M.porch, 'porch'); // floor over the gap to the board
+  // slide-in entrance reducer, parked open inside the porch roof slot
+  slab(porch, -60, pTop + PO.roof, PO.depth - 30, 120, 2, 22, M.porchDark, 'reducer');
+  box(porch, 16, 3, 5, M.graphite, 0, pTop + PO.roof + 2.5, PO.depth - 12, 'reducer');
 
   // ----- side cheeks (extruded profile, box section) -------------------------
   const cheekShape = () => {
@@ -381,6 +426,7 @@ export function buildObserver(options = {}) {
 
   // camera module + hood (drops out of the floor of the head in the exploded view)
   const camG = explodable(group(head, 'cameraModule', 0, 0, 0, 'camera'), 0, -95, 0);
+  camG.rotation.x = rad(p.camera.tilt); // tilted back toward the hive
   box(camG, 38, 1.6, 38, M.pcb, 0, 10, 0, 'camera');
   box(camG, 14, 3, 14, M.chip, 0, 8, 0, 'camera');
   cyl(camG, 8, 12, M.black, 0, 2, 0, 'y', 'camera', 24); // M12 lens barrel
@@ -431,6 +477,11 @@ export function buildObserver(options = {}) {
   eye.position.set(0, (p.camera.eye - HD.y) * MM, 0);
   camG.add(eye);
   nodes.eye = eye;
+  const aim = new THREE.Object3D(); // a point on the optical axis, for the inset camera
+  aim.name = 'cameraAim';
+  aim.position.set(0, (p.camera.eye - HD.y - 100) * MM, 0);
+  camG.add(aim);
+  nodes.aim = aim;
 
   // ----- canopy ----------------------------------------------------------------
   const canopy = explodable(group(obs, 'canopy', 0, C.ridge, C.z0, solar ? 'solarCanopy' : 'canopy'), 0, 220, 0);
@@ -482,15 +533,17 @@ export function buildObserver(options = {}) {
   // ArUco-style markers in the four corners (hand-set pattern, not a real ID)
   const pattern = [[1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 0, 0], [0, 1, 1, 0]];
   for (const [mx, mz] of [[-1, 0], [1, 0], [-1, 1], [1, 1]]) {
-    const cx = mx * 172, cz = mz ? BD - 28 : 24;
+    const cx = mx * 172, cz = mz ? BD - 40 : p.porch.depth + 18;
     box(boardHinge, 30, 0.4, 30, M.markBlack, cx, 0.2, cz, 'marker');
     pattern.forEach((row, r) => row.forEach((v, c) => {
       if (v) box(boardHinge, 5, 0.5, 5, M.markWhite, cx - 7.5 + c * 5, 0.3, cz - 7.5 + r * 5, 'marker');
     }));
   }
   // millimetre scale along the front edge (cm ticks, long every 5 cm)
-  for (let x = -150; x <= 150; x += 10) box(boardHinge, 0.8, 0.3, x % 50 === 0 ? 8 : 4, M.markBlack, x, 0.15, BD - 20, 'marker');
-  box(boardHinge, 301, 0.3, 0.8, M.markBlack, 0, 0.15, BD - 16, 'marker');
+  for (let x = -150; x <= 150; x += 10) box(boardHinge, 0.8, 0.3, x % 50 === 0 ? 8 : 4, M.markBlack, x, 0.15, BD - 30, 'marker');
+  box(boardHinge, 301, 0.3, 0.8, M.markBlack, 0, 0.15, BD - 26, 'marker');
+  // counting line: a faint printed line just in front of the porch mouth
+  for (let x = -150; x < 150; x += 12) box(boardHinge, 7, 0.3, 1.2, M.markGrey, x + 3.5, 0.15, p.porch.depth + 1, 'countLine');
 
   // ----- bees -----------------------------------------------------------------------
   const bees = group(boardHinge, 'bees');
@@ -512,10 +565,18 @@ export function buildObserver(options = {}) {
     return b;
   };
   const walkers = [
-    [-120, 40, 0.3], [-60, 22, 2.9, true], [10, 70, -0.4], [55, 30, 3.3], [95, 120, 2.2, true], [-150, 150, 1.1],
-    [140, 60, -2.6], [-30, 110, 0.9], [160, 170, -0.8], [-95, 90, 3.0, true], [30, 160, 2.6], [-10, 14, 3.1],
+    [-120, 52, 0.3], [-60, 44, 2.9, true], [10, 78, -0.4], [55, 48, 3.3], [95, 120, 2.2, true], [-150, 140, 1.1],
+    [140, 70, -2.6], [-30, 110, 0.9], [150, 150, -0.8], [-95, 95, 3.0, true], [30, 140, 2.6], [-10, 50, 3.1],
   ];
   for (const [x, z, r, pl] of walkers) addBee(bees, x, 2.2, z, r, pl);
+  // wall landers: on the hive wall above the porch, then walking over the porch roof
+  const beesWall = group(obs, 'beesWall');
+  nodes.bees.push(beesWall);
+  for (const [x, y] of [[-70, 40], [45, 52], [120, 34]]) {
+    const b = addBee(beesWall, x, y, d.wallZ + 3, 0);
+    b.rotation.x = Math.PI / 2; // head down, on the vertical wall
+  }
+  for (const [x, z, r] of [[-40, PO.depth - 18, 0.2], [80, PO.depth - 30, -0.3]]) addBee(beesWall, x, pTop + PO.roof + 2, z, r);
   for (const [x, y, z, r] of [[-60, 120, 330, 2.9], [110, 200, 420, -2.6], [-170, 70, 280, 0.6], [30, 260, 520, 3.4]]) {
     const b = addBee(beesAir, x, y, z, r);
     b.rotation.x = -0.25;
@@ -525,17 +586,17 @@ export function buildObserver(options = {}) {
   const fov = group(obs, 'fieldOfView', 0, 0, 0, 'fov');
   nodes.fov = fov;
   {
-    const e = d.eye, cs = d.corners;
+    const e = d.eye, cs = d.corners, ol = d.outline;
     const pts = [];
     for (const c of cs) pts.push(e.x, e.y, e.z, c.x, c.y, c.z);
-    for (let i = 0; i < 4; i++) { const a = cs[i], b = cs[(i + 1) % 4]; pts.push(a.x, a.y + 0.5, a.z, b.x, b.y + 0.5, b.z); }
+    for (let i = 0; i < ol.length; i++) { const a = ol[i], b = ol[(i + 1) % ol.length]; pts.push(a.x, a.y + 0.5, a.z, b.x, b.y + 0.5, b.z); }
     const lg = new THREE.BufferGeometry();
     lg.setAttribute('position', new THREE.Float32BufferAttribute(pts.map((v) => v * MM), 3));
     const lines = new THREE.LineSegments(lg, M.fovLine);
     lines.userData.part = 'fov';
     fov.add(lines);
     const tri = [];
-    for (let i = 0; i < 4; i++) { const a = cs[i], b = cs[(i + 1) % 4]; tri.push(e.x, e.y, e.z, a.x, a.y, a.z, b.x, b.y, b.z); }
+    for (let i = 0; i < ol.length; i++) { const a = ol[i], b = ol[(i + 1) % ol.length]; tri.push(e.x, e.y, e.z, a.x, a.y, a.z, b.x, b.y, b.z); }
     const tg = new THREE.BufferGeometry();
     tg.setAttribute('position', new THREE.Float32BufferAttribute(tri.map((v) => v * MM), 3));
     tg.computeVertexNormals();
