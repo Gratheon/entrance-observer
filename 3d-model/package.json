@@ -1,0 +1,17 @@
+{
+  "name": "entrance-observer-model",
+  "private": true,
+  "type": "module",
+  "description": "Parametric 3D model of the Gratheon Entrance Observer (Phase 3 production kit)",
+  "scripts": {
+    "build": "node export-glb.mjs && node build-viewer.mjs",
+    "preview": "node build-viewer.mjs && node render-preview.mjs",
+    "website": "node export-glb.mjs && node build-viewer.mjs --website ../../gratheon.com"
+  },
+  "dependencies": {
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
+  }
+}

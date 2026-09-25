@@ -34,3 +34,7 @@ example.env
 # IDE/Editor specific files
 .vscode/
 .idea/
+
+# 3D model of the device
+3d-model/
+docs/

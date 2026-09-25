@@ -1,0 +1,67 @@
+<div class="entrance-observer" data-entrance-observer>
+  <div class="eo-stage">
+    <canvas class="eo-canvas" data-eo="canvas" aria-label="3D model of the Gratheon Entrance Observer"></canvas>
+    <div class="eo-hint">
+      <span class="eo-chip">Drag to orbit · scroll to zoom</span>
+      <span class="eo-chip" data-eo="chip">Assembled</span>
+    </div>
+    <div class="eo-inset-label" data-eo="inset-label">Camera view · 3840 × 2160, straight down</div>
+    <div class="eo-info" aria-live="polite">
+      <h3 data-eo="info-title">Point at any part</h3>
+      <p data-eo="info-text">Every part has a note: what it is, why it is there and how it is serviced.</p>
+    </div>
+  </div>
+  <aside class="eo-panel">
+    <header data-eo="header">
+      <div class="eo-kicker">Gratheon · entrance observer · phase 3</div>
+      <h1 class="eo-title">Entrance Observer</h1>
+      <p class="eo-lede">A 4K camera arch that hangs on the hive entrance. An opal canopy gives the landing board soft, even light and keeps rain off, all cables run inside the right cheek, and the compute sled slides out for service or upgrade. The same arch hangs on the beehive scale and the Robotic Beehive.</p>
+    </header>
+    <section>
+      <div class="eo-label">Assembly</div>
+      <div class="eo-explode">
+        <button class="eo-btn eo-primary" data-eo="explode" type="button">Explode</button>
+        <input type="range" data-eo="scrub" min="0" max="1000" value="0" aria-label="Exploded view">
+      </div>
+    </section>
+    <section>
+      <div class="eo-label">Parts</div>
+      <ol class="eo-steps" data-eo="parts"></ol>
+    </section>
+    <section>
+      <div class="eo-label">View</div>
+      <div class="eo-controls">
+        <div class="eo-field eo-wide">
+          <span>Hangs on</span>
+          <div class="eo-seg" role="group" aria-label="What the Observer hangs on" data-eo="context">
+            <button type="button" data-value="hive" aria-pressed="true">Hive</button>
+            <button type="button" data-value="scale" aria-pressed="false">Beehive scale</button>
+            <button type="button" data-value="robot" aria-pressed="false">Robotic Beehive</button>
+          </div>
+        </div>
+        <div class="eo-field">
+          <span>Power</span>
+          <div class="eo-seg" role="group" aria-label="Power version" data-eo="power">
+            <button type="button" data-value="poe" aria-pressed="true">PoE</button>
+            <button type="button" data-value="solar" aria-pressed="false">Solar</button>
+          </div>
+        </div>
+        <div class="eo-field">
+          <span>Hive</span>
+          <div class="eo-seg" role="group" aria-label="Hive display" data-eo="hive">
+            <button type="button" data-value="solid" aria-pressed="true">Solid</button>
+            <button type="button" data-value="ghost" aria-pressed="false">Ghost</button>
+            <button type="button" data-value="off" aria-pressed="false">Off</button>
+          </div>
+        </div>
+        <label class="eo-check eo-wide"><input type="checkbox" data-eo="fov"> Show the camera field of view</label>
+        <label class="eo-check eo-wide"><input type="checkbox" data-eo="inset" checked> Show what the camera sees</label>
+      </div>
+    </section>
+    <section>
+      <div class="eo-label">Key figures (targets, to be measured)</div>
+      <dl class="eo-specs" data-eo="specs"></dl>
+    </section>
+    <p class="eo-foot">Open source: <a href="https://github.com/Gratheon/entrance-observer/tree/main/3d-model">github.com/Gratheon/entrance-observer</a>. The same model is available as <a data-eo="glb" href="entrance-observer.glb">entrance-observer.glb</a> with the exploded-view animation.</p>
+  </aside>
+</div>

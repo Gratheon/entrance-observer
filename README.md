@@ -10,6 +10,22 @@ https://github.com/user-attachments/assets/179273c2-4683-4879-bcb9-0aa2abe75953
 
 https://github.com/user-attachments/assets/c298b395-58aa-4de6-8e91-35d7c27c9b87
 
+## Device design (Phase 3 production kit, concept)
+A camera arch that hangs on the hive entrance. A 4K camera looks straight down at a calibrated landing board. An opal canopy gives the board soft, even light and keeps rain off. All cables run inside the right cheek, and a compute sled slides out for service or upgrade. The same arch hangs on the [beehive scale](https://github.com/Gratheon/beehive-sensors) and the [Robotic Beehive](https://github.com/Gratheon/robotic-beehive).
+
+[![Entrance Observer 3D model on a hive](docs/hero.png)](https://gratheon.com/products/entrance_observer/)
+
+- **Design rationale, energy budget, compatibility:** [docs/DESIGN.md](docs/DESIGN.md)
+- **3D model:** open `3d-model/index.html` (self-contained, works offline) or see [gratheon.com/products/entrance_observer](https://gratheon.com/products/entrance_observer/). `3d-model/entrance-observer.glb` contains the exploded-view animation.
+
+The model lives in `3d-model/observer-model.js`; the viewer is `viewer.js`, `viewer.html` and `viewer.css`. After a change, rebuild:
+```bash
+cd 3d-model && npm install   # first time only
+npm run build                # regenerates index.html and entrance-observer.glb
+npm run preview              # renders docs/*.png (headless Chrome)
+npm run website              # also updates the embed on gratheon.com (../../gratheon.com)
+```
+
 ## Features
 
 - **Video capture**. Best to use 4K USB camera. Streams data into memory and then store it on disk with as 30 sec chunks (configureable)
