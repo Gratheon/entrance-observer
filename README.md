@@ -11,7 +11,7 @@ https://github.com/user-attachments/assets/179273c2-4683-4879-bcb9-0aa2abe75953
 https://github.com/user-attachments/assets/c298b395-58aa-4de6-8e91-35d7c27c9b87
 
 ## Device design (Phase 3 production kit, concept)
-A slim camera arch that hangs on the hive entrance. A short porch moves the doorway onto a calibrated landing board, so every bee crosses the counting line in view, even if it landed on the hive wall. A 4K camera looks down at the board, tilted slightly to also see the porch and the bottom of the wall. A small opal roof keeps sun and rain off the lens and drips beside the board. All cables run inside the right arm, and a compute sled slides out for service or upgrade. The same arch hangs on the [beehive scale](https://github.com/Gratheon/beehive-sensors) and the [Robotic Beehive](https://github.com/Gratheon/robotic-beehive).
+A 4K camera under a small steep roof over the hive entrance. A short porch moves the doorway onto a calibrated landing board, so every bee crosses the counting line in view, even if it landed on the hive wall. An automatic gate in the porch mouth narrows the entrance against wind and robbing, and switches to a hornet guard within seconds of a hornet showing up, decided on the device itself. Everything hangs on a flat wall frame, and only the camera + compute pod is machined metal. The same parts fit the [beehive scale](https://github.com/Gratheon/beehive-sensors) and the [Robotic Beehive](https://github.com/Gratheon/robotic-beehive).
 
 [![Entrance Observer 3D model on a hive](docs/hero.png)](https://gratheon.com/products/entrance_observer/)
 

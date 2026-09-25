@@ -24,6 +24,7 @@ const shots = [
   ['preview-scale.png', 'context=scale&hive=solid', [1400, 1000]],
   ['preview-robot.png', 'context=robot&hive=ghost', [1400, 1000]],
   ['preview-solar.png', 'power=solar&hive=solid&cam=hero', [1400, 1000]],
+  ['preview-gate.png', 'hive=solid&cam=gate&gate=guard&inset=0', [1400, 1000]],
 ];
 const page = pathToFileURL(join(here, 'index.html')).href;
 for (const [file, opts, [w, h]] of shots) {

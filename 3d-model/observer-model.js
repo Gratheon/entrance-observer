@@ -12,18 +12,20 @@
 // entrance floor on the front face of the hive; +Z points away from the hive.
 //
 // Layout rules:
-// - One slim arch: two side arms, the head across the top, a small ridged roof
-//   over the middle and the landing board hinged between the arms. The entrance
-//   stays free.
-// - The doorway is moved forward onto the board by a short porch, so every bee
-//   that goes in or out crosses the porch mouth on the board, even if it
-//   landed on the hive wall. The mouth is the counting line.
-// - The camera looks down at the board, tilted toward the hive so it also sees
-//   the porch roof and the bottom of the hive wall. Arms, cables and the head
-//   are outside its field of view.
-// - Every cable enters from below, under the right cheek, and runs inside it.
-// - The Observer hangs on two ears (entrance plate, scale risers or the robot
-//   entrance frame), so the camera lands in the same place on every hive.
+// - A flat wall frame shaped like a house gable (entrance plate, two slim
+//   uprights, two rafters) stays on the hive. It carries the porch with the
+//   automatic gate and the landing board.
+// - The head hangs on the apex of the frame: a ridge beam, a steep gable roof
+//   running from the hive wall forward, and one small metal pod under the
+//   ridge with the camera and the computer. Nothing but the pod is machined.
+// - The ridge runs front to back, so rain and snow slide off the sides and
+//   drip beside the landing board, never onto it.
+// - A short porch moves the doorway onto the board, so every bee in or out
+//   crosses the porch mouth in view, even if it landed on the hive wall. The
+//   mouth is the counting line and holds the gate.
+// - The camera looks down at the board, tilted toward the hive to also see the
+//   porch and the bottom of the wall. Frame, roof and cables are outside the view.
+// - Every cable enters from below, under the right upright, and runs inside it.
 
 import * as THREE from 'three';
 
@@ -31,61 +33,78 @@ const MM = 0.001;
 
 export const DEFAULTS = {
   context: 'hive', // 'hive' = on a hive stand, 'scale' = on the beehive scale, 'robot' = on the Robotic Beehive
-  power: 'poe', // 'poe' = opal canopy, PoE+ powered; 'solar' = solar canopy + battery cassette
+  power: 'poe', // 'poe' = opal roof, PoE+ powered; 'solar' = solar roof + battery cassette
+  gate: 'open', // entrance gate: 'open', 'reduced', 'guard' (hornet guard) or 'closed'
   boxes: 2, // hive bodies
   hive: { w: 506, d: 450, h: 285, lid: 80, bottomBoard: 60, entrance: 300, slot: 15 }, // Estonian hive (outer)
   stand: 200, // wooden hive stand height
-  arch: { inner: 440, cheek: 14, board: 190 }, // inner width between the arms, arm thickness, board depth
-  canopy: { ridge: 284, z0: 60, len: 150, w: 480, t: 4, slope: 4 }, // ridge underside height, start z, length, width, sheet, degrees each side
-  head: { y: 203, z: 135, w: 438, h: 50, d: 90 }, // underside height, centre z, size
-  camera: { eye: 185, hfov: 90, aspect: 16 / 9, px: 3840, tilt: 16 }, // lens height above the entrance floor, degrees, sensor width px, degrees toward the hive
-  porch: { depth: 40, w: 312, wall: 4, roof: 4 }, // entrance porch: mouth distance from the hive face, inner width, wall and roof thickness
+  frame: { w: 456, post: 22, depth: 15 }, // wall frame: width, upright / rafter width, depth of the box sections
+  roof: { ridge: 318, z0: 2, len: 212, halfW: 238, t: 3, slope: 30 }, // ridge underside height, start z, length, horizontal half-width, sheet, degrees
+  beam: { w: 30, h: 36, len: 196 }, // ridge beam under the roof
+  head: { y: 205, z: 135, w: 170, h: 57, d: 140 }, // camera + compute pod: underside height, centre z, size
+  camera: { eye: 186, hfov: 90, aspect: 16 / 9, px: 3840, tilt: 16 }, // lens height above the entrance floor, degrees, sensor width px, degrees toward the hive
+  porch: { depth: 46, w: 312, wall: 4, roof: 4, gateZ: 40, notch: 70, floorEnd: 48 }, // mouth distance from the hive face, inner width, wall/roof, gate plane, centre opening, porch floor end
+  board: { w: 432, d: 150 }, // landing board, hinged at the porch floor
   boardSlope: 6, // degrees
   scale: { feet: 25, height: 112, deck: { w: 560, d: 510 }, base: { w: 504, d: 454, h: 60 } }, // from beehive-sensors DEFAULTS
   robot: { plinth: 200, bottomBoard: 150, post: { x: 372, z: 302 }, e: 22, clad: 18 }, // from robotic-beehive DEFAULTS
+};
+
+// Gate top edge height above the porch floor for each position. The gate rises
+// out of a slit in the porch floor; its centre has a notch as deep as the porch
+// is high, so one travel gives four openings.
+export const GATE = {
+  open: 0, // flush with the floor: the whole 312 × 17 mm mouth is open
+  reduced: 17, // flat part meets the porch roof: only the 70 × 17 mm centre notch is open
+  guard: 28.5, // notch top at 11.5 mm: a 70 × 5.5 mm slot, bees pass, hornets and wasps do not
+  closed: 34, // notch top meets the porch roof
 };
 
 // ---------------------------------------------------------------------------
 // Part descriptions (shown on hover in the viewer, exported as glTF extras)
 // ---------------------------------------------------------------------------
 export const PARTS = {
-  plate: ['Entrance plate', 'Aluminium plate, powder-coated matt grey because its top edge is in the camera view, screwed to the bottom board with four stainless wood screws beside the entrance (a paper drill template is in the box). Its window matches the 300 × 15 mm entrance, it carries the entrance porch, and its two bent ears are all the Observer hangs on. The plate stays on the hive; the Observer lifts off in seconds for an inspection, a move or winter.'],
-  riser: ['Scale risers', 'Two printed ASA brackets that hook onto the front rail of the beehive scale and carry the same ears as the entrance plate. The Observer then hangs on the scale base, not on the hive, so its own weight, the bees on the board and snow on the roof are never weighed.'],
-  robotFront: ['Robot entrance frame', 'The Robotic Beehive entrance tunnels end in the same ears, so the same Observer hangs on the cabinet front. Power and data come from the robot PoE switch inside a corner post, and the robot can use the entrance counts to choose when to inspect.'],
-  porch: ['Entrance porch', 'A 40 mm deep, 15 mm high tunnel across the full entrance, moulded in the same matt grey as the board. It moves the doorway forward onto the landing board. A bee that lands on the hive wall has to walk down onto the porch roof and step off its front edge, so every bee going in or out crosses the porch mouth, in full view. The mouth is the counting line. It is shorter than the tunnels of most electronic bee counters and open to the air, with no glass to clean or fog up.'],
-  reducer: ['Entrance reducer', 'Grey slide in the porch roof (not yellow: it is where bees walk, so it must not look like a bee). Pushed forward it narrows the porch mouth against robbing, hornets or cold; parked back it leaves the full width open. It sits in the camera view, so the software knows its position.'],
-  countLine: ['Counting line', 'A faint printed line just in front of the porch mouth, for people, not for the software: the software counts a track as in when it ends inside the porch and out when it starts there.'],
-  thumb: ['Thumbscrews', 'One captive thumbscrew per side, through the ear into the arm. Hang the Observer on the ears, turn two screws and it is done: no tools, and the camera lands in exactly the same place every time.'],
-  cheek: ['Side arms', 'Folded 2 mm aluminium box sections, powder-coated graphite, leaning forward from the entrance plate to the head. They are only as wide as they need to be to carry the head, so the arch stays light and open and bees can also fly in from the sides. The field of view stops short of their inner faces, so they never show in the video.'],
-  channel: ['Cable channel', 'The right arm is hollow. The PoE cable enters it from below and runs up inside it to the head, so no cable is in the sun, in the rain or in front of the lens.'],
-  gland: ['Cable entries', 'Under the right arm, facing the ground: the PoE cable gland and the accessory socket. Water runs off them, not into them, and the cable leaves with a drip loop.'],
+  frame: ['Wall frame', 'One laser-cut, folded sheet of powder-coated steel or aluminium in the shape of a house gable: the entrance plate, two slim uprights and two rafters. It is screwed to the bottom board with four stainless screws and only leans on the hive body through two rubber pads, so the bodies still lift off. It stays on the hive and carries the porch, the gate and the landing board; the head hangs on its apex.'],
+  plate: ['Entrance plate', 'Bottom of the wall frame, with a window matching the 300 × 15 mm entrance. Powder-coated matt grey, because its top edge is in the camera view.'],
+  riser: ['Scale risers', 'On the beehive scale the wall frame stands on two printed ASA risers hooked onto the scale front rail, 2 mm clear of the hive. Frame, roof, snow and bees on the board are then carried by the scale base and never weighed.'],
+  robotFront: ['Robot entrance frame', 'On the Robotic Beehive the wall frame is bolted to the cabinet front, where the entrance tunnel ends. Power and data come from the robot PoE switch inside a corner post.'],
+  channel: ['Cable upright', 'The right upright is a closed box section. The PoE cable and the gate cable run up inside it to the apex and along the ridge beam to the pod: no cable is in the sun, in the rain or in front of the lens.'],
+  gland: ['Cable entries', 'Under the foot of the right upright, facing the ground: the PoE cable gland and the accessory socket. Water runs off them, not into them, and the cable leaves with a drip loop.'],
   m12: ['Accessory port', 'M12 8-pin socket with the pinout of the beehive scale front connector: 5 V out, ground, 1-Wire, UART, wake and shield. One short lead to the scale powers the scale pod from the Observer and shares time and readings, so the scale needs no solar board and both upload through one link.'],
-  head: ['Head', 'Extruded aluminium housing, IP65, across the top of the arch. It is also the heatsink: the compute sled presses onto it through a thermal pad, and the fins on top shed heat into the open gap under the roof. No fan to clog with dust or propolis.'],
-  camera: ['Camera module', '8 MP (3840 × 2160) Sony STARVIS 2 sensor on its own MIPI CSI board with a locked-focus, low-distortion M12 lens, 90° wide. It sits 185 mm above the board, about 135 mm out from the hive, and is tilted 16° back toward the hive. It sees nearly the whole board, the porch roof and the bottom 35 mm of the hive wall, so bees that land on the wall are tracked from the moment they land. On the board that gives about 10 px per mm, a bee is about 140 px long and a varroa mite about 15 px, which is enough for pose keypoints and mites. A global-shutter module can replace it without changing the housing.'],
+  thumb: ['Apex hook', 'The ridge beam ends in a hook that drops into a pocket at the apex of the wall frame, locked by one captive honey-yellow thumbscrew. The head lifts off in seconds and always lands in the same place, with the camera aimed the same way.'],
+  beam: ['Ridge beam', 'Standard 30 × 36 mm aluminium extrusion from the apex forward, under the ridge. It carries the roof, the front rafters and the pod, and the cables run inside it.'],
+  rafter: ['Front rafters', 'Two slim folded strips under the front edge of the roof, from the end of the ridge beam to the eaves. They carry snow on the front corners. They sit above the lens, outside the view.'],
+  pod: ['Camera + compute pod', 'The only machined metal part: a 170 × 140 mm piece of finned aluminium extrusion, IP65, with printed end caps. It holds the camera, the compute sled and the supervisor, and it is the heatsink: the fins sit in the ventilated space under the roof. No fan to clog with dust or propolis.'],
+  camera: ['Camera module', '8 MP (3840 × 2160) Sony STARVIS 2 sensor on its own MIPI CSI board with a locked-focus, low-distortion M12 lens, 90° wide. It sits 186 mm above the board, 135 mm out from the hive, tilted 16° back toward the hive: it sees nearly the whole board, the porch with the gate and the bottom of the hive wall, so bees that land on the wall are tracked from the moment they land. On the board that gives about 9.5 px per mm: a bee is about 125 px long and a varroa mite about 14 px. A global-shutter module can replace it without changing the pod.'],
   hood: ['Lens hood + window', 'Matt black cone with a flat AR-coated glass window at its tip, facing the ground. Rain cannot reach it, the sky never reflects in it and the roof keeps direct sun off it. A 0.3 W heater film clears dew on cold mornings.'],
-  led: ['Light bars', 'Two diffused LED bars beside the lens, with crossed polarisers on the LEDs and the lens to remove glints from shiny bees and wet pollen. They only flash in sync with the exposure at dusk or in deep shade, so they add less than 0.3 W on average.'],
-  mic: ['Microphone', 'MEMS microphone behind a mesh under the head. Entrance audio (drone flight, piping, hornets, fanning) is stored with the counts for audio + video models.'],
-  sensor: ['Light + climate sensor', 'Ambient light, temperature and humidity. The supervisor uses them to decide when bees can fly, which is when the computer has to run.'],
-  supervisor: ['Supervisor board', 'Always-on ESP32-S3 board, the same carrier design as the beehive scale: PoE+ input, 12–24 V DC input, solar charger, fuel gauge and a load switch for the compute sled. It idles at about 0.1 W and only powers the computer when bees can fly (light, temperature, no rain, schedule). It also keeps time and forwards the scale readings.'],
-  compute: ['Compute cassette', 'Raspberry Pi 5 (8 GB), Hailo-8 26 TOPS accelerator and 256 GB NVMe on one sled. It slides out of the right arm after a quarter-turn, like the beehive scale pod. The sled is the upgrade path: housing, camera, power and connectors stay the same, and a Jetson Orin NX or the next accelerator slides into the same bay when pose models need more compute.'],
-  face: ['Service face', 'Honey-yellow face of the compute cassette: status ring, setup button and a USB-C port under a flap for copying full-resolution research clips on site.'],
-  battery: ['Battery cassette', 'Solar version: four LiFePO4 32700 cells (12.8 V, 77 Wh) on a sled in the left bay, charged from the roof panels. LiFePO4 tolerates the heat of a summer day in the head better than Li-ion. In the PoE version this bay is empty or holds an LTE modem.'],
-  blank: ['Left bay cover', 'Cover of the left bay. Behind it goes the battery cassette (solar version) or an LTE modem for apiaries without Wi-Fi or Ethernet.'],
-  canopy: ['Roof', '480 × 150 mm of 4 mm opal (light-diffusing), UV-stabilised polycarbonate, cold-bent into a shallow ridge and set on four standoffs over the head. It keeps sun and rain off the head and the lens. Rain runs to the two side eaves and drips beside the landing board, outside the view. Being opal, it casts only a faint, soft shadow on the board, which does not cut bees in half in the image.'],
-  solarCanopy: ['Solar roof', 'The same roof with two 5 W ETFE panels laminated on its slopes (10 W). Bees fly when the sun shines, so the panels produce the most when the Observer has the most to do. The solar version samples (2 minutes in every 15) rather than recording all day.'],
-  board: ['Landing board', '10 mm HDPE, hinged between the arms at a 6° slope so rain drains off. It is the background of every frame, so it is part of the product: matt, neutral light grey. White would overexpose in the sun and hide pale pollen loads.'],
+  led: ['Light bars', 'Two short diffused LED bars beside the lens, with crossed polarisers on the LEDs and the lens to remove glints from shiny bees and wet pollen. They only flash in sync with the exposure at dusk or in deep shade, so they add less than 0.3 W on average.'],
+  mic: ['Microphone', 'MEMS microphone behind a mesh under the pod. Entrance audio (drone flight, piping, hornets, fanning) is stored with the counts for audio + video models, and a hornet buzz is a second trigger for the gate.'],
+  sensor: ['Light + climate sensor', 'Ambient light, temperature and humidity. The supervisor uses them to decide when bees can fly, which is when the computer has to run, and to narrow the gate on cold nights.'],
+  supervisor: ['Supervisor board', 'Always-on ESP32-S3 board, the same carrier design as the beehive scale: PoE+ input, 12–24 V DC input, solar charger, fuel gauge, the gate motor driver and a load switch for the compute sled. It idles at about 0.1 W, only powers the computer when bees can fly, and moves the gate on its own when needed (cold night, lost power, expired hornet guard).'],
+  compute: ['Compute cassette', 'Raspberry Pi 5 (8 GB), Hailo-8 26 TOPS accelerator and 256 GB NVMe on one sled. It slides out of the front of the pod after a quarter-turn. The sled is the upgrade path: pod, camera, power and connectors stay the same, and a Jetson Orin NX or the next accelerator slides into the same bay when pose models need more compute.'],
+  face: ['Service face', 'Honey-yellow front of the compute cassette: status ring, setup button and a USB-C port under a flap for copying full-resolution research clips on site.'],
+  battery: ['Battery cassette', 'Solar version: four LiFePO4 32700 cells (12.8 V, 77 Wh) on a sled that slides out of the left side of the pod, charged from the roof panels. LiFePO4 tolerates summer heat better than Li-ion. In the PoE version this bay is empty or holds an LTE modem.'],
+  blank: ['Side bay cover', 'Cover of the pod side bay. Behind it goes the battery cassette (solar version) or an LTE modem for apiaries without Wi-Fi or Ethernet.'],
+  canopy: ['Roof', 'A 3 mm opal (light-diffusing), UV-stabilised polycarbonate sheet bent once along the ridge into a 30° gable, 448 × 212 mm, from the hive wall forward. At 30° rain and snow slide off, to the sides: the eaves overhang the landing board edges, so drips fall beside the board, outside the view. Opal keeps its shadow on the board soft. It rests on the rafters of the wall frame at the back, the ridge beam and the front rafters.'],
+  solarCanopy: ['Solar roof', 'The same gable with a 7 W ETFE panel laminated on each slope (14 W). Whichever way the hive faces, one slope gets the morning or afternoon sun. Bees fly when the sun shines, so the panels produce the most when the Observer has the most to do.'],
+  porch: ['Entrance porch', 'A 46 mm deep, 17 mm high tunnel across the full entrance, in the same matt grey as the board. It moves the doorway forward onto the landing board: a bee that lands on the hive wall has to walk down onto the porch roof and step off in front of the mouth, so every bee in or out crosses the porch mouth in view. The mouth is the counting line. Open to the air, with no glass to clean or fog up.'],
+  gate: ['Automatic entrance gate', 'A 2 mm plate that rises out of a slit in the porch floor at the mouth, with a 70 mm notch in its centre. One travel gives four positions: open (flush with the floor), reduced (only the 70 × 17 mm centre open, against wind, cold and robbing), hornet guard (a 70 × 5.5 mm slot: bees pass, hornets and wasps cannot) and closed (moving the hive, spraying nearby). It rises slowly with a soft silicone edge and a current limit, and only when the camera sees no bee in the mouth, so it cannot crush bees. Hidden under the floor when open.'],
+  gateDrive: ['Gate drive', 'Sealed box under the porch floor: a micro geared stepper with a self-locking lead screw (the gate holds any position without power, and bees or hornets cannot push it), a hall sensor for the home position and a supercapacitor. If power is lost, the supercapacitor opens the gate: it fails open, never closed. The drive plugs into the right upright; a move takes about 5 s at 1 W.'],
+  lintel: ['Gate lintel', 'The raised front edge of the porch roof. The gate slides up into it, and it marks the counting line from above.'],
+  countLine: ['Counting line', 'A faint printed line just in front of the porch mouth, for people, not for the software: the software counts a track as in when it ends inside the porch and out when it starts there.'],
+  board: ['Landing board', '10 mm HDPE, hinged to the front of the porch floor at a 6° slope so rain drains off, with an aluminium stiffener underneath. It is the background of every frame: matt, neutral light grey. White would overexpose in the sun and hide pale pollen loads.'],
   insert: ['Board insert', 'The top 3 mm layer slides out forward for washing off droppings, dead bees and propolis. Spare inserts are cheap to keep.'],
   marker: ['Calibration markers', 'Four ArUco markers and a millimetre scale on the insert. The software finds them in every frame, so it knows the exact mm per pixel for bee size and speed, straightens the view, and raises an alert if the Observer has been knocked.'],
-  hinge: ['Board hinge', 'Stainless pins. The board folds up flat for shipping and swings down if something hits it.'],
-  harness: ['Internal harness', 'PoE and accessory lines from the entries under the right arm, up the cable channel to the supervisor board in the head.'],
-  cable: ['Cables', 'One PoE cable (power and data, up to 100 m) from under the right arm, run along the ground. With the scale, one short M12 lead joins the Observer and the scale.'],
-  fov: ['Camera field of view', 'What the camera sees: the bottom of the hive wall, the porch and the landing board, about 400 mm across. The arms, head, roof and cables are all outside it.'],
-  bee: ['Bees', 'Honey bees on the landing board. At 4K each worker is about 140 px long, big enough for pose keypoints, pollen loads and mites.'],
-  hive: ['Hive', 'A standard hive: bottom board, bodies and lid. The only change is the entrance plate screwed to the bottom board.'],
+  hinge: ['Board hinge', 'Stainless pins at the front of the porch floor. The board folds up flat for shipping and swings down if something hits it.'],
+  harness: ['Internal harness', 'PoE, accessory and gate lines from the foot of the right upright, up inside it, over the rafter and along the ridge beam to the supervisor board in the pod.'],
+  cable: ['Cables', 'One PoE cable (power and data, up to 100 m) from under the right upright, run along the ground. With the scale, one short M12 lead joins the Observer and the scale.'],
+  fov: ['Camera field of view', 'What the camera sees: the bottom of the hive wall, the porch with the gate and the landing board, about 400 mm across. The frame, roof, pod and cables are all outside it.'],
+  bee: ['Bees', 'Honey bees on the landing board, on the porch roof and on the hive wall. At 4K each worker is about 125 px long, big enough for pose keypoints, pollen loads and mites.'],
+  hive: ['Hive', 'A standard hive: bottom board, bodies and lid. The only change is the wall frame screwed to the bottom board.'],
   stand: ['Hive stand', 'Any stand works: the Observer hangs on the hive entrance and does not touch the stand.'],
-  scale: ['Beehive scale', 'Gratheon beehive scale, simplified. The Observer hangs on its front rail with two risers, and one M12 lead powers the scale pod and carries its readings.'],
+  scale: ['Beehive scale', 'Gratheon beehive scale, simplified. The Observer stands on its front rail with two risers, and one M12 lead powers the scale pod and carries its readings.'],
   scaleLink: ['Scale connector', 'M12 socket under the front rail of the beehive scale. The Observer lead plugs in here in place of the solar landing board.'],
-  robot: ['Robotic Beehive', 'Ghost of the Robotic Beehive cabinet. Its entrance tunnels end in the entrance frame the Observer hangs on, and the cable runs inside the cabinet to the robot PoE switch.'],
+  robot: ['Robotic Beehive', 'Ghost of the Robotic Beehive cabinet. Its entrance tunnel ends in the Observer porch, and the cable runs inside the cabinet to the robot PoE switch.'],
 };
 
 // ---------------------------------------------------------------------------
@@ -101,7 +120,7 @@ export function derive(p) {
     hiveBase = deckTop;
     bottomBoard = H.bottomBoard;
     entranceY = hiveBase + 12;
-    // In front of the deck (railZ + 6), at entrance level: only the porch touches the weighed hive.
+    // In front of the deck (railZ + 6), at entrance level: nothing touches the weighed hive.
     origin = [0, entranceY, S.deck.d / 2 + 14];
   } else if (p.context === 'robot') {
     hiveBase = R.plinth + R.bottomBoard;
@@ -116,21 +135,27 @@ export function derive(p) {
   }
   const cam = p.camera, P = p.porch;
   const tanB = Math.tan(rad(p.boardSlope));
-  const boardY = (z) => -2 - (z - 5) * tanB; // board surface height at local z
+  const boardY = (z) => -2 - (z - P.floorEnd) * tanB; // board surface height at local z
   const vfov = 2 * Math.atan(Math.tan(rad(cam.hfov / 2)) / cam.aspect);
   const wallZ = H.d / 2 - origin[2]; // hive front face in the observer frame (≤ 0)
-  const porchTop = H.slot + 2 + P.roof; // top of the porch roof
-  // The lens hangs 18 mm under the head floor and swings with the camera tilt.
+  const pTop = H.slot + 2; // porch roof underside
+  const porchTop = pTop + P.roof; // top of the porch roof
+  const lintelTop = pTop + 21; // top of the gate lintel at the mouth
+  // The lens hangs 19 mm under the pod floor and swings with the camera tilt.
   const tilt = rad(cam.tilt), drop = p.head.y - cam.eye;
   const eye = new THREE.Vector3(0, p.head.y - drop * Math.cos(tilt), p.head.z - drop * Math.sin(tilt));
   // A camera ray (a across, b along the image height) tilted toward the hive.
   const ray = (a, b) => new THREE.Vector3(a, -1, b).applyAxisAngle(new THREE.Vector3(1, 0, 0), tilt);
-  // First surface a ray meets: porch roof, hive wall or landing board.
+  // First surface a ray meets: gate lintel, porch roof, hive wall or landing board.
   const hit = (dir) => {
-    let best = (eye.y + 2 + (eye.z - 5) * tanB) / (-dir.y - dir.z * tanB); // board plane
-    const tr = (eye.y - porchTop) / -dir.y;
-    const pr = eye.clone().addScaledVector(dir, tr);
-    if (tr > 0 && tr < best && pr.z >= wallZ && pr.z <= P.depth && Math.abs(pr.x) <= P.w / 2 + P.wall) best = tr;
+    let best = (eye.y + 2 - P.floorEnd * tanB + eye.z * tanB) / (-dir.y - dir.z * tanB); // board plane
+    const flat = (y, z0, z1, halfX) => {
+      const t = (eye.y - y) / -dir.y;
+      const q = eye.clone().addScaledVector(dir, t);
+      if (t > 0 && t < best && q.z >= z0 && q.z <= z1 && Math.abs(q.x) <= halfX) best = t;
+    };
+    flat(lintelTop, P.gateZ - 6, P.depth, P.w / 2 + P.wall);
+    flat(porchTop, wallZ, P.gateZ - 6, P.w / 2 + P.wall);
     if (dir.z < 0) {
       const tw = (wallZ - eye.z) / dir.z;
       if (tw > 0 && tw < best && eye.y + dir.y * tw > porchTop) best = tw;
@@ -149,7 +174,7 @@ export function derive(p) {
   const wallSeen = Math.max(0, corners[0].y - porchTop); // hive wall visible above the porch
   return {
     origin, hiveBase, bottomBoard, entranceY, boardY, tanB, eye, corners, outline, vfov, wallZ, porchTop,
-    fovW, fovD, wallSeen, pxPerMm: cam.px / fovW, boardFront: 5 + p.arch.board * Math.cos(rad(p.boardSlope)),
+    fovW, fovD, wallSeen, pxPerMm: cam.px / fovW, boardFront: P.floorEnd + p.board.d * Math.cos(rad(p.boardSlope)),
     lidTop: hiveBase + bottomBoard + p.boxes * H.h + H.lid,
   };
 }
@@ -161,9 +186,9 @@ export const ENERGY = {
   activeW: 9, // Pi 5 + Hailo-8 + 4K camera + Ethernet while observing
   bootJ: 125, // ≈25 s boot at 5 W before the first frame
   flightHours: 12, // summer day with flight weather
-  sample: { on: 120, period: 900 }, // sampled mode: record 2 min every 15 min
+  sample: { on: 120, period: 600 }, // sampled mode: record 2 min every 10 min
   batteryWh: 77, depth: 0.9,
-  panelW: 10, sunHours: 4.5, systemEff: 0.7, // May–August average for Estonia, near-horizontal panel
+  panelW: 14, sunHours: 4.5, systemEff: 0.7, // May–August average for Estonia, near-horizontal panel
 };
 export function energy(e = ENERGY) {
   const base = e.supervisorW * 24;
@@ -208,7 +233,7 @@ function makeMaterials() {
     markWhite: std(0xf4f4f0, { roughness: 0.9 }),
     markGrey: std(0x6f736f, { roughness: 0.9 }),
     porch: std(0xaeb1ac, { roughness: 0.95 }), // same matt grey family as the board
-    porchDark: std(0x8e928d, { roughness: 0.95 }),
+    gate: std(0x8e928d, { roughness: 0.9 }),
     plate: std(0x9ea29d, { roughness: 0.9 }), // matt powder coat: the plate is in the camera view
     opal: new THREE.MeshStandardMaterial({ color: 0xf6f5f0, roughness: 0.35, transparent: true, opacity: 0.8, side: THREE.DoubleSide }),
     opalEdge: std(0xe9e7e0, { roughness: 0.4 }),
@@ -290,6 +315,7 @@ export function buildObserver(options = {}) {
   const p = { ...DEFAULTS, ...options };
   if (!['hive', 'scale', 'robot'].includes(p.context)) p.context = 'hive';
   if (!['poe', 'solar'].includes(p.power)) p.power = 'poe';
+  if (!(p.gate in GATE)) p.gate = 'open';
   const d = derive(p);
   const M = makeMaterials();
   const { box, slab, cyl, group, place, cached, cable } = helpers();
@@ -308,170 +334,149 @@ export function buildObserver(options = {}) {
   const fieldCables = group(root, 'fieldCables');
   nodes.fieldCables = fieldCables;
 
-  const A = p.arch, C = p.canopy, HD = p.head, H = p.hive;
-  const IN = A.inner / 2, OUT = IN + A.cheek; // cheek inner / outer x
+  const F = p.frame, RF = p.roof, BM = p.beam, HD = p.head, H = p.hive, PO = p.porch;
+  const FW = F.w / 2; // frame half-width
   const [ox, oy, oz] = d.origin;
   // Observer frame → world (the Observer is never rotated, only moved).
   const W = (x, y, z) => [ox + x, oy + y, oz + z];
+  const tanR = Math.tan(rad(RF.slope));
+  const roofUnder = (x) => RF.ridge - Math.abs(x) * tanR; // roof underside height at x
+  const rafterY = (x) => roofUnder(x) - 12; // rafter centre line, just under the roof
+  const postTop = rafterY(FW - F.post / 2); // where the uprights meet the rafters
+  const apexY = rafterY(0);
 
   const obs = group(root, 'observer', ox, oy, oz);
   nodes.observer = obs;
 
-  // ----- mount: entrance plate / scale risers / robot frame ------------------
-  const mountPart = { hive: 'plate', scale: 'riser', robot: 'robotFront' }[p.context];
-  const mount = group(obs, 'mount', 0, 0, 0, mountPart);
-  // ears: bent forward at both ends, outside the cheeks
-  const earBottom = p.context === 'hive' ? -12 : -40;
+  // ----- wall frame: plate, uprights, rafters (one folded sheet) --------------
+  const framePart = { hive: 'frame', scale: 'frame', robot: 'robotFront' }[p.context];
+  const frame = group(obs, 'wallFrame', 0, 0, 0, framePart);
+  const WIN = H.entrance / 2 + 4, S = H.slot + 2; // window half-width and height
+  const plateZ = p.context === 'robot' ? -2 : 0;
+  const plateMat = M.plate;
+  // entrance plate with a window matching the entrance slot
+  slab(frame, -FW, -12, plateZ, 2 * FW, 12, 3, plateMat, 'plate');
+  slab(frame, -FW, S, plateZ, 2 * FW, 44 - S, 3, plateMat, 'plate');
+  for (const s of [-1, 1]) slab(frame, s > 0 ? WIN : -FW, 0, plateZ, FW - WIN, S, 3, plateMat, 'plate');
+  if (p.context === 'hive') for (const sx of [-1, 1]) for (const y of [-6, 36]) cyl(frame, 4, 1.5, M.steel, sx * (WIN + 22), y, 3.6, 'z', 'plate', 12);
+  // uprights (box sections; the right one carries the cables)
+  const railTop = p.scale.feet + 50 - oy; // scale rail top, observer frame
+  const postBottom = p.context === 'scale' ? railTop - 34 : -12;
   for (const s of [-1, 1]) {
-    slab(mount, s > 0 ? OUT + 1 : -OUT - 4, earBottom, 0, 3, 52 - earBottom, 34, M.plate, mountPart);
+    slab(frame, s > 0 ? FW - F.post : -FW, postBottom, plateZ, F.post, postTop - postBottom, F.depth, M.graphite, s > 0 ? 'channel' : framePart);
+    // rafter from the top of the upright up to the apex, under the roof
+    const x0 = s * (FW - F.post / 2), y0 = postTop, x1 = s * 8, y1 = rafterY(8);
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    const r = box(frame, len + 12, F.post, F.depth, M.graphite, (x0 + x1) / 2, (y0 + y1) / 2, plateZ + F.depth / 2, framePart);
+    r.rotation.z = Math.atan2(y1 - y0, x1 - x0);
+    // rubber pad against the hive body
+    cyl(frame, 7, 4, M.rubber, s * (FW - F.post / 2), postTop - 30, plateZ - 2, 'z', framePart, 16);
   }
-  if (p.context === 'hive') {
-    // plate with a window matching the entrance slot, four screws beside it
-    const E2 = H.entrance / 2 + 4, S = H.slot + 2;
-    slab(mount, -OUT - 4, -12, 0, 2 * OUT + 8, 12, 3, M.plate, 'plate');
-    slab(mount, -OUT - 4, S, 0, 2 * OUT + 8, 44 - S, 3, M.plate, 'plate');
-    for (const s of [-1, 1]) slab(mount, s > 0 ? E2 : -OUT - 4, 0, 0, OUT + 4 - E2, S, 3, M.plate, 'plate');
-    for (const sx of [-1, 1]) for (const y of [-6, 36]) cyl(mount, 4, 1.5, M.steel, sx * (E2 + 30), y, 3.6, 'z', 'plate', 12);
-  } else if (p.context === 'scale') {
-    // printed risers from the scale rail up to the ears
-    const railTop = p.scale.feet + 50 - oy; // top of the rail's vertical plate, observer frame
-    for (const s of [-1, 1]) {
-      slab(mount, s > 0 ? IN : -OUT, railTop - 34, -12, A.cheek, earBottom - railTop + 40, 40, M.asa, 'riser');
-      slab(mount, s > 0 ? IN : -OUT, railTop - 4, -18, A.cheek, 10, 10, M.asa, 'riser'); // hook over the rail
-    }
-  } else {
-    slab(mount, -OUT - 4, -14, -2, 2 * OUT + 8, 12, 5, M.plate, 'robotFront');
-    slab(mount, -OUT - 4, H.slot + 2, -2, 2 * OUT + 8, 36, 5, M.plate, 'robotFront');
+  box(frame, 40, 22, F.depth + 6, M.graphite, 0, apexY - 12, plateZ + (F.depth + 6) / 2, framePart); // apex pocket
+  // foot of the right upright: cable entries facing down
+  const footX = FW - F.post / 2;
+  slab(frame, FW - F.post - 2, -40, plateZ, F.post + 2, 30, 36, M.graphite, 'channel');
+  cyl(frame, 7, 10, M.black, footX, -45, plateZ + 10, 'y', 'gland', 6);
+  cyl(frame, 4, 4, M.rubber, footX, -51, plateZ + 10, 'y', 'gland', 16);
+  cyl(frame, 8, 12, M.steel, footX, -46, plateZ + 27, 'y', 'm12', 20);
+  cyl(frame, 9.5, 3, M.black, footX, -41.5, plateZ + 27, 'y', 'm12', 20);
+  if (p.context === 'scale') {
+    // printed risers: hooks over the scale front rail at the bottom of the uprights
+    for (const s of [-1, 1]) slab(frame, s > 0 ? FW - F.post : -FW, railTop - 4, -18, F.post, 10, 18, M.asa, 'riser');
   }
 
-  // ----- entrance porch: moves the doorway forward onto the board ---------------
-  // Bees that land on the hive wall must walk over the porch roof and step down
-  // onto the board, so every bee in or out crosses the porch mouth in view.
-  const PO = p.porch, PW2 = PO.w / 2, pTop = H.slot + 2; // roof underside
+  // ----- entrance porch + automatic gate --------------------------------------
+  const PW2 = PO.w / 2, pTop = H.slot + 2;
   const porch = group(obs, 'porch', 0, 0, 0, 'porch');
-  const pz0 = Math.min(d.wallZ, 0) + (p.context === 'hive' ? 3 : 0), plen = PO.depth - pz0;
-  slab(porch, -PW2 - PO.wall, pTop, pz0, PO.w + 2 * PO.wall, PO.roof, plen, M.porch, 'porch');
-  for (const s of [-1, 1]) slab(porch, s > 0 ? PW2 : -PW2 - PO.wall, -2, pz0, PO.wall, pTop + 2, plen, M.porch, 'porch');
-  box(porch, PO.w + 2 * PO.wall, 1.5, 1.5, M.board, 0, pTop - 0.2, PO.depth - 0.75, 'porch'); // drip nose on the mouth
-  if (pz0 < 0) slab(porch, -PW2, -3, pz0, PO.w, 3, 8 - pz0, M.porch, 'porch'); // floor over the gap to the board
-  // slide-in entrance reducer, parked open inside the porch roof slot
-  slab(porch, -60, pTop + PO.roof, PO.depth - 30, 120, 2, 22, M.porchDark, 'reducer');
-  box(porch, 16, 3, 5, M.graphite, 0, pTop + PO.roof + 2.5, PO.depth - 12, 'reducer');
-
-  // ----- side cheeks (extruded profile, box section) -------------------------
-  const cheekShape = () => {
-    const s = new THREE.Shape();
-    const top = HD.y + HD.h + 1, z0 = HD.z - HD.d / 2 - 6, z1 = HD.z + HD.d / 2 + 6;
-    const pts = [[4, -30], [58, -30], [58, 10], [z1, HD.y - 30], [z1, top], [z0, top], [4, 70]];
-    s.moveTo(pts[0][0] * MM, pts[0][1] * MM);
-    for (const [u, v] of pts.slice(1)) s.lineTo(u * MM, v * MM);
-    s.closePath();
-    return s;
-  };
-  const cheekGeo = cached('cheek', () => new THREE.ExtrudeGeometry(cheekShape(), {
-    depth: (A.cheek - 2) * MM, bevelEnabled: true, bevelThickness: 1 * MM, bevelSize: 1.5 * MM, bevelSegments: 2,
-  }));
-  nodes.cheeks = [];
+  const pz0 = Math.min(d.wallZ, 0) + (p.context === 'scale' ? 2 : 3);
+  const lz0 = PO.gateZ - 6; // lintel starts here
+  slab(porch, -PW2 - PO.wall, pTop, pz0, PO.w + 2 * PO.wall, PO.roof, lz0 - pz0, M.porch, 'porch');
+  slab(porch, -PW2 - PO.wall, pTop, lz0, PO.w + 2 * PO.wall, 21, PO.depth - lz0, M.porch, 'lintel');
+  for (const s of [-1, 1]) slab(porch, s > 0 ? PW2 : -PW2 - PO.wall, 0, pz0, PO.wall, pTop, PO.depth - pz0, M.porch, 'porch');
+  // floor with the gate slit, widened into an apron up to the uprights so the camera never sees the ground
+  slab(porch, -(FW - F.post), -3, pz0, 2 * (FW - F.post), 3, PO.floorEnd - pz0, M.porch, 'porch');
+  // gate drive box under the floor (not in view)
+  slab(porch, -PW2 - 10, -45, PO.gateZ - 7, PO.w + 20, 42, 14, M.graphite, 'gateDrive');
+  slab(porch, PW2 + 10, -45, PO.gateZ - 12, 36, 42, 24, M.graphite, 'gateDrive'); // motor end
+  cyl(porch, 3, 40, M.steel, PW2 + 4, -24, PO.gateZ, 'y', 'gateDrive', 10);
+  // the gate: flat plate with a centre notch, rising out of the floor
+  const gate = group(porch, 'gate', 0, GATE[p.gate] ?? 0, PO.gateZ, 'gate');
+  nodes.gate = gate;
+  nodes.gateHome = 0;
+  const N2 = PO.notch / 2, GH = 36;
   for (const s of [-1, 1]) {
-    const cheek = explodable(group(obs, s > 0 ? 'cheekRight' : 'cheekLeft', 0, 0, 0, 'cheek'), s * 120, 0, 0);
-    nodes.cheeks.push(cheek);
-    const m = place(cheek, cheekGeo, M.graphite, s > 0 ? OUT - 1 : -IN - 1, 0, 0, s > 0 ? 'channel' : 'cheek');
-    m.rotation.y = -Math.PI / 2;
-    // thumbscrew through the ear into the cheek
-    cyl(cheek, 9, 8, M.pod, s * (OUT + 9), 30, 18, 'x', 'thumb', 24);
-    cyl(cheek, 3, 10, M.steel, s * (OUT + 3), 30, 18, 'x', 'thumb', 10);
-    if (s > 0) {
-      // cable entries under the right cheek, facing down
-      cyl(cheek, 7, 10, M.black, OUT - 7, -35, 18, 'y', 'gland', 6);
-      cyl(cheek, 4, 4, M.rubber, OUT - 7, -41, 18, 'y', 'gland', 16);
-      cyl(cheek, 8, 12, M.steel, OUT - 7, -36, 46, 'y', 'm12', 20);
-      cyl(cheek, 9.5, 3, M.black, OUT - 7, -31.5, 46, 'y', 'm12', 20);
+    slab(gate, s > 0 ? N2 : -PW2, -GH, -1, PW2 - N2, GH, 2, M.gate, 'gate');
+    slab(gate, s > 0 ? N2 : -PW2, -1.5, -1.3, PW2 - N2, 1.5, 2.6, M.gasket, 'gate'); // soft edge
+  }
+  slab(gate, -N2, -GH, -1, 2 * N2, GH - pTop, 2, M.gate, 'gate');
+  slab(gate, -N2, -pTop - 1.5, -1.3, 2 * N2, 1.5, 2.6, M.gasket, 'gate');
+
+  // ----- head: ridge beam, roof, front rafters, pod ---------------------------
+  const headAsm = explodable(group(obs, 'head', 0, 0, 0, 'beam'), 0, 330, 0);
+  nodes.head = headAsm;
+  const beamTop = roofUnder(BM.w / 2) - 1;
+  slab(headAsm, -BM.w / 2, beamTop - BM.h, plateZ + F.depth, BM.w, BM.h, BM.len, M.anod, 'beam');
+  box(headAsm, 20, 14, 8, M.anod, 0, apexY - 6, plateZ + F.depth - 4, 'thumb'); // hook into the apex pocket
+  cyl(headAsm, 7, 8, M.pod, 0, apexY - 4, plateZ + F.depth + 8, 'z', 'thumb', 20);
+  // front rafters under the front edge of the roof
+  const frontZ = RF.z0 + RF.len - 8;
+  for (const s of [-1, 1]) {
+    const len = RF.halfW / Math.cos(rad(RF.slope)) - 16;
+    const r = box(headAsm, len, 10, 8, M.graphite, s * (len / 2) * Math.cos(rad(RF.slope)), RF.ridge - 7 - (len / 2) * Math.sin(rad(RF.slope)), frontZ, 'rafter');
+    r.rotation.z = -s * rad(RF.slope);
+  }
+  // the roof: one sheet bent along the ridge
+  const cPart = solar ? 'solarCanopy' : 'canopy';
+  const roof = group(headAsm, 'roof', 0, RF.ridge, RF.z0, cPart);
+  nodes.canopy = roof;
+  const sheet = solar ? M.acm : M.opal;
+  const slant = RF.halfW / Math.cos(rad(RF.slope));
+  for (const s of [-1, 1]) {
+    const half = group(roof, s > 0 ? 'roofRight' : 'roofLeft', 0, 0, 0, cPart);
+    half.rotation.z = -s * rad(RF.slope);
+    box(half, slant, RF.t, RF.len, sheet, (s * slant) / 2, RF.t / 2, RF.len / 2, cPart);
+    box(half, 3, 10, RF.len, solar ? M.acm : M.opalEdge, s * (slant - 1.5), RF.t - 5, RF.len / 2, cPart); // drip edge at the eave
+    if (solar) {
+      box(half, slant - 24, 1.2, RF.len - 20, M.solar, s * (slant / 2 + 4), RF.t + 0.6, RF.len / 2, 'solarCanopy');
+      for (let i = 1; i < 4; i++) box(half, 0.8, 1.5, RF.len - 20, M.solarGrid, s * (16 + (i * (slant - 24)) / 4), RF.t + 0.7, RF.len / 2, 'solarCanopy');
+      box(half, slant - 24, 1.5, 0.8, M.solarGrid, s * (slant / 2 + 4), RF.t + 0.7, RF.len / 2, 'solarCanopy');
     }
   }
-  // service opening frames on the cheek outer faces (the cassettes close them)
-  const bayZ0 = HD.z - HD.d / 2 + 6, bayD = HD.d - 12, bayY0 = HD.y + 4, bayH = HD.h - 8;
+  box(roof, 12, 4, RF.len + 2, M.pod, 0, RF.t + 1, RF.len / 2, cPart); // honey-yellow ridge cap
 
-  // ----- internal harness (inside the right cheek; seen in the exploded view)
-  cable(obs, [[OUT - 7, -30, 18], [OUT - 7, 0, 22], [OUT - 7, 80, 40], [OUT - 7, 150, 62], [OUT - 8, HD.y + 14, HD.z - 20], [IN - 20, HD.y + 20, HD.z - 20]], 2.4, M.cable, 'harness');
-  cable(obs, [[OUT - 7, -30, 46], [OUT - 9, 20, 44], [OUT - 9, 150, 70], [IN - 20, HD.y + 26, HD.z - 12]], 1.8, M.cable, 'harness');
-
-  // ----- head --------------------------------------------------------------------
-  const head = explodable(group(obs, 'head', 0, HD.y, HD.z, 'head'), 0, 170, 0);
-  nodes.head = head;
-  const hw = HD.w, hh = HD.h, hd = HD.d;
-  // extruded shell: floor, roof, front, back (open at the ends for the cassettes)
-  slab(head, -hw / 2, 0, -hd / 2, hw, 4, hd, M.anod, 'head');
-  slab(head, -hw / 2, hh - 5, -hd / 2, hw, 5, hd, M.anod, 'head');
-  for (const s of [-1, 1]) slab(head, -hw / 2, 0, s > 0 ? hd / 2 - 4 : -hd / 2, hw, hh, 4, M.anod, 'head');
-  // rounded front/back edges read as an extrusion
-  for (const s of [-1, 1]) cyl(head, 4, hw, M.anod, 0, 4, s * (hd / 2 - 3), 'x', 'head', 12);
-  // cooling fins on top, running front-to-back under the canopy
-  for (let x = -200; x <= 200; x += 20) box(head, 2.5, 7, hd - 10, M.anod, x, hh + 3.5, 0, 'head');
-  // Gratheon stripe on the front face
-  box(head, 140, 6, 1, M.pod, 0, hh / 2, hd / 2 + 0.5, 'head');
+  // pod: the only machined metal, hangs under the ridge beam
+  const pod = explodable(group(headAsm, 'pod', 0, HD.y, HD.z, 'pod'), 0, -150, 0);
+  nodes.pod = pod;
+  const pw = HD.w, ph = HD.h, pd = HD.d;
+  slab(pod, -pw / 2, 0, -pd / 2, pw, 4, pd, M.anod, 'pod');
+  slab(pod, -pw / 2, ph - 5, -pd / 2, pw, 5, pd, M.anod, 'pod');
+  for (const s of [-1, 1]) slab(pod, s > 0 ? pw / 2 - 4 : -pw / 2, 0, -pd / 2, 4, ph, pd, M.anod, 'pod');
+  for (const s of [-1, 1]) cyl(pod, 4, pd, M.anod, s * (pw / 2 - 3), ph - 4, 0, 'z', 'pod', 12);
+  slab(pod, -pw / 2 + 2, 0, -pd / 2, pw - 4, ph, 4, M.asa, 'pod'); // printed back cap
+  for (let x = -70; x <= 70; x += 14) box(pod, 2.5, 5, pd - 10, M.anod, x, ph + 2.5, 0, 'pod'); // fins
+  for (const s of [-1, 1]) box(pod, 16, BM.h, 20, M.anod, 0, ph + 4, s * 40, 'beam'); // hangers to the beam
   // underside: light bars, microphone, light/climate sensor
   for (const s of [-1, 1]) {
-    box(head, 300, 4, 12, M.white, 0, -2, s * 38, 'led');
-    box(head, 296, 1, 9, M.led, 0, -4.2, s * 38, 'led');
+    box(pod, 120, 4, 10, M.white, 0, -2, s * 50, 'led');
+    box(pod, 116, 1, 7, M.led, 0, -4.2, s * 50, 'led');
   }
-  cyl(head, 5, 1.5, M.matt, 160, -0.8, 0, 'y', 'mic', 20);
-  cyl(head, 7, 5, M.white, -160, -2.5, 0, 'y', 'sensor', 20);
-  for (let i = 0; i < 3; i++) cyl(head, 8 - i, 1, M.white, -160, -5.5 - i * 1.4, 0, 'y', 'sensor', 20);
-  // supervisor board (fixed in the head)
-  const sup = group(head, 'supervisor', -20, hh - 14, 0, 'supervisor');
-  box(sup, 90, 1.6, 70, M.pcb, 0, 0, 0, 'supervisor');
-  box(sup, 15.4, 2.4, 20.5, M.can, -22, 2, 10, 'supervisor'); // ESP32-S3 module
-  box(sup, 22, 5, 16, M.chip, 18, 3.3, -14, 'supervisor'); // PoE PD transformer
-  box(sup, 6, 1, 6, M.chip, 20, 1.3, 16, 'supervisor');
+  cyl(pod, 4, 1.5, M.matt, 60, -0.8, 12, 'y', 'mic', 20);
+  cyl(pod, 6, 5, M.white, -60, -2.5, 12, 'y', 'sensor', 20);
+  for (let i = 0; i < 3; i++) cyl(pod, 7 - i, 1, M.white, -60, -5.5 - i * 1.4, 12, 'y', 'sensor', 20);
+  const sup = group(pod, 'supervisor', -20, ph - 11, -34, 'supervisor');
+  box(sup, 80, 1.6, 50, M.pcb, 0, 0, 0, 'supervisor');
+  box(sup, 15.4, 2.4, 20.5, M.can, -22, 2, 8, 'supervisor'); // ESP32-S3 module
+  box(sup, 22, 5, 16, M.chip, 18, 3.3, -10, 'supervisor'); // PoE PD transformer
 
-  // camera module + hood (drops out of the floor of the head in the exploded view)
-  const camG = explodable(group(head, 'cameraModule', 0, 0, 0, 'camera'), 0, -95, 0);
-  camG.rotation.x = rad(p.camera.tilt); // tilted back toward the hive
+  // camera module + hood, tilted back toward the hive
+  const camG = explodable(group(pod, 'cameraModule', 0, 0, 0, 'camera'), 0, -95, 0);
+  camG.rotation.x = rad(p.camera.tilt);
   box(camG, 38, 1.6, 38, M.pcb, 0, 10, 0, 'camera');
   box(camG, 14, 3, 14, M.chip, 0, 8, 0, 'camera');
   cyl(camG, 8, 12, M.black, 0, 2, 0, 'y', 'camera', 24); // M12 lens barrel
-  cyl(camG, 20, 16, M.matt, 0, -8, 0, 'y', 'hood', 32, 14); // hood cone, wide at the head
+  cyl(camG, 20, 16, M.matt, 0, -8, 0, 'y', 'hood', 32, 14); // hood cone, wide at the pod
   cyl(camG, 13, 1, M.glass, 0, -16.3, 0, 'y', 'hood', 32);
   cyl(camG, 15, 2, M.black, 0, -15.5, 0, 'y', 'hood', 32); // window bezel ring
-  box(camG, 60, 1, 8, M.black, 0, 12, 18, 'camera'); // CSI flex
-
-  // compute cassette: slides out of the right cheek
-  const comp = explodable(group(head, 'computeCassette', 0, 0, 0, 'compute'), 230, 0, 0);
-  nodes.compute = comp;
-  slab(comp, 40, 5, -bayD / 2 + 4, OUT - 42, 3, bayD - 8, M.asa, 'compute');
-  const pi = group(comp, 'pi', 130, 12, -4, 'compute');
-  box(pi, 85, 1.6, 56, M.pcb, 0, 0, 0, 'compute');
-  box(pi, 15, 1.4, 15, M.can, -8, 1.5, 0, 'compute');
-  box(pi, 85, 1.6, 56, M.pcb, 0, 14, 0, 'compute'); // Hailo HAT
-  box(pi, 14, 1.2, 14, M.chip, 4, 15.4, 4, 'compute');
-  box(pi, 22, 1, 42, M.chip, 0, -2.5, 0, 'compute'); // NVMe underneath
-  box(pi, 50, 4, 40, M.gasket, 0, 18, 0, 'compute'); // thermal pad to the roof
-  // service face, 3 mm proud of the right cheek
-  const face = group(comp, 'serviceFace', OUT + 1.5, HD.h / 2, 0, 'face');
-  box(face, 3, bayH + 6, bayD + 8, M.pod, 0, 0, 0, 'face');
-  place(face, cached('ring', () => new THREE.TorusGeometry(7 * MM, 1.6 * MM, 10, 28)), M.status, 1.8, 10, -26, 'face').rotation.y = Math.PI / 2;
-  cyl(face, 5, 3, M.podDark, 2, 10, -26, 'x', 'face', 24); // button inside the ring
-  box(face, 2, 7, 14, M.rubber, 2, -10, -26, 'face'); // USB-C flap
-  cyl(face, 6, 3, M.steel, 2, 0, 30, 'x', 'face', 20); // quarter-turn latch
-  box(face, 1.5, 2, 9, M.black, 3.6, 0, 30, 'face');
-
-  // left bay: battery cassette (solar) or a blank cover
-  if (solar) {
-    const bat = explodable(group(head, 'batteryCassette', 0, 0, 0, 'battery'), -230, 0, 0);
-    nodes.battery = bat;
-    slab(bat, -OUT + 2, 5, -bayD / 2 + 4, OUT - 42, 3, bayD - 8, M.asa, 'battery');
-    for (let i = 0; i < 4; i++) cyl(bat, 16, 70, M.cellWrap, -80 - i * 34, 25, -2, 'z', 'battery', 24);
-    const bf = group(bat, 'batteryFace', -OUT - 1.5, HD.h / 2, 0, 'battery');
-    box(bf, 3, bayH + 6, bayD + 8, M.podDark, 0, 0, 0, 'battery');
-    cyl(bf, 6, 3, M.steel, -2, 0, 30, 'x', 'battery', 20);
-  } else {
-    const bl = group(head, 'blankCover', -OUT - 1.5, HD.h / 2, 0, 'blank');
-    box(bl, 3, bayH + 6, bayD + 8, M.graphite, 0, 0, 0, 'blank');
-    const hex = place(bl, cached('hex', () => new THREE.CylinderGeometry(9 * MM, 9 * MM, 1.5 * MM, 6)), M.pod, -1.8, 0, 0, 'blank');
-    hex.rotation.z = Math.PI / 2;
-  }
-
-  // eye point for the camera-view inset (just below the window)
   const eye = new THREE.Object3D();
   eye.name = 'cameraEye';
   eye.position.set(0, (p.camera.eye - HD.y) * MM, 0);
@@ -483,67 +488,71 @@ export function buildObserver(options = {}) {
   camG.add(aim);
   nodes.aim = aim;
 
-  // ----- canopy ----------------------------------------------------------------
-  const canopy = explodable(group(obs, 'canopy', 0, C.ridge, C.z0, solar ? 'solarCanopy' : 'canopy'), 0, 220, 0);
-  nodes.canopy = canopy;
-  const cPart = solar ? 'solarCanopy' : 'canopy';
-  const sheet = solar ? M.acm : M.opal;
-  const halfW = C.w / 2;
-  // Two slopes meeting at a ridge along Z: rain runs to the side eaves, beside the board.
-  for (const s of [-1, 1]) {
-    const half = group(canopy, s > 0 ? 'roofRight' : 'roofLeft', 0, 0, 0, cPart);
-    half.rotation.z = -s * rad(C.slope);
-    box(half, halfW, C.t, C.len, sheet, (s * halfW) / 2, C.t / 2, C.len / 2, cPart);
-    box(half, 3, 12, C.len, solar ? M.acm : M.opalEdge, s * (halfW - 1.5), C.t - 6, C.len / 2, cPart); // eave drip edge
-    if (solar) {
-      box(half, halfW - 26, 1.2, C.len - 20, M.solar, s * (halfW / 2 + 2), C.t + 0.6, C.len / 2, 'solarCanopy');
-      for (let i = 1; i < 4; i++) box(half, 0.8, 1.5, C.len - 20, M.solarGrid, s * (14 + (i * (halfW - 26)) / 4), C.t + 0.7, C.len / 2, 'solarCanopy');
-      box(half, halfW - 26, 1.5, 0.8, M.solarGrid, s * (halfW / 2 + 2), C.t + 0.7, C.len / 2, 'solarCanopy');
-    }
-  }
-  box(canopy, 10, 3, C.len + 2, M.pod, 0, C.t + 1, C.len / 2, cPart); // honey-yellow ridge cap
-  // four standoffs from the head roof up to the underside of the roof
-  const headTop = HD.y + HD.h;
-  for (const sx of [-1, 1]) for (const dz of [-28, 28]) {
-    const x = sx * 150, under = -Math.abs(x) * Math.tan(rad(C.slope));
-    const len = C.ridge + under - headTop;
-    cyl(canopy, 5, len, M.steel, x, under - len / 2, HD.z + dz - C.z0, 'y', cPart, 12);
+  // compute cassette: slides out of the front of the pod
+  const comp = explodable(group(pod, 'computeCassette', 0, 0, 0, 'compute'), 0, 0, 170);
+  nodes.compute = comp;
+  slab(comp, -48, 6, 0, 96, 3, pd / 2 - 2, M.asa, 'compute');
+  const pi = group(comp, 'pi', 0, 14, pd / 4, 'compute');
+  box(pi, 85, 1.6, 56, M.pcb, 0, 0, 0, 'compute');
+  box(pi, 15, 1.4, 15, M.can, -8, 1.5, 0, 'compute');
+  box(pi, 85, 1.6, 56, M.pcb, 0, 14, 0, 'compute'); // Hailo HAT
+  box(pi, 14, 1.2, 14, M.chip, 4, 15.4, 4, 'compute');
+  box(pi, 42, 1, 22, M.chip, 0, -2.5, 0, 'compute'); // NVMe underneath
+  box(pi, 50, 4, 40, M.gasket, 0, 18, 0, 'compute'); // thermal pad to the pod roof
+  const face = group(comp, 'serviceFace', 0, ph / 2, pd / 2 + 1.5, 'face');
+  box(face, pw - 10, ph - 6, 3, M.pod, 0, 0, 0, 'face');
+  place(face, cached('ring', () => new THREE.TorusGeometry(7 * MM, 1.6 * MM, 10, 28)), M.status, 40, 8, 1.8, 'face');
+  cyl(face, 5, 3, M.podDark, 40, 8, 2, 'z', 'face', 24); // button inside the ring
+  box(face, 14, 7, 2, M.rubber, 40, -12, 2, 'face'); // USB-C flap
+  cyl(face, 6, 3, M.steel, -50, 0, 2, 'z', 'face', 20); // quarter-turn latch
+  box(face, 9, 2, 1.5, M.black, -50, 0, 3.6, 'face');
+  const hex = place(face, cached('hex', () => new THREE.CylinderGeometry(8 * MM, 8 * MM, 1.5 * MM, 6)), M.graphite, 0, 0, 1.8, 'face');
+  hex.rotation.x = Math.PI / 2;
+
+  // side bay: battery cassette (solar) or a cover
+  if (solar) {
+    const bat = explodable(group(pod, 'batteryCassette', 0, 0, 0, 'battery'), -170, 0, 0);
+    nodes.battery = bat;
+    for (let i = 0; i < 4; i++) cyl(bat, 16, 70, M.cellWrap, i % 2 ? 36 : -36, 24, i < 2 ? -52 : -20, 'x', 'battery', 24); // 4 × 32700 in the rear half
+    slab(bat, -pw / 2 - 1.5, 3, -pd / 2 + 4, 3, ph - 6, pd - 8, M.podDark, 'battery');
+  } else {
+    slab(pod, -pw / 2 - 1.5, 3, -pd / 2 + 4, 3, ph - 6, pd - 8, M.graphite, 'blank');
   }
   if (!solar) {
-    // Opal diffuses the sun: the canopy and the head under it cast no hard shadow on the board.
-    canopy.traverse((o) => { if (o.isMesh) o.castShadow = false; });
-    head.traverse((o) => { if (o.isMesh) o.castShadow = false; });
-  }
-  if (solar) {
-    box(canopy, C.w - 30, 1.2, C.len - 24, M.solar, 0, C.t + 0.6, C.len / 2 + 2, 'solarCanopy');
-    for (let i = 1; i < 6; i++) box(canopy, 0.8, 1.5, C.len - 24, M.solarGrid, -(C.w - 30) / 2 + (i * (C.w - 30)) / 6, C.t + 0.7, C.len / 2 + 2, 'solarCanopy');
-    for (let i = 1; i < 4; i++) box(canopy, C.w - 30, 1.5, 0.8, M.solarGrid, 0, C.t + 0.7, 14 + (i * (C.len - 24)) / 4, 'solarCanopy');
+    // Opal diffuses the sun: the roof and the pod under it cast no hard shadow on the board.
+    roof.traverse((o) => { if (o.isMesh) o.castShadow = false; });
+    pod.traverse((o) => { if (o.isMesh) o.castShadow = false; });
   }
 
+  // ----- internal harness (inside the right upright; seen in the exploded view)
+  cable(obs, [[footX, -38, plateZ + 10], [footX, 60, plateZ + 8], [footX, postTop - 20, plateZ + 8], [60, apexY - 40, plateZ + 8], [8, beamTop - 20, plateZ + 20], [8, beamTop - 20, HD.z - 40], [8, HD.y + HD.h, HD.z - 30]], 2.4, M.cable, 'harness');
+  cable(obs, [[PW2 + 28, -30, PO.gateZ], [footX - 4, -30, PO.gateZ - 10], [footX, -30, plateZ + 20]], 1.6, M.cable, 'harness'); // gate drive lead
+
   // ----- landing board ------------------------------------------------------------
-  const boardHinge = group(obs, 'landingBoard', 0, -2, 5, 'board');
+  const boardHinge = group(obs, 'landingBoard', 0, -2, PO.floorEnd, 'board');
   boardHinge.rotation.x = rad(p.boardSlope);
-  explodable(boardHinge, 0, -20, 190);
+  explodable(boardHinge, 0, -20, 170);
   nodes.board = boardHinge;
-  const BW = 2 * IN - 6, BD = A.board;
+  const BW = p.board.w, BD = p.board.d;
   slab(boardHinge, -BW / 2, -11, 0, BW, 8, BD, M.board, 'board');
-  slab(boardHinge, -BW / 2 + 12, -3, 2, BW - 24, 3, BD - 6, M.insert, 'insert');
+  slab(boardHinge, -BW / 2 + 12, -3, 1, BW - 24, 3, BD - 5, M.insert, 'insert');
   box(boardHinge, 40, 3.2, 8, M.board, 0, -1.4, BD - 3, 'insert'); // finger notch lip
-  for (const sx of [-1, 1]) cyl(boardHinge, 4, 14, M.steel, sx * (IN - 4), -6, 0, 'x', 'hinge', 12);
+  box(boardHinge, BW - 40, 6, 20, M.alu, 0, -14, BD / 2, 'board'); // stiffener underneath
+  for (const sx of [-1, 1]) cyl(boardHinge, 4, 14, M.steel, sx * (PW2 - 4), -6, 0, 'x', 'hinge', 12);
   // ArUco-style markers in the four corners (hand-set pattern, not a real ID)
   const pattern = [[1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 0, 0], [0, 1, 1, 0]];
   for (const [mx, mz] of [[-1, 0], [1, 0], [-1, 1], [1, 1]]) {
-    const cx = mx * 172, cz = mz ? BD - 40 : p.porch.depth + 18;
+    const cx = mx * 172, cz = mz ? BD - 50 : 18;
     box(boardHinge, 30, 0.4, 30, M.markBlack, cx, 0.2, cz, 'marker');
     pattern.forEach((row, r) => row.forEach((v, c) => {
       if (v) box(boardHinge, 5, 0.5, 5, M.markWhite, cx - 7.5 + c * 5, 0.3, cz - 7.5 + r * 5, 'marker');
     }));
   }
-  // millimetre scale along the front edge (cm ticks, long every 5 cm)
-  for (let x = -150; x <= 150; x += 10) box(boardHinge, 0.8, 0.3, x % 50 === 0 ? 8 : 4, M.markBlack, x, 0.15, BD - 30, 'marker');
-  box(boardHinge, 301, 0.3, 0.8, M.markBlack, 0, 0.15, BD - 26, 'marker');
+  // millimetre scale near the front edge (cm ticks, long every 5 cm)
+  for (let x = -150; x <= 150; x += 10) box(boardHinge, 0.8, 0.3, x % 50 === 0 ? 8 : 4, M.markBlack, x, 0.15, BD - 28, 'marker');
+  box(boardHinge, 301, 0.3, 0.8, M.markBlack, 0, 0.15, BD - 24, 'marker');
   // counting line: a faint printed line just in front of the porch mouth
-  for (let x = -150; x < 150; x += 12) box(boardHinge, 7, 0.3, 1.2, M.markGrey, x + 3.5, 0.15, p.porch.depth + 1, 'countLine');
+  for (let x = -150; x < 150; x += 12) box(boardHinge, 7, 0.3, 1.2, M.markGrey, x + 3.5, 0.15, 3, 'countLine');
 
   // ----- bees -----------------------------------------------------------------------
   const bees = group(boardHinge, 'bees');
@@ -565,8 +574,8 @@ export function buildObserver(options = {}) {
     return b;
   };
   const walkers = [
-    [-120, 52, 0.3], [-60, 44, 2.9, true], [10, 78, -0.4], [55, 48, 3.3], [95, 120, 2.2, true], [-150, 140, 1.1],
-    [140, 70, -2.6], [-30, 110, 0.9], [150, 150, -0.8], [-95, 95, 3.0, true], [30, 140, 2.6], [-10, 50, 3.1],
+    [-120, 8, 0.3], [-60, 12, 2.9, true], [10, 30, -0.4], [55, 6, 3.3], [95, 70, 2.2, true], [-150, 95, 1.1],
+    [140, 24, -2.6], [-30, 60, 0.9], [150, 110, -0.8], [-95, 48, 3.0, true], [30, 95, 2.6], [-10, 118, 3.1],
   ];
   for (const [x, z, r, pl] of walkers) addBee(bees, x, 2.2, z, r, pl);
   // wall landers: on the hive wall above the porch, then walking over the porch roof
@@ -576,7 +585,7 @@ export function buildObserver(options = {}) {
     const b = addBee(beesWall, x, y, d.wallZ + 3, 0);
     b.rotation.x = Math.PI / 2; // head down, on the vertical wall
   }
-  for (const [x, z, r] of [[-40, PO.depth - 18, 0.2], [80, PO.depth - 30, -0.3]]) addBee(beesWall, x, pTop + PO.roof + 2, z, r);
+  for (const [x, z, r] of [[-40, PO.gateZ - 20, 0.2], [80, PO.gateZ - 30, -0.3]]) addBee(beesWall, x, pTop + PO.roof + 2, z, r);
   for (const [x, y, z, r] of [[-60, 120, 330, 2.9], [110, 200, 420, -2.6], [-170, 70, 280, 0.6], [30, 260, 520, 3.4]]) {
     const b = addBee(beesAir, x, y, z, r);
     b.rotation.x = -0.25;
@@ -651,8 +660,8 @@ export function buildObserver(options = {}) {
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(st, 45, p.stand - 45, 45, M.timberDark, sx * 210, (p.stand - 45) / 2, sz * 170, 'stand');
     for (const sz of [-1, 1]) box(st, 520, 45, 45, M.timber, 0, p.stand - 22.5, sz * 170, 'stand');
     for (const sx of [-1, 1]) box(st, 45, 45, 300, M.timber, sx * 210, p.stand - 22.5, 0, 'stand');
-    // PoE cable: drip loop under the cheek, down the stand, away along the ground
-    const g = W(OUT - 7, -41, 18);
+    // PoE cable: drip loop under the right upright, down the stand, away along the ground
+    const g = W(footX, -51, plateZ + 10);
     cable(fieldCables, [g, [g[0], g[1] - 30, g[2] + 6], [g[0] + 4, g[1] - 60, g[2] - 6], [g[0] + 6, 120, g[2] - 4], [g[0] + 10, 8, g[2] - 10], [g[0] + 120, 3, 200], [900, 3, 60]], 2.8, M.cable);
   } else if (p.context === 'scale') {
     const S = p.scale, sc = group(root, 'scale', 0, 0, 0, 'scale');
@@ -675,9 +684,9 @@ export function buildObserver(options = {}) {
     slab(sc, -220, bY + 16, railZ - 4, 440, 30, 4, M.alu, 'scale');
     cyl(sc, 8, 14, M.steel, 60, bY + 9, bd / 2 + 18, 'y', 'scaleLink', 20);
     cyl(sc, 9, 12, M.black, 60, bY - 1, bd / 2 + 18, 'y', 'scaleLink', 20);
-    const acc = W(OUT - 7, -38, 46);
+    const acc = W(footX, -48, plateZ + 27);
     cable(fieldCables, [acc, [acc[0], acc[1] - 20, acc[2] - 2], [acc[0] - 20, bY - 10, acc[2] - 30], [120, bY - 16, bd / 2 + 30], [60, bY - 12, bd / 2 + 18], [60, bY - 6, bd / 2 + 18]], 2.3, M.cable);
-    const g = W(OUT - 7, -41, 18);
+    const g = W(footX, -51, plateZ + 10);
     cable(fieldCables, [g, [g[0] + 4, g[1] - 30, g[2] + 4], [g[0] + 30, 30, g[2] + 10], [g[0] + 90, 3, g[2]], [700, 3, 150], [1100, 3, 60]], 2.8, M.cable);
   } else {
     // Robotic Beehive (ghost): posts, plinth, front cladding with the entrance frame
@@ -699,13 +708,10 @@ export function buildObserver(options = {}) {
     const holeY0 = d.entranceY - 16, holeY1 = d.entranceY + H.slot + 40;
     box(rb, cw, holeY0 - 40, R.clad, M.robotClad, 0, 40 + (holeY0 - 40) / 2, fz, 'robot');
     box(rb, cw, top - holeY1, R.clad, M.robotClad, 0, holeY1 + (top - holeY1) / 2, fz, 'robot');
-    for (const s of [-1, 1]) box(rb, cw / 2 - OUT - 6, holeY1 - holeY0, R.clad, M.robotClad, s * (cw / 2 + OUT + 6) / 2, (holeY0 + holeY1) / 2, fz, 'robot');
+    for (const s of [-1, 1]) box(rb, cw / 2 - FW - 6, holeY1 - holeY0, R.clad, M.robotClad, s * (cw / 2 + FW + 6) / 2, (holeY0 + holeY1) / 2, fz, 'robot');
     // entrance tunnel from the bottom board to the cabinet front
-    const tz0 = H.d / 2, tz1 = oz;
-    box(rb, 2 * IN - 20, 4, tz1 - tz0, M.robotClad, 0, d.entranceY - 2, (tz0 + tz1) / 2, 'robot');
-    box(rb, 2 * IN - 20, 4, tz1 - tz0, M.robotClad, 0, d.entranceY + H.slot + 2, (tz0 + tz1) / 2, 'robot');
     box(rb, cw + 120, 20, 2 * PZ + 180, M.robot, 0, postH + 30, 0, 'robot'); // roof
-    const g = W(OUT - 7, -41, 18);
+    const g = W(footX, -51, plateZ + 10);
     cable(fieldCables, [g, [g[0], g[1] - 20, g[2] - 2], [g[0] + 30, g[1] - 36, fz + 6], [PX - 30, g[1] - 30, fz - 20], [PX - 10, g[1] - 60, PZ - 20]], 2.8, M.cable);
   }
 
@@ -718,5 +724,5 @@ export function buildObserver(options = {}) {
   };
   applyExplode(0);
 
-  return { root, nodes, params: p, derived: d, applyExplode, MM };
+  return { root, nodes, params: p, derived: d, applyExplode, MM, GATE };
 }

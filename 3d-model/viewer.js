@@ -6,7 +6,8 @@
 //   #shot                   hide the panel and overlays
 //   explode=0.6             exploded-view position 0..1
 //   context=hive|scale|robot  what the Observer hangs on
-//   power=poe|solar         opal canopy + PoE, or solar canopy + battery
+//   power=poe|solar         opal roof + PoE, or solar roof + battery
+//   gate=open|reduced|guard|closed  entrance gate position
 //   hive=solid|ghost|off    hive display
 //   fov=1                   show the camera field of view
 //   inset=0                 hide the camera-view inset
@@ -15,27 +16,36 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { buildObserver, energy, ENERGY, PARTS } from './observer-model.js';
+import { buildObserver, energy, ENERGY, GATE, PARTS } from './observer-model.js';
 
 // Parts list order in the panel, grouped by assembly.
 const PART_ORDER = [
+  ['Entrance', ['porch', 'gate', 'lintel', 'gateDrive', 'countLine', 'board', 'insert', 'marker', 'hinge']],
   ['Optics', ['camera', 'hood', 'led', 'fov']],
-  ['Entrance', ['porch', 'reducer', 'countLine', 'board', 'insert', 'marker', 'hinge']],
-  ['Head', ['head', 'compute', 'face', 'supervisor', 'battery', 'blank', 'mic', 'sensor']],
-  ['Arch', ['canopy', 'solarCanopy', 'cheek', 'channel', 'harness', 'gland', 'm12', 'thumb']],
-  ['Mount', ['plate', 'riser', 'robotFront', 'cable']],
+  ['Pod', ['pod', 'compute', 'face', 'supervisor', 'battery', 'blank', 'mic', 'sensor']],
+  ['Roof', ['canopy', 'solarCanopy', 'beam', 'rafter', 'thumb']],
+  ['Frame', ['frame', 'plate', 'channel', 'harness', 'gland', 'm12', 'riser', 'robotFront', 'cable']],
   ['Around it', ['bee', 'hive', 'stand', 'scale', 'scaleLink', 'robot']],
 ];
+
+// What moves the gate to each position, shown when it is chosen.
+const GATE_NOTE = {
+  open: ['Gate open', 'Flush with the porch floor: the full 312 × 17 mm mouth is open. The normal position; the supervisor returns here when a hornet guard expires or if power is lost.'],
+  reduced: ['Gate reduced', 'Only the 70 × 17 mm centre notch is open. Set from the web app when the weather service forecasts strong wind or cold, by the beekeeper as the hive setting, or locally when the camera sees robbing.'],
+  guard: ['Hornet guard', 'A 70 × 5.5 mm slot: bees still get home, hornets and wasps cannot get in. Decided on the Observer itself within seconds of the camera (or microphone) detecting a hornet, with no server involved, and lifted 15 minutes after the last hornet.'],
+  closed: ['Gate closed', 'Only on the beekeeper\'s command, for moving the hive or when a neighbour sprays, and always with a timer: foragers left outside and a closed colony overheating are worse than a hornet.'],
+};
 
 const SPECS = (s) => {
   const { derived: d, params: p } = s;
   const e = { ...ENERGY, ...energy() };
   const r = (v) => Math.round(v);
   return [
-    ['Size', `${p.canopy.w} × ${r(p.canopy.ridge + p.canopy.t + 33)} × 225 mm (w × h × d)`],
+    ['Size', `${2 * p.roof.halfW} × ${r(p.roof.ridge + p.roof.t + 54)} × ${r(p.roof.z0 + p.roof.len)} mm (w × h × d)`],
     ['Camera', `8 MP 3840 × 2160, locked M12 lens, ${p.camera.hfov}°, ${p.camera.eye} mm up, tilted ${p.camera.tilt}° to the hive`],
     ['In view', `${r(d.fovW)} mm across · board to ${r(d.corners[2].z)} of ${r(d.boardFront)} mm · ${r(d.wallSeen)} mm of hive wall`],
     ['Counting line', `porch mouth, ${p.porch.depth} mm in front of the hive`],
+    ['Entrance gate', 'open · reduced 70 mm · hornet guard 5.5 mm · closed'],
     ['Resolution', `≈ ${d.pxPerMm.toFixed(1)} px/mm on the board`],
     ['Bee / varroa', `≈ ${r(13 * d.pxPerMm)} px / ≈ ${r(1.5 * d.pxPerMm)} px long`],
     ['Compute', 'swappable sled: Pi 5 + Hailo-8 (Jetson Orin NX option)'],
@@ -45,7 +55,8 @@ const SPECS = (s) => {
     ['Per flight day', `≈ ${r(e.continuous)} Wh continuous · ≈ ${r(e.sampled)} Wh sampled (2 of 15 min)`],
     ['Autonomy', p.power === 'solar' ? `≈ ${r(e.harvest)} Wh/day harvest in season · ${r(e.standbyDays)} days asleep on battery` : 'unlimited on PoE'],
     ['Links', 'Ethernet (PoE) · Wi-Fi · BLE setup · M12 accessory'],
-    ['Mounting', { hive: 'entrance plate, 4 screws; hangs on 2 thumbscrews', scale: 'risers on the scale front rail (not weighed)', robot: 'robot entrance frame, same ears' }[p.context]],
+    ['Mounting', { hive: 'wall frame, 4 screws; head hangs on 1 thumbscrew', scale: 'wall frame on risers on the scale rail (not weighed)', robot: 'wall frame on the robot front' }[p.context]],
+    ['Metal', 'one machined part: the 170 mm pod'],
     ['Target BOM', '≈ €350–450 at 100 units'],
   ];
 };
@@ -130,6 +141,7 @@ export function mountEntranceObserver(root) {
   const opts = {
     context: ['hive', 'scale', 'robot'].includes(hash.get('context')) ? hash.get('context') : 'hive',
     power: hash.get('power') === 'solar' ? 'solar' : 'poe',
+    gate: hash.get('gate') in GATE ? hash.get('gate') : 'open',
   };
   let hiveMode = ['solid', 'ghost', 'off'].includes(hash.get('hive')) ? hash.get('hive') : 'solid';
   let showFov = hash.get('fov') === '1';
@@ -148,6 +160,7 @@ export function mountEntranceObserver(root) {
     else if (view === 'close') at(0.02, 0.12 + explode * 0.12, 0.1, 0.95 + explode * 0.3, 0.42 + explode * 0.25, 1.05 + explode * 0.3);
     else if (view === 'side') at(0, 0.12, 0.1, -0.45, 0.62, 0.95);
     else if (view === 'front') at(0, 0.14, 0.1, 0.2, 0.34, 1.35);
+    else if (view === 'gate') at(0, 0.0, 0.04, 0.2, 0.08, 0.42);
     else if (opts.context === 'robot') at(0, 0.3, -0.1, 2.0, 0.9, 2.3);
     else at(0, 0.18, 0.0, 1.6, 0.75, 1.9);
   };
@@ -162,6 +175,7 @@ export function mountEntranceObserver(root) {
     model.applyExplode(explode);
     setHive(hiveMode);
     model.nodes.fov.visible = showFov;
+    model.nodes.gate.position.y = gateY * 0.001;
     renderParts();
     renderSpecs();
     if (selected) highlight(selected);
@@ -251,6 +265,16 @@ export function mountEntranceObserver(root) {
     });
   }
   for (const b of $('hive').querySelectorAll('button')) b.addEventListener('click', () => setHive(b.dataset.value));
+  // The gate moves in place (no rebuild), at the real drive speed of about 7 mm/s.
+  let gateY = GATE[opts.gate];
+  for (const b of $('gate').querySelectorAll('button')) {
+    b.addEventListener('click', () => {
+      opts.gate = b.dataset.value;
+      pressSeg('gate', opts.gate);
+      $('info-title').textContent = GATE_NOTE[opts.gate][0];
+      $('info-text').textContent = GATE_NOTE[opts.gate][1];
+    });
+  }
   const fovBox = $('fov');
   fovBox.checked = showFov;
   fovBox.addEventListener('change', () => { showFov = fovBox.checked; model.nodes.fov.visible = showFov; });
@@ -347,6 +371,7 @@ export function mountEntranceObserver(root) {
 
   pressSeg('context', opts.context);
   pressSeg('power', opts.power);
+  pressSeg('gate', opts.gate);
   build();
   frameCamera();
   const clock = new THREE.Clock();
@@ -366,6 +391,12 @@ export function mountEntranceObserver(root) {
       $('chip').textContent = `${state} · ${{ hive: 'on a hive', scale: 'on the beehive scale', robot: 'on the Robotic Beehive' }[opts.context]}`;
     }
     explodeBtn.textContent = explodeTarget > 0.5 ? 'Assemble' : 'Explode';
+    const gateTarget = GATE[opts.gate];
+    if (gateY !== gateTarget) {
+      const step = dt * 12;
+      gateY = Math.abs(gateTarget - gateY) <= step ? gateTarget : gateY + Math.sign(gateTarget - gateY) * step;
+      model.nodes.gate.position.y = gateY * 0.001;
+    }
     controls.update();
     // The dome travels with the camera, so zooming out never pushes its far
     // side past the camera's far plane (which clipped it to black).
