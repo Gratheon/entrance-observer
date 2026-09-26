@@ -75,7 +75,7 @@ export const GATE = {
 // Installation, in order. Each step lists the parts it adds; the viewer plays
 // them back and the exploded view uses the same order.
 export const INSTALL = [
-  { title: 'Screw the wall frame to the bottom board', parts: ['frame', 'plate', 'screws', 'clips', 'seal'], text: 'Hold the frame against the hive so its entrance window lines up with the entrance (the paper template in the box marks the four holes). Drive four 4.5 × 40 mm A2 stainless countersunk wood screws through the slots into the bottom board, two each side of the entrance; the slots allow ±3 mm to level it. At the top, screw the two wall clips to the first hive body (2 × 4 × 25 mm each) so they hold the outer edges of the uprights; the EPDM strip behind the frame seals against the wall. The frame itself is never screwed to the body. On the beehive scale the frame bolts to two risers on the scale rail instead (2 × M5 each), 2 mm clear of the hive.' },
+  { title: 'Screw the wall frame to the bottom board', parts: ['frame', 'plate', 'screws', 'topScrews', 'seal'], text: 'Hold the frame against the hive so its entrance window lines up with the entrance (the paper template in the box marks the four holes). Drive four 4.5 × 40 mm A2 stainless countersunk wood screws through the slots into the bottom board, two each side of the entrance; the slots allow ±3 mm to level it. Then drive two more through the slots in the gable, near the apex, into the first hive body; they pull the frame against the wall, where the EPDM strip behind it seals. The head goes on over them later, so the roof keeps them dry. On the beehive scale the frame bolts to two risers on the scale rail instead (2 × M5 each), 2 mm clear of the hive.' },
   { title: 'Fit the porch with the gate', parts: ['porch', 'porchScrews', 'gate', 'gateDrive', 'lintel'], text: 'Slide the porch over the entrance so its tabs lie on the plate, and fix it with four M4 × 10 A2 button screws into the rivet nuts (Torx T20). The gate and its drive come fitted to the porch. Plug the gate lead into the socket at the foot of the right upright.' },
   { title: 'Hang the landing board, clip on the covers', parts: ['board', 'insert', 'hinge', 'border', 'studs', 'covers'], text: 'Drop the two hinge knuckles of the landing board onto the stainless pins at the front of the porch floor; it rests at 6° on its stop. The board comes painted in the hive colour chosen at order. Clip the two aluminium covers into the upright channels, over the cable in the right one.' },
   { title: 'Hang the head', parts: ['beam', 'thumb', 'canopy', 'solarCanopy', 'flashing', 'gable', 'antenna', 'pod'], text: 'Lower the head so the hook at the back of the ridge beam drops into the pocket at the apex of the frame, and turn the yellow thumbscrew; the EPDM flashing on the back edge of the roof presses against the hive wall. Roof, pod and camera come pre-assembled and aimed at the factory, so the view is the same on every hive. The head lifts off the same way for winter.' },
@@ -91,11 +91,11 @@ export const PARTS = {
   plate: ['Entrance plate', 'The bottom of the wall frame, with a window matching the 300 × 15 mm entrance and four vertical slots (5 × 11 mm) beside it for the wood screws. Matt graphite powder coat, like the rest of the frame: no glare in the camera view.'],
   riser: ['Scale risers', 'On the beehive scale the wall frame stands on two printed ASA risers hooked onto the scale front rail, 2 mm clear of the hive. Frame, roof, snow and bees on the board are then carried by the scale base and never weighed.'],
   robotFront: ['Robot entrance frame', 'On the Robotic Beehive the wall frame is bolted to the cabinet front, where the entrance tunnel ends. Power and data come from the robot PoE switch inside a corner post.'],
-  screws: ['Wood screws', 'Four 4.5 × 40 mm A2 stainless countersunk wood screws (Torx T20), two each side of the entrance, through the slots in the entrance plate into the front of the bottom board. The slots allow ±3 mm to level the frame. Nothing is screwed into the hive bodies, so they still lift off; the top of the frame only leans on them through two rubber pads.'],
+  screws: ['Wood screws', 'Four 4.5 × 40 mm A2 stainless countersunk wood screws (Torx T20), two each side of the entrance, through the slots in the entrance plate into the front of the bottom board. The slots allow ±3 mm to level the frame. Two more screws near the apex (under the roof) hold the top.'],
+  topScrews: ['Top screws', 'Two 4.5 × 40 mm A2 stainless pan-head wood screws with EPDM-backed washers, through slots in the gable of the wall frame into the first hive body. They are driven before the head goes on, so the roof covers them afterwards: out of the rain and out of sight. To lift the first hive body, lift off the head and undo these two screws.'],
   porchScrews: ['Porch screws', 'Four M4 × 10 A2 stainless button screws through the tabs on the porch sides into rivet nuts pressed into the entrance plate. Undo them to take the porch and gate off for cleaning at the end of the season.'],
   studs: ['Brick decks', 'Two small decks on the front corners of the landing board with a 4 × 4 grid of 8 mm studs, compatible with common toy construction bricks, in the hive colour. Owners can add their own figures and decorations. They are outside the camera view and to the side of the flight path.'],
   covers: ['Upright covers', 'Folded aluminium covers in the same graphite powder coat as the frame. They close the upright channels; the right one hides the cables. They clip in without screws.'],
-  clips: ['Wall clips (top fixing)', 'Two small folded aluminium clips, each screwed to the first hive body with two 4 × 25 mm A2 stainless screws, hold the outer edges of the uprights against the wall at the top. The frame itself is never screwed to the body: to lift the first body, lift off the head, and the clips slide up off the uprights with the body.'],
   seal: ['Wall seal', 'EPDM foam strip behind the top edges of the frame, pressed against the hive wall, so rain running down the wall cannot get behind the frame.'],
   flashing: ['Roof flashing', 'The back edge of the roof is turned up 16 mm with an EPDM strip pressed against the hive wall, like the flashing where a porch roof meets a house. Rain running down the wall lands on the roof and runs off at the eaves, never behind the roof or onto the pod.'],
   border: ['Hive colour border', 'The wooden landing board is painted in the hive colour around the grey insert (sides and front) and on its front lip, with dots, stripes or chevrons in a contrasting colour. Bee-safe water-based paint. Beekeepers already paint hive fronts in different colours so bees find their own hive and drift less between hives. Bees see blue, yellow and white well and red as black, so the colours are blue, yellow, white and graphite. It is outside the camera view.'],
@@ -439,14 +439,15 @@ export function buildObserver(options = {}) {
   if (p.context === 'hive') for (const sx of [-1, 1]) for (const y of [8, 34]) screwXY.push([sx * 192, y]);
   const holes = [rect(-IX, 44, IX, winTop), rect(-WIN, 0, WIN, S)];
   if (p.context === 'scale') holes.push(rect(-IX, postBottom + F.post, IX, -12)); // open between the legs
-  for (const [x, y] of screwXY) holes.push(rect(x - 2.5, y - 5.5, x + 2.5, y + 5.5)); // slots: ±3 mm to level the frame
+  // two more slots in the gable, under the roof, for the top screws into the first hive body
+  const topXY = p.context === 'hive' ? [[-44, apexY - 50], [44, apexY - 50]] : [];
+  for (const [x, y] of [...screwXY, ...topXY]) holes.push(rect(x - 2.5, y - 5.5, x + 2.5, y + 5.5)); // slots: ±3 mm to level the frame
   const ext = (key, sh, depth) => cached(key, () => new THREE.ExtrudeGeometry(sh, { depth: depth * MM, bevelEnabled: false }));
   place(frame, ext(`frameFace${p.context}`, shapeOf(outer, holes), 2), M.graphite, 0, 0, plateZ, framePart);
   place(frame, ext(`frameRim${p.context}`, shapeOf(outer, [inset(2)]), F.depth), M.graphite, 0, 0, plateZ, framePart); // outer return
   place(frame, ext(`frameWin${p.context}`, shapeOf(rect(-IX - 2, 42, IX + 2, winTop + 2), [rect(-IX, 44, IX, winTop)]), F.depth), M.graphite, 0, 0, plateZ, framePart); // window return
   // the right channel is the cable duct
   slab(frame, IX + 2, 44, plateZ + 2, F.post - 4, 1, 1, M.graphite, 'channel');
-  for (const s of [-1, 1]) cyl(frame, 7, 4, M.rubber, s * (FW - F.post / 2), winTop - 30, plateZ - 2, 'z', framePart, 16); // pads against the hive body
   box(frame, 40, 22, F.depth + 6, M.graphite, 0, apexY - 12, plateZ + (F.depth + 6) / 2, framePart); // apex pocket for the head hook
   // rivet nuts for the porch screws
   for (const sx of [-1, 1]) for (const y of [4, 13]) cyl(frame, 3.2, 2, M.steel, sx * 172, y, plateZ + 2.5, 'z', 'porchScrews', 12);
@@ -467,6 +468,12 @@ export function buildObserver(options = {}) {
   // wood screws: 4 × 4.5 × 40 mm A2 stainless countersunk, through the slots into the bottom board
   if (screwXY.length) {
     const screws = explodable(group(obs, 'woodScrews', 0, 0, 0, 'screws'), 0, 0, 60, 1, [0, 0, 220]);
+    for (const [x, y] of topXY) {
+      cyl(screws, 7, 1.2, M.steel, x, y, plateZ + 2.6, 'z', 'topScrews', 20); // sealing washer (EPDM-backed)
+      cyl(screws, 4.2, 2.4, M.steel, x, y, plateZ + 4.4, 'z', 'topScrews', 16); // pan head
+      box(screws, 4.2, 0.8, 0.4, M.black, x, y, plateZ + 5.7, 'topScrews');
+      cyl(screws, 2.2, 40, M.steel, x, y, plateZ - 18, 'z', 'topScrews', 10);
+    }
     for (const [x, y] of screwXY) {
       cyl(screws, 4.5, 2, M.steel, x, y, plateZ + 3, 'z', 'screws', 16, 2.4); // countersunk head
       box(screws, 4.4, 0.8, 0.4, M.black, x, y, plateZ + 4.1, 'screws'); // drive recess
@@ -477,19 +484,6 @@ export function buildObserver(options = {}) {
   // covers on the upright channels: folded aluminium, same powder coat as the frame (the right one hides the cables)
   const covers = explodable(group(obs, 'uprightCovers', 0, 0, 0, 'covers'), 0, 0, 40, 3, [0, 0, 120]);
   for (const s of [-1, 1]) slab(covers, s > 0 ? IX + 1 : -FW + 1, 46, plateZ + F.depth, F.post - 2, winTop - 48, 1.5, M.graphite, 'covers');
-  // top fixing: two folded aluminium wall clips screwed to the first hive body hold the outer
-  // edges of the uprights. The frame is never screwed to the body: with the head lifted off,
-  // the body lifts straight up and the clips slide off the uprights with it.
-  if (p.context === 'hive') {
-    const clips = explodable(group(obs, 'wallClips', 0, 0, 0, 'clips'), 0, 0, 0, 1, [0, 0, 200]);
-    for (const s of [-1, 1]) {
-      const xo = s * (FW + 11); // clip centre, beside the frame
-      box(clips, 18, 34, 2, M.alu, xo, 132, 1, 'clips'); // back plate on the hive body
-      box(clips, 2, 34, F.depth + 3, M.alu, s * (FW + 3), 132, (F.depth + 3) / 2, 'clips'); // web along the upright
-      box(clips, 10, 34, 2, M.alu, s * (FW - 2), 132, F.depth + 2, 'clips'); // lip over the upright edge
-      for (const y of [122, 142]) cyl(clips, 3.5, 1.5, M.steel, xo + s * 3, y, 2.6, 'z', 'clips', 12);
-    }
-  }
   // water: EPDM strip behind the top edges of the frame, pressed against the hive wall
   {
     const seal = group(frame, 'wallSeal', 0, 0, 0, 'seal');

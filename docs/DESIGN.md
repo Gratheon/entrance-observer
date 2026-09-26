@@ -138,7 +138,7 @@ A beekeeper walking past the hive should see how the colony is doing without ope
 
 The earlier arch had a full-width aluminium head and two side boards. They were expensive and bulky, and the side boards blocked bees flying in from the sides. The structure is now:
 
-- **Wall frame.** One laser-cut sheet of 2 mm 5052 aluminium in the shape of a house gable, folded on a press brake and powder-coated matt graphite. No steel, no welds, no joints. The face lies against the hive; 15 mm folded returns along the outer edge and around the big window turn the uprights into U-channels open to the front (clip-in aluminium covers close them) and stiffen the gable. Cut-outs: the big window over the hive front, the entrance window, four slots for the wood screws, and holes for the four rivet nuts that take the porch. It is screwed to the bottom board; at the top, two small aluminium wall clips screwed to the first hive body hold the outer edges of the uprights. The frame itself is never screwed to the body: with the head lifted off, the body lifts straight up and the clips slide off the uprights with it.
+- **Wall frame.** One laser-cut sheet of 2 mm 5052 aluminium in the shape of a house gable, folded on a press brake and powder-coated matt graphite. No steel, no welds, no joints. The face lies against the hive; 15 mm folded returns along the outer edge and around the big window turn the uprights into U-channels open to the front (clip-in aluminium covers close them) and stiffen the gable. Cut-outs: the big window over the hive front, the entrance window, four slots for the wood screws, and holes for the four rivet nuts that take the porch. It is screwed to the bottom board (four screws beside the entrance) and, at the top, with two screws through the gable near the apex into the first hive body. The top screws go in before the head is hung, so the roof covers them afterwards: dry and out of sight. To lift the first hive body, lift off the head (one thumbscrew) and undo the two top screws.
 - **Ridge beam.** A standard 30 × 36 mm aluminium extrusion that hooks into the apex of the frame, locked by one captive thumbscrew. It carries the roof, two thin front rafters (for snow on the front corners) and the pod. The whole head lifts off in seconds and lands in the same place.
 - **Pod.** The only machined metal: a 170 × 140 mm piece of finned aluminium extrusion, IP65, with printed end caps. It holds the camera module, the compute sled (slides out of the front, with the honey-yellow service face and the display), the supervisor board and, in the solar version, the battery sled (slides out of the side). The pod is the heatsink: its fins sit in the ventilated space under the roof. No fan.
 - **Sides are open.** Only the two slim uprights stand beside the board, against the hive wall, so bees can fly in from the front and the sides.
@@ -167,7 +167,7 @@ The viewer's *Install* section plays these steps back, with the parts of each st
 
 | Step | What to do | Fasteners |
 | --- | --- | --- |
-| 1. Wall frame | Hold the frame so its entrance window lines up with the entrance; the paper template in the box marks the holes. Screw it to the front of the bottom board, two screws each side of the entrance; the vertical slots allow ±3 mm to level it. Then screw the two wall clips to the first hive body so they hold the outer edges of the uprights at the top; the EPDM strip behind the frame seals against the wall. | 4 × wood screw 4.5 × 40 mm and 4 × wood screw 4 × 25 mm (clips), A2 stainless, Torx T20 |
+| 1. Wall frame | Hold the frame so its entrance window lines up with the entrance; the paper template in the box marks the holes. Screw it to the front of the bottom board, two screws each side of the entrance; the vertical slots allow ±3 mm to level it. Then drive two screws through the slots in the gable, near the apex, into the first hive body; they pull the frame against the wall, where the EPDM strip behind it seals. The head goes on over them in step 4. | 4 × countersunk wood screw 4.5 × 40 mm (bottom board) and 2 × pan-head wood screw 4.5 × 40 mm with EPDM-backed washers (top), A2 stainless, Torx T20 |
 | 2. Porch with gate | Slide the porch over the entrance so its side tabs lie on the plate, and screw the tabs to the rivet nuts in the plate. The gate and drive come fitted. Plug the gate lead into the socket at the foot of the right upright. | 4 × M4 × 10 button screw, A2 stainless, into M4 rivet nuts |
 | 3. Landing board and covers | Drop the board's two hinge knuckles onto the stainless pins at the front of the porch floor; it rests at 6° on its stop. The board comes painted in the hive colour chosen at order. Clip the two aluminium covers into the upright channels. | none (pins and clips) |
 | 4. Head | Lower the head so the hook at the back of the ridge beam drops into the pocket at the apex of the frame, and turn the yellow thumbscrew. The EPDM flashing on the back edge of the roof presses against the hive wall. Roof, pod, antennas and camera come pre-assembled and aimed. | 1 × captive thumbscrew M6 |
@@ -191,7 +191,7 @@ On the beehive scale, step 1 is different: the frame bolts to two printed risers
 | Gate | 2 mm HDPE plate, silicone edge | CNC routed | brass nut on the lead screw |
 | Gate drive housing | folded aluminium sheet, gasketed lid | laser cut, folded | 4 × M3 under the porch floor |
 | Landing board | 15 mm thermo-pine with a flush 3 mm HDPE insert where the camera looks, aluminium stiffener | CNC routed; border painted with water-based paint | hinge pins |
-| Upright covers, wall clips | aluminium sheet, graphite powder coat | laser cut, folded | clip-in; clips 2 × 4 × 25 mm wood screws each |
+| Upright covers | aluminium sheet, graphite powder coat | laser cut, folded | clip-in |
 | Brick decks | ASA (recycled grade) in the hive colour | 3D printed (pilot), injection moulded later | 2 × M3 into the board |
 | Wall seal, roof flashing | EPDM foam strip | cut to length | self-adhesive, pressed by the frame and roof |
 | Ridge beam | 30 × 36 mm aluminium extrusion, anodised | cut to length | hook + thumbscrew into the apex pocket |
@@ -266,7 +266,7 @@ The prototype Jetson Orin Nano measured 6.9 W at 720p. The 9 W figure assumes 4K
 ## Open questions
 
 - A thermo-pine porch with a thin HDPE top would replace most of the remaining plastic; test whether the gate slit stays clean and square in wood.
-- Check the wall clips on hives with front hand cleats, and the EPDM seal on rough or painted hive fronts.
+- Check the frame and the EPDM seal on hives with front hand cleats and on rough or painted hive fronts.
 
 - Measure the porch's cost to the bees: run two hives side by side on beehive scales, one with the porch and one without, and compare daily weight gain and forager traffic.
 - Measure how many bees land on the wall at all, from the wall strip in view, over a season and at different traffic levels.
