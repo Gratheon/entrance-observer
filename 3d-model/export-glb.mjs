@@ -5,7 +5,7 @@
 import { writeFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
-import { buildObserver, PARTS } from './observer-model.js';
+import { buildObserver, GATE, PARTS } from './observer-model.js';
 
 // GLTFExporter uses FileReader for binary output; Node only has Blob.
 globalThis.FileReader = class {
@@ -54,6 +54,30 @@ const clip = new THREE.AnimationClip('explode', DURATION, tracks);
 clip.optimize();
 applyExplode(0);
 
+// Second clip, "gate": open → reduced → hornet guard → closed → open, with the
+// lead screw and worm turning as the gate moves.
+const stops = ['open', 'reduced', 'guard', 'closed', 'open'].map((k) => GATE[k]);
+const SEG = 2.2, HOLD = 1; // seconds moving between stops, seconds held at each stop
+const gateDuration = (stops.length - 1) * (SEG + HOLD);
+const gTimes = [];
+for (let t = 0; t <= gateDuration + 1e-6; t += 1 / FPS) gTimes.push(+t.toFixed(4));
+const gateAt = (t) => {
+  const k = Math.min(stops.length - 2, Math.floor(t / (SEG + HOLD)));
+  const u = Math.min(1, (t - k * (SEG + HOLD)) / SEG);
+  const e = u * u * (3 - 2 * u);
+  return stops[k] + (stops[k + 1] - stops[k]) * e;
+};
+const gate = nodes.gate;
+const gy0 = gate.position.y;
+const gateTracks = [new THREE.VectorKeyframeTrack(`${gate.name}.position`, gTimes, gTimes.flatMap((t) => [gate.position.x, gateAt(t) * 0.001, gate.position.z]))];
+for (const sp of nodes.gateSpin) {
+  const q = new THREE.Quaternion();
+  const axis = new THREE.Vector3(sp.axis === 'x' ? 1 : 0, sp.axis === 'y' ? 1 : 0, 0);
+  gateTracks.push(new THREE.QuaternionKeyframeTrack(`${sp.obj.name}.quaternion`, gTimes, gTimes.flatMap((t) => q.setFromAxisAngle(axis, gateAt(t) * sp.perMm).toArray())));
+}
+const gateClip = new THREE.AnimationClip('gate', gateDuration, gateTracks);
+gate.position.y = gy0;
+
 // Attach human-readable part info as glTF extras (after baking: this drops the
 // explode offsets kept in userData).
 root.traverse((o) => {
@@ -68,8 +92,8 @@ new GLTFExporter().parse(
   scene,
   (glb) => {
     writeFileSync(out, Buffer.from(glb));
-    console.log(`wrote ${out} (${(glb.byteLength / 1024).toFixed(0)} KB, ${tracks.length} tracks, ${DURATION} s clip)`);
+    console.log(`wrote ${out} (${(glb.byteLength / 1024).toFixed(0)} KB, explode ${DURATION} s + gate ${gateDuration.toFixed(1)} s clips)`);
   },
   (err) => { console.error(err); process.exit(1); },
-  { binary: true, animations: [clip] },
+  { binary: true, animations: [clip, gateClip] },
 );

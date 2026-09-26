@@ -4,7 +4,7 @@ Concept design of the production Entrance Observer: a camera under a small steep
 
 [![Entrance Observer on a hive: house-shaped wall frame, steep opal roof, yellow-faced pod under the ridge, porch with gate, landing board with calibration markers](hero.png)](https://gratheon.com/products/entrance_observer/)
 
-- **3D model:** open [`3d-model/index.html`](../3d-model/index.html) (self-contained, works offline) or see [gratheon.com/products/entrance_observer](https://gratheon.com/products/entrance_observer/). [`3d-model/entrance-observer.glb`](../3d-model/entrance-observer.glb) contains the exploded-view animation. The viewer moves the gate between its four positions.
+- **3D model:** open [`3d-model/index.html`](../3d-model/index.html) (self-contained, works offline) or see [gratheon.com/products/entrance_observer](https://gratheon.com/products/entrance_observer/). [`3d-model/entrance-observer.glb`](../3d-model/entrance-observer.glb) contains the exploded-view animation. The viewer moves the gate between its four positions (*Watch the gate work* runs it with the drive housing see-through), and the GLB has a second animation clip, `gate`.
 - **Source:** `3d-model/observer-model.js` holds every dimension. The viewer shares its code and scene with the [beehive scale](https://github.com/Gratheon/beehive-sensors/tree/main/model) and [Robotic Beehive](https://github.com/Gratheon/robotic-beehive/tree/main/model) models and uses the same axes, so the three can be placed together.
 
 ## What the device is
@@ -16,7 +16,8 @@ Concept design of the production Entrance Observer: a camera under a small steep
 | **Camera** | 8 MP (3840 × 2160) Sony STARVIS 2 sensor, locked-focus low-distortion M12 lens, 90° wide, 186 mm above the board and tilted 16° back toward the hive |
 | **In view** | The bottom ≈ 38 mm of the hive wall, the porch with the gate and the landing board up to ≈ 20 mm from its front edge, ≈ 400 mm across. ≈ 9.6 px/mm on the board: a worker bee is ≈ 125 px long and a varroa mite ≈ 14 px |
 | **Counting line** | The porch mouth, 46 mm in front of the hive: every bee in or out crosses it in view |
-| **Entrance gate** | Motorised, four positions: open · reduced (70 × 17 mm) · hornet guard (70 × 5.5 mm) · closed. Fails open. |
+| **Entrance gate** | Motorised, four positions: open · reduced (70 × 17 mm) · hornet guard (70 × 5.5 mm) · closed. Worm + lead-screw drive, fails open. |
+| **Display** | Reflective 2-row segment LCD on the pod front: today's bees in and out, gate position. No backlight, readable in sun, ≈ €3. |
 | **Compute** | Swappable sled: Raspberry Pi 5 (8 GB), Hailo-8 (26 TOPS) and 256 GB NVMe for now; a Jetson Orin NX or a later accelerator uses the same bay |
 | **Supervisor** | Always-on ESP32-S3 board (the beehive-scale carrier design): switches the computer on only when bees can fly, and drives the gate |
 | **Power** | PoE+ (802.3at), 12–24 V DC, or the solar version (14 W on the roof + 77 Wh LiFePO4) |
@@ -71,12 +72,27 @@ Beekeepers use entrance reducers all year: narrow against wind, cold and robbing
 | Closed | notch at the porch roof | none | moving the hive, spraying nearby |
 
 - When open, the gate is hidden under the floor: nothing in the view, nothing for bees to walk around.
-- The drive sits in a sealed box under the porch floor, outside the view: a micro geared stepper with a self-locking lead screw, a hall sensor for the home position and a supercapacitor. The screw holds any position without power, so neither bees nor hornets can push the gate.
+
+| Open | Reduced |
+| --- | --- |
+| ![Gate open: full mouth](preview-gate-open.png) | ![Gate reduced: 70 mm centre notch](preview-gate-reduced.png) |
+| **Hornet guard** | **Closed** |
+| ![Gate in hornet guard: 70 × 5.5 mm slot](preview-gate-guard.png) | ![Gate closed](preview-gate-closed.png) |
+
+**Drive.** Everything sits in a sealed printed box under the porch floor, outside the camera view (in the images above it is drawn see-through and the landing board is lifted away):
+
+- **Motor + worm.** An N20-size micro stepper with a brass worm on its shaft, in a small gearbox bulge in the middle of the box.
+- **Worm wheel + lead screw.** The worm turns a wheel at the foot of a vertical 2 mm-lead screw. A worm drive is self-locking, so the gate holds any position without power, and neither bees nor hornets can push it.
+- **Nut on the gate.** A brass nut on the lower edge of the gate turns the screw's rotation into 34 mm of travel, at about 7 mm/s.
+- **Guide rods.** Two stainless rods at the ends, with bronze bushings on the gate, keep the 312 mm plate level so it does not jam in the slit.
+- **Home sensor.** A hall sensor on the box floor and a magnet on the gate: the drive finds the open position after every power-up.
+- **Fail-open supercapacitor.** A small driver board keeps a supercapacitor charged, with enough energy to drive the gate back to open.
+- **Drain holes** in the bottom let water and debris that fall through the slit out.
 - **Fails open.** If power is lost, the supercapacitor drives the gate open. Every narrowing is a lease with a timer, renewed only while its reason lasts; the supervisor opens the gate when a lease runs out.
 - **Cannot crush bees.** The gate rises slowly (≈ 7 mm/s) with a soft silicone edge and a motor current limit, and only when the camera sees no bee in the mouth. If it stalls, it goes back down.
 - A move takes about 5 s at 1 W: negligible energy.
 
-![Hornet guard: the gate is up and only the 70 × 5.5 mm slot in the middle is open](preview-gate.png)
+![Inside the gate drive: motor, worm and wheel, lead screw, guide rod, home sensor and supercapacitor board, housing drawn see-through](preview-gate.png)
 
 **Who moves the gate.** Decisions are made where the information is, and safety decisions never wait for a server:
 
@@ -96,6 +112,7 @@ For a hornet, the design uses the hornet guard, not full closure. Closing the en
 
 ### 4. Roof, rain and snow
 
+- **Closed at both ends.** At the back the wall frame sheet fills the triangle between the rafters. At the front a graphite gable panel closes the roof above the pod, with the pod face set into it, the Gratheon hexagon and vent slots under the ridge so warm air leaves. Blown rain and snow no longer reach the pod or the beam; the eaves stay open for air.
 - **Steep gable, from the hive wall forward.** One 3 mm opal (light-diffusing) UV-stabilised polycarbonate sheet, bent once along the ridge into a 30° gable, 476 × 212 mm. It starts at the hive wall, so no rain gets in behind it. At 30° rain and snow slide off, and a flat roof would hold snow.
 - **Drips land beside the board.** The ridge runs front to back, so water and snow go to the two side eaves, which overhang the landing board edges. Nothing drips onto the board in front of the camera.
 - **Why not a cone.** A cone or hipped roof would also shed snow, but a front slope would drip onto the board, and a double-curved part needs a mould. A sheet bent once is cut and bent in any workshop.
@@ -103,29 +120,39 @@ For a hornet, the design uses the hornet guard, not full closure. Closing the en
 - **Downward-facing window.** The lens window is at the tip of a matt black hood and faces the ground. Rain cannot reach it, the sky cannot reflect in it, and the roof keeps the sun off it. A 0.3 W heater film clears dew on cold mornings.
 - **Light bars, rarely used.** Two short diffused LED bars with crossed polarisers on the LEDs and the lens remove glints from shiny bees and wet pollen. They only flash in sync with the exposure, at dusk or in deep shade.
 
-### 5. Structure: one metal part
+### 5. Activity display
+
+A beekeeper walking past the hive should see how the colony is doing without opening an app. The pod front, set into the front gable, has a cheap reflective 2-row segment LCD (about €3):
+
+- **Today's bees in (↓) and out (↑)**, updated every minute, and four bars for the gate position. The button next to it pages through yesterday, net flow and alerts (hornets, robbing).
+- **Reflective, no backlight.** It is readable in direct sun, where backlit screens wash out, and works in frost, unlike e-paper, which gets slow in the cold.
+- **Driven by the supervisor**, the always-on ESP32, through an HT1621 segment driver at about 50 µA. It keeps the last numbers while the computer sleeps, so it is never blank.
+
+![Pod front in the front gable: activity display with today's in and out counts, status ring, setup button, USB-C flap](preview-display.png)
+
+### 6. Structure: one metal part
 
 The earlier arch had a full-width aluminium head and two side boards. They were expensive and bulky, and the side boards blocked bees flying in from the sides. The structure is now:
 
 - **Wall frame.** One laser-cut sheet of powder-coated steel or aluminium, folded into box sections, in the shape of a house gable: entrance plate, two slim uprights and two rafters. It is screwed to the bottom board with four stainless screws and leans on the hive body through two rubber pads, never screwed to it, so the bodies still lift off. It carries the porch, the gate and the board. It is flat, so it ships flat.
 - **Ridge beam.** A standard 30 × 36 mm aluminium extrusion that hooks into the apex of the frame, locked by one captive thumbscrew. It carries the roof, two thin front rafters (for snow on the front corners) and the pod. The whole head lifts off in seconds and lands in the same place.
-- **Pod.** The only machined metal: a 170 × 140 mm piece of finned aluminium extrusion, IP65, with printed end caps. It holds the camera module, the compute sled (slides out of the front, with the honey-yellow service face), the supervisor board and, in the solar version, the battery sled (slides out of the side). The pod is the heatsink: its fins sit in the ventilated space under the roof. No fan.
+- **Pod.** The only machined metal: a 170 × 140 mm piece of finned aluminium extrusion, IP65, with printed end caps. It holds the camera module, the compute sled (slides out of the front, with the honey-yellow service face and the display), the supervisor board and, in the solar version, the battery sled (slides out of the side). The pod is the heatsink: its fins sit in the ventilated space under the roof. No fan.
 - **Sides are open.** Only the two slim uprights stand beside the board, against the hive wall, so bees can fly in from the front and the sides.
 
-### 6. Wires: none in the sun, none in view
+### 7. Wires: none in the sun, none in view
 
 - All cables enter from below, under the foot of the right upright, facing the ground: a PoE cable gland and an M12 accessory socket. Water runs off them, not into them, and the cable leaves with a drip loop.
 - The right upright is a closed box section. The harness runs up inside it, over the rafter and along the ridge beam to the pod. The gate drive plugs into the foot of the same upright.
 - The porch floor widens into a grey apron up to the uprights, so the camera never sees the ground beside the porch. The frame, roof, pod and cables stay outside the view. The viewer's *Show what the camera sees* inset renders exactly what the lens sees.
 
-### 7. Installation, service, manufacturing
+### 8. Installation, service, manufacturing
 
 - **Install once.** Screw the wall frame to the bottom board (4 screws, paper drill template), hang the head on the apex, and turn one thumbscrew. The entrance module stays on the hive all year and works as an automatic reducer even while the head is away.
 - **Service.** The compute sled slides out of the front of the pod after a quarter-turn: status ring, setup button, USB-C for copying full-resolution research clips on site. The board insert slides out for washing.
 - **Parts any workshop can make.** One laser-cut folded sheet (frame), one standard extrusion cut to length (beam), one finned extrusion (pod), a cut and bent polycarbonate sheet (roof), a CNC-routed HDPE board and porch, and 3D-printed ASA small parts for pilot batches.
 - **Flat-pack.** Frame, roof and board ship flat with the pod: a box of about 500 × 400 × 110 mm.
 
-### 8. Works alone, works better together
+### 9. Works alone, works better together
 
 The entrance module and head are the same in all three setups. Only what the frame stands on changes.
 
@@ -151,6 +178,7 @@ The computer is the only large consumer. It runs only when bees can fly, and the
 | Observing | ≈ 9 W (Pi 5 + Hailo-8 + 4K camera + Ethernet) | Flight weather, daylight |
 | Booting | ≈ 5 W for ≈ 25 s | Before each observation in sampled mode |
 | Moving the gate | ≈ 1 W for ≈ 5 s | A few times a day at most |
+| Display | ≈ 50 µA | Always |
 
 The prototype Jetson Orin Nano measured 6.9 W at 720p. The 9 W figure assumes 4K capture and is an estimate until the Pi 5 + Hailo sled is measured.
 

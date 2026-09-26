@@ -24,7 +24,12 @@ const shots = [
   ['preview-scale.png', 'context=scale&hive=solid', [1400, 1000]],
   ['preview-robot.png', 'context=robot&hive=ghost', [1400, 1000]],
   ['preview-solar.png', 'power=solar&hive=solid&cam=hero', [1400, 1000]],
-  ['preview-gate.png', 'hive=solid&cam=gate&gate=guard&inset=0', [1400, 1000]],
+  ['preview-gate.png', 'hive=solid&cam=gate&gate=guard&xray=1&inset=0', [1400, 1000]],
+  ['preview-gate-open.png', 'hive=solid&cam=gatefront&gate=open&xray=1&inset=0', [900, 560]],
+  ['preview-gate-reduced.png', 'hive=solid&cam=gatefront&gate=reduced&xray=1&inset=0', [900, 560]],
+  ['preview-gate-guard.png', 'hive=solid&cam=gatefront&gate=guard&xray=1&inset=0', [900, 560]],
+  ['preview-gate-closed.png', 'hive=solid&cam=gatefront&gate=closed&xray=1&inset=0', [900, 560]],
+  ['preview-display.png', 'hive=solid&cam=display&inset=0', [1200, 800]],
 ];
 const page = pathToFileURL(join(here, 'index.html')).href;
 for (const [file, opts, [w, h]] of shots) {

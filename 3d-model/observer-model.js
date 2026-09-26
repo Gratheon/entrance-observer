@@ -40,7 +40,7 @@ export const DEFAULTS = {
   stand: 200, // wooden hive stand height
   frame: { w: 456, post: 22, depth: 15 }, // wall frame: width, upright / rafter width, depth of the box sections
   roof: { ridge: 318, z0: 2, len: 212, halfW: 238, t: 3, slope: 30 }, // ridge underside height, start z, length, horizontal half-width, sheet, degrees
-  beam: { w: 30, h: 36, len: 196 }, // ridge beam under the roof
+  beam: { w: 30, h: 36, len: 186 }, // ends behind the front gable // ridge beam under the roof
   head: { y: 205, z: 135, w: 170, h: 57, d: 140 }, // camera + compute pod: underside height, centre z, size
   camera: { eye: 186, hfov: 90, aspect: 16 / 9, px: 3840, tilt: 16 }, // lens height above the entrance floor, degrees, sensor width px, degrees toward the hive
   porch: { depth: 46, w: 312, wall: 4, roof: 4, gateZ: 40, notch: 70, floorEnd: 48 }, // mouth distance from the hive face, inner width, wall/roof, gate plane, centre opening, porch floor end
@@ -82,14 +82,21 @@ export const PARTS = {
   sensor: ['Light + climate sensor', 'Ambient light, temperature and humidity. The supervisor uses them to decide when bees can fly, which is when the computer has to run, and to narrow the gate on cold nights.'],
   supervisor: ['Supervisor board', 'Always-on ESP32-S3 board, the same carrier design as the beehive scale: PoE+ input, 12–24 V DC input, solar charger, fuel gauge, the gate motor driver and a load switch for the compute sled. It idles at about 0.1 W, only powers the computer when bees can fly, and moves the gate on its own when needed (cold night, lost power, expired hornet guard).'],
   compute: ['Compute cassette', 'Raspberry Pi 5 (8 GB), Hailo-8 26 TOPS accelerator and 256 GB NVMe on one sled. It slides out of the front of the pod after a quarter-turn. The sled is the upgrade path: pod, camera, power and connectors stay the same, and a Jetson Orin NX or the next accelerator slides into the same bay when pose models need more compute.'],
-  face: ['Service face', 'Honey-yellow front of the compute cassette: status ring, setup button and a USB-C port under a flap for copying full-resolution research clips on site.'],
+  face: ['Service face', 'Honey-yellow front of the compute cassette, set into the front gable: activity display, status ring, setup button and a USB-C port under a flap for copying full-resolution research clips on site.'],
+  display: ['Activity display', 'Cheap reflective 2-row segment LCD (about €3), readable in direct sun and needing no backlight: today’s bees in (↓) and out (↑), with bars for the gate position. The always-on supervisor drives it through an HT1621 chip at about 50 µA, updates it every minute and keeps the last numbers while the computer sleeps. The button pages through yesterday, net flow and alerts.'],
+  gable: ['Gables', 'The roof is closed at both ends. At the back the wall frame sheet fills the triangle between the rafters; at the front a graphite panel closes the roof above the pod, with the pod face set into it and vent slots under the ridge so warm air leaves. Rain and snow blown in from the front no longer reach the pod or the beam; the eaves stay open for air.'],
   battery: ['Battery cassette', 'Solar version: four LiFePO4 32700 cells (12.8 V, 77 Wh) on a sled that slides out of the left side of the pod, charged from the roof panels. LiFePO4 tolerates summer heat better than Li-ion. In the PoE version this bay is empty or holds an LTE modem.'],
   blank: ['Side bay cover', 'Cover of the pod side bay. Behind it goes the battery cassette (solar version) or an LTE modem for apiaries without Wi-Fi or Ethernet.'],
   canopy: ['Roof', 'A 3 mm opal (light-diffusing), UV-stabilised polycarbonate sheet bent once along the ridge into a 30° gable, 448 × 212 mm, from the hive wall forward. At 30° rain and snow slide off, to the sides: the eaves overhang the landing board edges, so drips fall beside the board, outside the view. Opal keeps its shadow on the board soft. It rests on the rafters of the wall frame at the back, the ridge beam and the front rafters.'],
   solarCanopy: ['Solar roof', 'The same gable with a 7 W ETFE panel laminated on each slope (14 W). Whichever way the hive faces, one slope gets the morning or afternoon sun. Bees fly when the sun shines, so the panels produce the most when the Observer has the most to do.'],
   porch: ['Entrance porch', 'A 46 mm deep, 17 mm high tunnel across the full entrance, in the same matt grey as the board. It moves the doorway forward onto the landing board: a bee that lands on the hive wall has to walk down onto the porch roof and step off in front of the mouth, so every bee in or out crosses the porch mouth in view. The mouth is the counting line. Open to the air, with no glass to clean or fog up.'],
   gate: ['Automatic entrance gate', 'A 2 mm plate that rises out of a slit in the porch floor at the mouth, with a 70 mm notch in its centre. One travel gives four positions: open (flush with the floor), reduced (only the 70 × 17 mm centre open, against wind, cold and robbing), hornet guard (a 70 × 5.5 mm slot: bees pass, hornets and wasps cannot) and closed (moving the hive, spraying nearby). It rises slowly with a soft silicone edge and a current limit, and only when the camera sees no bee in the mouth, so it cannot crush bees. Hidden under the floor when open.'],
-  gateDrive: ['Gate drive', 'Sealed box under the porch floor: a micro geared stepper with a self-locking lead screw (the gate holds any position without power, and bees or hornets cannot push it), a hall sensor for the home position and a supercapacitor. If power is lost, the supercapacitor opens the gate: it fails open, never closed. The drive plugs into the right upright; a move takes about 5 s at 1 W.'],
+  gateDrive: ['Gate drive housing', 'Sealed printed ASA box under the porch floor, outside the camera view, 336 × 18 mm with a gearbox bulge in the middle. Drain holes in the bottom let water and debris that fall through the slit out. Its lead plugs into the foot of the right upright. Tick “See inside the gate” to look through it.'],
+  gateMotor: ['Motor + worm', 'N20-size micro stepper with a brass worm on its shaft, meshing with the worm wheel at the foot of the lead screw. A worm drive is self-locking: the gate holds any position without power, and bees or hornets cannot push it. About 1 W for 5 s per move.'],
+  gateScrew: ['Lead screw + nut', 'Vertical 2 mm-lead screw turned by the worm wheel; a brass nut on the gate turns its rotation into 34 mm of travel, about 7 mm/s. The camera and a motor current limit stop it if a bee is in the way.'],
+  gateGuide: ['Guide rods', 'Two stainless rods at the ends of the housing, with bronze bushings on the gate, so the 312 mm plate rises level and does not jam in the slit.'],
+  gateSensor: ['Home sensor', 'Hall sensor on the housing floor and a magnet on the gate: the drive finds the open position after every power-up and counts steps from there.'],
+  gateSupercap: ['Fail-open supercapacitor', 'Driver board with a supercapacitor that stays charged. If power is lost, it has enough energy to drive the gate back to open: the gate fails open, never closed.'],
   lintel: ['Gate lintel', 'The raised front edge of the porch roof. The gate slides up into it, and it marks the counting line from above.'],
   countLine: ['Counting line', 'A faint printed line just in front of the porch mouth, for people, not for the software: the software counts a track as in when it ends inside the porch and out when it starts there.'],
   board: ['Landing board', '10 mm HDPE, hinged to the front of the porch floor at a 6° slope so rain drains off, with an aluminium stiffener underneath. It is the background of every frame: matt, neutral light grey. White would overexpose in the sun and hide pale pollen loads.'],
@@ -234,6 +241,12 @@ function makeMaterials() {
     markGrey: std(0x6f736f, { roughness: 0.9 }),
     porch: std(0xaeb1ac, { roughness: 0.95 }), // same matt grey family as the board
     gate: std(0x8e928d, { roughness: 0.9 }),
+    housing: new THREE.MeshStandardMaterial({ color: 0x34383c, roughness: 0.6, transparent: true, opacity: 1 }),
+    brass: std(0xc9a14a, { metalness: 0.7, roughness: 0.35 }),
+    cap: std(0x2a5fb0, { roughness: 0.4 }),
+    lcd: std(0xb4bea6, { roughness: 0.3 }), // reflective LCD glass
+    lcdOff: std(0xa9b39b, { roughness: 0.3 }),
+    seg: std(0x1d231d, { roughness: 0.5 }),
     plate: std(0x9ea29d, { roughness: 0.9 }), // matt powder coat: the plate is in the camera view
     opal: new THREE.MeshStandardMaterial({ color: 0xf6f5f0, roughness: 0.35, transparent: true, opacity: 0.8, side: THREE.DoubleSide }),
     opalEdge: std(0xe9e7e0, { roughness: 0.4 }),
@@ -373,6 +386,12 @@ export function buildObserver(options = {}) {
     cyl(frame, 7, 4, M.rubber, s * (FW - F.post / 2), postTop - 30, plateZ - 2, 'z', framePart, 16);
   }
   box(frame, 40, 22, F.depth + 6, M.graphite, 0, apexY - 12, plateZ + (F.depth + 6) / 2, framePart); // apex pocket
+  { // back gable: the frame sheet fills the triangle between the rafters
+    const sh = new THREE.Shape();
+    const bx = FW - F.post, by = postTop;
+    sh.moveTo(-bx * MM, by * MM); sh.lineTo(bx * MM, by * MM); sh.lineTo(0, (apexY + 4) * MM); sh.closePath();
+    place(frame, cached('backGable', () => new THREE.ExtrudeGeometry(sh, { depth: 2 * MM, bevelEnabled: false })), M.graphite, 0, 0, plateZ, 'gable');
+  }
   // foot of the right upright: cable entries facing down
   const footX = FW - F.post / 2;
   slab(frame, FW - F.post - 2, -40, plateZ, F.post + 2, 30, 36, M.graphite, 'channel');
@@ -391,25 +410,74 @@ export function buildObserver(options = {}) {
   const pz0 = Math.min(d.wallZ, 0) + (p.context === 'scale' ? 2 : 3);
   const lz0 = PO.gateZ - 6; // lintel starts here
   slab(porch, -PW2 - PO.wall, pTop, pz0, PO.w + 2 * PO.wall, PO.roof, lz0 - pz0, M.porch, 'porch');
-  slab(porch, -PW2 - PO.wall, pTop, lz0, PO.w + 2 * PO.wall, 21, PO.depth - lz0, M.porch, 'lintel');
+  nodes.gateCover = [];
+  nodes.gateCover.push(slab(porch, -PW2 - PO.wall, pTop, lz0, PO.w + 2 * PO.wall, 21, PO.depth - lz0, M.porch, 'lintel'));
   for (const s of [-1, 1]) slab(porch, s > 0 ? PW2 : -PW2 - PO.wall, 0, pz0, PO.wall, pTop, PO.depth - pz0, M.porch, 'porch');
   // floor with the gate slit, widened into an apron up to the uprights so the camera never sees the ground
   slab(porch, -(FW - F.post), -3, pz0, 2 * (FW - F.post), 3, PO.floorEnd - pz0, M.porch, 'porch');
-  // gate drive box under the floor (not in view)
-  slab(porch, -PW2 - 10, -45, PO.gateZ - 7, PO.w + 20, 42, 14, M.graphite, 'gateDrive');
-  slab(porch, PW2 + 10, -45, PO.gateZ - 12, 36, 42, 24, M.graphite, 'gateDrive'); // motor end
-  cyl(porch, 3, 40, M.steel, PW2 + 4, -24, PO.gateZ, 'y', 'gateDrive', 10);
-  // the gate: flat plate with a centre notch, rising out of the floor
-  const gate = group(porch, 'gate', 0, GATE[p.gate] ?? 0, PO.gateZ, 'gate');
+  // gate drive under the floor (not in view). The housing is see-through in the
+  // viewer's x-ray mode: motor + worm, worm wheel on a vertical lead screw, a
+  // brass nut on the gate, two guide rods, home sensor, fail-open supercap.
+  const GZ = PO.gateZ, SZ = GZ - 5; // gate plane; screw and guide rods sit 5 mm behind it
+  const hx0 = -PW2 - 12, hx1 = PW2 + 12, hy0 = -66, hy1 = -3;
+  const cover = (m) => { nodes.gateCover.push(m); return m; };
+  cover(slab(porch, hx0, hy0, GZ + 7, hx1 - hx0, hy1 - hy0, 2, M.housing, 'gateDrive')); // front wall
+  cover(slab(porch, hx0, hy0, GZ - 11, hx1 - hx0, hy1 - hy0, 2, M.housing, 'gateDrive')); // back wall
+  for (const x of [hx0, hx1 - 2]) cover(slab(porch, x, hy0, GZ - 11, 2, hy1 - hy0, 20, M.housing, 'gateDrive')); // ends
+  cover(slab(porch, hx0, hy0, GZ - 11, hx1 - hx0, 2, 20, M.housing, 'gateDrive')); // bottom, with drain holes
+  for (let x = -120; x <= 120; x += 40) cyl(porch, 2.5, 2.2, M.black, x, hy0 + 1, GZ - 1, 'y', 'gateDrive', 10);
+  // gearbox bulge at the bottom centre, around the worm and wheel
+  const gb = [-24, 78, hy0 - 4, 26, GZ - 24, 40]; // x0, width, y0, height, z0, depth: covers wheel, worm and motor
+  cover(slab(porch, gb[0], gb[2], gb[4], gb[1], gb[3], 2, M.housing, 'gateDrive'));
+  cover(slab(porch, gb[0], gb[2], gb[4] + gb[5] - 2, gb[1], gb[3], 2, M.housing, 'gateDrive'));
+  cover(slab(porch, gb[0], gb[2], gb[4], gb[1], 2, gb[5], M.housing, 'gateDrive'));
+  for (const x of [gb[0], gb[0] + gb[1] - 2]) cover(slab(porch, x, gb[2], gb[4], 2, gb[3], gb[5], M.housing, 'gateDrive'));
+  // guide rods at both ends
+  for (const s of [-1, 1]) cyl(porch, 2.5, hy1 - hy0 - 4, M.steel, s * (PW2 - 6), (hy0 + hy1) / 2, SZ, 'y', 'gateGuide', 12);
+  // lead screw with the worm wheel at its foot (spins as the gate moves)
+  const screw = group(porch, 'gateScrew', 0, 0, SZ, 'gateScrew');
+  cyl(screw, 3, 54, M.steel, 0, -34, 0, 'y', 'gateScrew', 12);
+  for (let i = 0; i < 12; i++) { // thread flights, so the spin shows
+    const t = box(screw, 1.4, 1.2, 7.2, M.steel, 0, -58 + i * 4.3, 0, 'gateScrew');
+    t.rotation.y = i * 0.9;
+    t.position.x = Math.cos(i * 0.9) * 0.001; t.position.z = -Math.sin(i * 0.9) * 0.001;
+  }
+  cyl(screw, 11, 5, M.brass, 0, -60, 0, 'y', 'gateScrew', 28);
+  for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; box(screw, 2, 5.2, 2, M.brass, Math.cos(a) * 11.2, -60, Math.sin(a) * 11.2, 'gateScrew'); }
+  // motor with the worm on its shaft (self-locking: the gate holds without power)
+  const worm = group(porch, 'gateWorm', 0, -60, SZ + 14.5, 'gateMotor');
+  cyl(worm, 3.5, 14, M.brass, 0, 0, 0, 'x', 'gateMotor', 12);
+  for (let i = 0; i < 5; i++) { const r = box(worm, 1.4, 8.2, 1.4, M.brass, -5.6 + i * 2.8, 0, 0, 'gateMotor'); r.rotation.x = i * 1.2; }
+  cyl(porch, 1.2, 16, M.steel, 13, -60, SZ + 14.5, 'x', 'gateMotor', 8); // shaft
+  cyl(porch, 6, 22, M.can, 32, -60, SZ + 14.5, 'x', 'gateMotor', 20); // N20-size stepper
+  box(porch, 5, 12, 12, M.black, 45, -60, SZ + 14.5, 'gateMotor'); // gearhead end cap
+  nodes.gateSpin = [
+    { obj: screw, axis: 'y', perMm: Math.PI }, // 2 mm lead: half a turn per mm
+    { obj: worm, axis: 'x', perMm: Math.PI * 6 }, // worm turns faster (shown slowed down)
+  ];
+  // home sensor (hall) and the driver board with the fail-open supercapacitor
+  box(porch, 18, 1.6, 12, M.pcb, -40, hy0 + 4, SZ, 'gateSensor');
+  box(porch, 5, 2, 4, M.chip, -40, hy0 + 5.5, SZ, 'gateSensor');
+  box(porch, 44, 22, 1.6, M.pcb, -104, -44, GZ - 8, 'gateSupercap');
+  cyl(porch, 5, 16, M.cap, -104, -40, GZ - 3, 'x', 'gateSupercap', 16);
+  box(porch, 8, 5, 4, M.chip, -118, -52, GZ - 6.5, 'gateSupercap');
+  cable(porch, [[-82, -44, GZ - 6], [-20, -30, GZ - 6], [60, -30, GZ - 6], [PW2 + 8, -30, GZ - 4], [FW - F.post / 2 - 4, -30, 12]], 1.2, M.cable, 'harness');
+
+  // the gate: a plate with a centre notch, rising out of the floor slit
+  const gate = group(porch, 'gate', 0, GATE[p.gate] ?? 0, GZ, 'gate');
   nodes.gate = gate;
-  nodes.gateHome = 0;
-  const N2 = PO.notch / 2, GH = 36;
+  const N2 = PO.notch / 2, GH = 52;
   for (const s of [-1, 1]) {
     slab(gate, s > 0 ? N2 : -PW2, -GH, -1, PW2 - N2, GH, 2, M.gate, 'gate');
-    slab(gate, s > 0 ? N2 : -PW2, -1.5, -1.3, PW2 - N2, 1.5, 2.6, M.gasket, 'gate'); // soft edge
+    slab(gate, s > 0 ? N2 : -PW2, -1.5, -1.3, PW2 - N2, 1.5, 2.6, M.gasket, 'gate'); // soft silicone edge
+    box(gate, 10, 14, 9, M.brass, s * (PW2 - 6), -GH + 9, -5, 'gateGuide'); // bushing on the guide rod
   }
   slab(gate, -N2, -GH, -1, 2 * N2, GH - pTop, 2, M.gate, 'gate');
   slab(gate, -N2, -pTop - 1.5, -1.3, 2 * N2, 1.5, 2.6, M.gasket, 'gate');
+  box(gate, 14, 12, 10, M.brass, 0, -GH + 8, -5, 'gateScrew'); // nut on the lead screw
+  cyl(gate, 3, 1.5, M.steel, -40, -GH + 3, -2, 'z', 'gateSensor', 12); // magnet for the home sensor
+  const g0 = GATE[p.gate] ?? 0;
+  for (const sp of nodes.gateSpin) sp.obj.rotation[sp.axis] = g0 * sp.perMm;
 
   // ----- head: ridge beam, roof, front rafters, pod ---------------------------
   const headAsm = explodable(group(obs, 'head', 0, 0, 0, 'beam'), 0, 330, 0);
@@ -501,13 +569,39 @@ export function buildObserver(options = {}) {
   box(pi, 50, 4, 40, M.gasket, 0, 18, 0, 'compute'); // thermal pad to the pod roof
   const face = group(comp, 'serviceFace', 0, ph / 2, pd / 2 + 1.5, 'face');
   box(face, pw - 10, ph - 6, 3, M.pod, 0, 0, 0, 'face');
-  place(face, cached('ring', () => new THREE.TorusGeometry(7 * MM, 1.6 * MM, 10, 28)), M.status, 40, 8, 1.8, 'face');
-  cyl(face, 5, 3, M.podDark, 40, 8, 2, 'z', 'face', 24); // button inside the ring
-  box(face, 14, 7, 2, M.rubber, 40, -12, 2, 'face'); // USB-C flap
-  cyl(face, 6, 3, M.steel, -50, 0, 2, 'z', 'face', 20); // quarter-turn latch
-  box(face, 9, 2, 1.5, M.black, -50, 0, 3.6, 'face');
-  const hex = place(face, cached('hex', () => new THREE.CylinderGeometry(8 * MM, 8 * MM, 1.5 * MM, 6)), M.graphite, 0, 0, 1.8, 'face');
-  hex.rotation.x = Math.PI / 2;
+  place(face, cached('ring', () => new THREE.TorusGeometry(7 * MM, 1.6 * MM, 10, 28)), M.status, 58, 8, 1.8, 'face');
+  cyl(face, 5, 3, M.podDark, 58, 8, 2, 'z', 'face', 24); // button inside the ring
+  box(face, 14, 7, 2, M.rubber, 58, -13, 2, 'face'); // USB-C flap
+  cyl(face, 6, 3, M.steel, -68, 0, 2, 'z', 'face', 20); // quarter-turn latch
+  box(face, 9, 2, 1.5, M.black, -68, 0, 3.6, 'face');
+  // activity display: reflective 2-row segment LCD, today's bees in / out
+  const lcd = group(face, 'display', -12, 0, 1.5, 'display');
+  box(lcd, 86, 38, 1.5, M.black, 0, 0, 0.75, 'display'); // bezel
+  box(lcd, 80, 32, 0.6, M.lcd, 0, 0, 1.8, 'display'); // glass
+  const seg = (x, y, w, h) => box(lcd, w, h, 0.3, M.seg, x, y, 2.25, 'display');
+  const SEGS = { 0: 'abcdef', 1: 'bc', 2: 'abdeg', 3: 'abcdg', 4: 'bcfg', 5: 'acdfg', 6: 'acdefg', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg' };
+  const digit = (ch, x, y) => { // 6 × 11 mm seven-segment digit centred at (x, y)
+    const w = 6, h = 11, t = 1.1;
+    const on = SEGS[ch] || '';
+    if (on.includes('a')) seg(x, y + h / 2, w - t, t);
+    if (on.includes('g')) seg(x, y, w - t, t);
+    if (on.includes('d')) seg(x, y - h / 2, w - t, t);
+    if (on.includes('f')) seg(x - w / 2, y + h / 4, t, h / 2 - t);
+    if (on.includes('b')) seg(x + w / 2, y + h / 4, t, h / 2 - t);
+    if (on.includes('e')) seg(x - w / 2, y - h / 4, t, h / 2 - t);
+    if (on.includes('c')) seg(x + w / 2, y - h / 4, t, h / 2 - t);
+  };
+  const arrow = (x, y, up) => { // ↓ bees in, ↑ bees out
+    seg(x, y, 1.2, 8);
+    for (const s of [-1, 1]) { const m = seg(x + s * 1.6, y + (up ? 2.4 : -2.4), 1.1, 4.4); m.rotation.z = (up ? s : -s) * 0.75; }
+  };
+  const rows = [['18342', 7.5, false], ['18291', -7.5, true]]; // a busy summer day
+  for (const [num, y, up] of rows) {
+    arrow(-32, y, up);
+    [...num].forEach((ch, i) => digit(ch, -20 + i * 9, y));
+  }
+  for (let i = 0; i < 4; i++) box(lcd, 3, 2 + i * 1.6, 0.3, i < 1 ? M.seg : M.lcdOff, 29 + i * 3.6, -12 + i * 0.8, 2.25, 'display'); // gate position bars
+  box(lcd, 12, 1, 0.3, M.seg, 32, 12, 2.25, 'display'); // "today" tick
 
   // side bay: battery cassette (solar) or a cover
   if (solar) {
@@ -517,6 +611,20 @@ export function buildObserver(options = {}) {
     slab(bat, -pw / 2 - 1.5, 3, -pd / 2 + 4, 3, ph - 6, pd - 8, M.podDark, 'battery');
   } else {
     slab(pod, -pw / 2 - 1.5, 3, -pd / 2 + 4, 3, ph - 6, pd - 8, M.graphite, 'blank');
+  }
+  { // front gable: closes the roof front above the pod, the pod face sits in it
+    const gy0 = HD.y, gx = (RF.ridge - gy0) / tanR - 4, top = RF.ridge - 3;
+    const px = pw / 2 + 1, py = HD.y + ph + 1;
+    const sh = new THREE.Shape();
+    const pts = [[-gx, gy0], [-px, gy0], [-px, py], [px, py], [px, gy0], [gx, gy0], [0, top]];
+    sh.moveTo(pts[0][0] * MM, pts[0][1] * MM);
+    for (const [x, y] of pts.slice(1)) sh.lineTo(x * MM, y * MM);
+    sh.closePath();
+    const gz = HD.z + pd / 2 - 1;
+    place(headAsm, cached('frontGable', () => new THREE.ExtrudeGeometry(sh, { depth: 3 * MM, bevelEnabled: false })), M.graphite, 0, 0, gz, 'gable');
+    for (let i = 0; i < 3; i++) box(headAsm, 34 - i * 10, 2.5, 1, M.black, 0, top - 18 - i * 6, gz + 3.2, 'gable'); // vent slots
+    const hx = place(headAsm, cached('gableHex', () => new THREE.CylinderGeometry(9 * MM, 9 * MM, 1.5 * MM, 6)), M.pod, 0, py + 14, gz + 3.5, 'gable');
+    hx.rotation.x = Math.PI / 2;
   }
   if (!solar) {
     // Opal diffuses the sun: the roof and the pod under it cast no hard shadow on the board.

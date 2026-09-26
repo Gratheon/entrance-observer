@@ -8,6 +8,8 @@
 //   context=hive|scale|robot  what the Observer hangs on
 //   power=poe|solar         opal roof + PoE, or solar roof + battery
 //   gate=open|reduced|guard|closed  entrance gate position
+//   xray=1                  see through the gate drive housing
+//   demo=1                  run the gate through its positions
 //   hive=solid|ghost|off    hive display
 //   fov=1                   show the camera field of view
 //   inset=0                 hide the camera-view inset
@@ -20,10 +22,11 @@ import { buildObserver, energy, ENERGY, GATE, PARTS } from './observer-model.js'
 
 // Parts list order in the panel, grouped by assembly.
 const PART_ORDER = [
-  ['Entrance', ['porch', 'gate', 'lintel', 'gateDrive', 'countLine', 'board', 'insert', 'marker', 'hinge']],
+  ['Gate', ['gate', 'gateMotor', 'gateScrew', 'gateGuide', 'gateSensor', 'gateSupercap', 'gateDrive', 'lintel']],
+  ['Entrance', ['porch', 'countLine', 'board', 'insert', 'marker', 'hinge']],
   ['Optics', ['camera', 'hood', 'led', 'fov']],
-  ['Pod', ['pod', 'compute', 'face', 'supervisor', 'battery', 'blank', 'mic', 'sensor']],
-  ['Roof', ['canopy', 'solarCanopy', 'beam', 'rafter', 'thumb']],
+  ['Pod', ['pod', 'display', 'compute', 'face', 'supervisor', 'battery', 'blank', 'mic', 'sensor']],
+  ['Roof', ['canopy', 'solarCanopy', 'gable', 'beam', 'rafter', 'thumb']],
   ['Frame', ['frame', 'plate', 'channel', 'harness', 'gland', 'm12', 'riser', 'robotFront', 'cable']],
   ['Around it', ['bee', 'hive', 'stand', 'scale', 'scaleLink', 'robot']],
 ];
@@ -160,7 +163,9 @@ export function mountEntranceObserver(root) {
     else if (view === 'close') at(0.02, 0.12 + explode * 0.12, 0.1, 0.95 + explode * 0.3, 0.42 + explode * 0.25, 1.05 + explode * 0.3);
     else if (view === 'side') at(0, 0.12, 0.1, -0.45, 0.62, 0.95);
     else if (view === 'front') at(0, 0.14, 0.1, 0.2, 0.34, 1.35);
-    else if (view === 'gate') at(0, 0.0, 0.04, 0.2, 0.08, 0.42);
+    else if (view === 'gate') at(0, -0.022, 0.05, 0.24, 0.035, 0.34);
+    else if (view === 'gatefront') at(0, -0.018, 0.04, 0.0, 0.012, 0.4);
+    else if (view === 'display') at(0, 0.232, 0.205, 0.06, 0.26, 0.5);
     else if (opts.context === 'robot') at(0, 0.3, -0.1, 2.0, 0.9, 2.3);
     else at(0, 0.18, 0.0, 1.6, 0.75, 1.9);
   };
@@ -176,6 +181,8 @@ export function mountEntranceObserver(root) {
     setHive(hiveMode);
     model.nodes.fov.visible = showFov;
     model.nodes.gate.position.y = gateY * 0.001;
+    for (const sp of model.nodes.gateSpin) sp.obj.rotation[sp.axis] = gateY * sp.perMm;
+    applyXray();
     renderParts();
     renderSpecs();
     if (selected) highlight(selected);
@@ -267,14 +274,40 @@ export function mountEntranceObserver(root) {
   for (const b of $('hive').querySelectorAll('button')) b.addEventListener('click', () => setHive(b.dataset.value));
   // The gate moves in place (no rebuild), at the real drive speed of about 7 mm/s.
   let gateY = GATE[opts.gate];
-  for (const b of $('gate').querySelectorAll('button')) {
-    b.addEventListener('click', () => {
-      opts.gate = b.dataset.value;
-      pressSeg('gate', opts.gate);
-      $('info-title').textContent = GATE_NOTE[opts.gate][0];
-      $('info-text').textContent = GATE_NOTE[opts.gate][1];
-    });
-  }
+  const setGate = (value) => {
+    opts.gate = value;
+    pressSeg('gate', value);
+    $('info-title').textContent = GATE_NOTE[value][0];
+    $('info-text').textContent = GATE_NOTE[value][1];
+  };
+  for (const b of $('gate').querySelectorAll('button')) b.addEventListener('click', () => { demo = null; setGate(b.dataset.value); });
+  // X-ray: the housing and the lintel turn into glass so the drive shows.
+  let xray = hash.get('xray') === '1';
+  const ghost = new THREE.MeshStandardMaterial({ color: 0x9fb4c4, roughness: 0.3, transparent: true, opacity: 0.16, depthWrite: false });
+  const applyXray = () => {
+    for (const m of model.nodes.gateCover) {
+      m.userData.solid ??= m.material;
+      m.material = xray ? ghost : m.userData.solid;
+      m.castShadow = !xray;
+    }
+    // the landing board is lifted away so the mouth and the drive below it show
+    model.nodes.board.visible = !xray;
+    $('xray').checked = xray;
+  };
+  $('xray').addEventListener('change', () => { xray = $('xray').checked; applyXray(); });
+  // Demo: frame the gate, look inside, and step through the positions.
+  const DEMO = ['reduced', 'guard', 'closed', 'open'];
+  let demo = null;
+  const startDemo = () => {
+    xray = true; applyXray();
+    const [ox, oy, oz] = model.derived.origin.map((v) => v * 0.001);
+    controls.target.set(ox, oy - 0.022, oz + 0.05);
+    camera.position.set(ox + 0.24, oy + 0.035, oz + 0.34);
+    if (explodeTarget > 0) { explodeTarget = 0; }
+    demo = { i: 0, hold: 0.6 };
+    setGate(DEMO[0]);
+  };
+  $('gatedemo').addEventListener('click', startDemo);
   const fovBox = $('fov');
   fovBox.checked = showFov;
   fovBox.addEventListener('change', () => { showFov = fovBox.checked; model.nodes.fov.visible = showFov; });
@@ -374,6 +407,8 @@ export function mountEntranceObserver(root) {
   pressSeg('gate', opts.gate);
   build();
   frameCamera();
+  applyXray();
+  if (hash.get('demo') === '1') startDemo();
   const clock = new THREE.Clock();
   let chipState = '';
   const frame = () => {
@@ -396,14 +431,25 @@ export function mountEntranceObserver(root) {
       const step = dt * 12;
       gateY = Math.abs(gateTarget - gateY) <= step ? gateTarget : gateY + Math.sign(gateTarget - gateY) * step;
       model.nodes.gate.position.y = gateY * 0.001;
+      for (const sp of model.nodes.gateSpin) sp.obj.rotation[sp.axis] = gateY * sp.perMm;
+    } else if (demo) {
+      // at a stop: hold, then move on to the next position
+      demo.hold -= dt;
+      if (demo.hold <= 0) {
+        demo.i = (demo.i + 1) % (DEMO.length * 2);
+        demo.hold = 1.4;
+        setGate(DEMO[demo.i % DEMO.length]);
+      }
     }
     controls.update();
     // The dome travels with the camera, so zooming out never pushes its far
     // side past the camera's far plane (which clipped it to black).
     sky.position.copy(camera.position);
     renderer.render(scene, camera);
-    if (showInset && explode < 0.02) renderInset();
-    insetLabel.style.visibility = showInset && explode < 0.02 ? 'visible' : 'hidden';
+    // no inset while exploded or in x-ray (the board is lifted away then)
+    const insetOn = showInset && explode < 0.02 && !xray;
+    if (insetOn) renderInset();
+    insetLabel.style.visibility = insetOn ? 'visible' : 'hidden';
   };
   // Only render while the viewer is on screen (it is embedded in long pages).
   new IntersectionObserver(([entry]) => {
