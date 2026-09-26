@@ -102,7 +102,7 @@ export const PARTS = {
   antenna: ['Wi-Fi antennas', 'Two flat dual-band (2.4 / 5 GHz) antennas on the back of the wooden front gable, either side of the pod and tilted apart for polarisation diversity, on short U.FL cables into the pod. Wood and polycarbonate let radio through; the metal pod and the aluminium solar roof would not.'],
   channel: ['Cable upright', 'The right upright is a closed box section. The PoE cable and the gate cable run up inside it to the apex and along the ridge beam to the pod: no cable is in the sun, in the rain or in front of the lens.'],
   gland: ['Cable entries', 'Under the foot of the right upright, facing the ground: the PoE cable gland and the accessory socket. Water runs off them, not into them, and the cable leaves with a drip loop.'],
-  m12: ['Accessory port', 'M12 8-pin socket with the pinout of the beehive scale front connector: 5 V out, ground, 1-Wire, UART, wake and shield. One short lead to the scale powers the scale pod from the Observer and shares time and readings, so the scale needs no solar board and both upload through one link.'],
+  m12: ['Accessory port', 'M12 8-pin socket with the pinout of the beehive scale front connector: 5 V out, ground, 1-Wire, UART, wake and shield. One short lead to the scale powers the scale pod from the Observer and shares time and readings, so the battery-powered scale never needs charging, and both upload through one link.'],
   thumb: ['Apex hook', 'The ridge beam ends in a hook that drops into a pocket at the apex of the wall frame, locked by one captive honey-yellow thumbscrew. The head lifts off in seconds and always lands in the same place, with the camera aimed the same way.'],
   beam: ['Ridge beam', 'Standard 30 × 36 mm aluminium extrusion from the apex forward, under the ridge. It carries the roof, the front rafters and the pod, and the cables run inside it.'],
   rafter: ['Front rafters', 'Two slim folded strips under the front edge of the roof, from the end of the ridge beam to the eaves. They carry snow on the front corners. They sit above the lens, outside the view.'],
@@ -140,7 +140,7 @@ export const PARTS = {
   hive: ['Hive', 'A standard hive: bottom board, bodies and lid. The only change is the wall frame screwed to the bottom board.'],
   stand: ['Hive stand', 'Any stand works: the Observer hangs on the hive entrance and does not touch the stand.'],
   scale: ['Beehive scale', 'Gratheon beehive scale, simplified. The Observer stands on its front rail with two risers, and one M12 lead powers the scale pod and carries its readings.'],
-  scaleLink: ['Scale connector', 'M12 socket under the front rail of the beehive scale. The Observer lead plugs in here in place of the solar landing board.'],
+  scaleLink: ['Scale connector', 'M12 socket under the front rail of the beehive scale. The Observer lead plugs in here; on a stand-alone scale the socket has a dust cap.'],
   robot: ['Robotic Beehive', 'Ghost of the Robotic Beehive cabinet. Its entrance tunnel ends in the Observer porch, and the cable runs inside the cabinet to the robot PoE switch.'],
 };
 

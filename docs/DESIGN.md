@@ -215,12 +215,14 @@ The entrance module and head are the same in all three setups. Only what the fra
 | Setup | Mount | Power | Data |
 | --- | --- | --- | --- |
 | **Alone on a hive** | Wall frame, 4 screws to the bottom board | PoE+ from a switch or injector (up to 100 m), 12–24 V DC, or the solar roof | Ethernet or Wi-Fi |
-| **With the beehive scale** | The frame stands on two printed risers hooked onto the scale's front rail, 2 mm clear of the hive; the porch bridges the gap over the deck with a brush seal. Frame, roof, snow and bees on the board are carried by the scale base and never weighed. | The Observer powers the scale pod over the M12 lead (5 V), so the scale needs no solar board | The scale sends weight and temperatures over UART; the Observer uploads both and syncs the time. A falling weight plus robbing traffic is a stronger robbing signal for the gate. |
+| **With the beehive scale** | The frame stands on two printed risers hooked onto the scale's front rail, 2 mm clear of the hive; the porch bridges the gap over the deck with a brush seal. Frame, roof, snow and bees on the board are carried by the scale base and never weighed. | The Observer powers the scale pod over the M12 lead (5 V). The scale itself has no landing board or solar: it runs on batteries alone and needs no charging while an Observer is fitted | The scale sends weight, hive temperature and humidity over UART; the Observer uploads both and syncs the time. A falling weight plus robbing traffic is a stronger robbing signal for the gate. |
 | **On the Robotic Beehive** | The frame is bolted to the cabinet front, where the entrance tunnel ends | From the robot PoE switch, cable inside a corner post | The robot uses entrance activity to choose when to inspect, and closes the gate while a box is open. Heavy models (pose) can run on the robot's Jetson. |
 
 The M12 accessory port has the same pinout as the scale's front connector: 5 V out, ground, 1-Wire, UART, wake, shield.
 
 Interface requirement for the Robotic Beehive: the entrance tunnel must end in the Observer porch (≤ 312 mm wide at the front, currently 480 mm).
+
+Interface requirement for the beehive scale: the scale's hive climate probe (temperature + humidity) plugs into a socket in the scale's front-right hive locator and lies in a groove along the front of the deck into the entrance. The porch floor covers that groove; it needs a 3 mm notch at its back right corner so the lead enters the entrance under the porch roof, out of the camera view.
 
 ![On the beehive scale: the frame stands on risers on the front rail, short M12 lead to the scale](preview-scale.png)
 
