@@ -75,10 +75,10 @@ export const GATE = {
 // Installation, in order. Each step lists the parts it adds; the viewer plays
 // them back and the exploded view uses the same order.
 export const INSTALL = [
-  { title: 'Screw the wall frame to the bottom board', parts: ['frame', 'plate', 'screws'], text: 'Hold the frame against the hive so its entrance window lines up with the entrance (the paper template in the box marks the four holes). Drive four 4.5 × 40 mm A2 stainless countersunk wood screws through the slots into the bottom board, two each side of the entrance; the slots allow ±3 mm to level it. The top only leans on the hive body through two rubber pads. On the beehive scale the frame bolts to two risers on the scale rail instead (2 × M5 each), 2 mm clear of the hive.' },
+  { title: 'Screw the wall frame to the bottom board', parts: ['frame', 'plate', 'screws', 'clips', 'seal'], text: 'Hold the frame against the hive so its entrance window lines up with the entrance (the paper template in the box marks the four holes). Drive four 4.5 × 40 mm A2 stainless countersunk wood screws through the slots into the bottom board, two each side of the entrance; the slots allow ±3 mm to level it. At the top, screw the two wall clips to the first hive body (2 × 4 × 25 mm each) so they hold the outer edges of the uprights; the EPDM strip behind the frame seals against the wall. The frame itself is never screwed to the body. On the beehive scale the frame bolts to two risers on the scale rail instead (2 × M5 each), 2 mm clear of the hive.' },
   { title: 'Fit the porch with the gate', parts: ['porch', 'porchScrews', 'gate', 'gateDrive', 'lintel'], text: 'Slide the porch over the entrance so its tabs lie on the plate, and fix it with four M4 × 10 A2 button screws into the rivet nuts (Torx T20). The gate and its drive come fitted to the porch. Plug the gate lead into the socket at the foot of the right upright.' },
-  { title: 'Hang the landing board and the colours', parts: ['board', 'hinge', 'tiles', 'studs'], text: 'Drop the two hinge knuckles of the landing board onto the stainless pins at the front of the porch floor; it rests at 6° on its stop. Snap the colour covers into the upright channels, over the cable in the right one. The front lip and brick decks come in the same colour.' },
-  { title: 'Hang the head', parts: ['beam', 'thumb', 'canopy', 'solarCanopy', 'gable', 'pod'], text: 'Lower the head so the hook at the back of the ridge beam drops into the pocket at the apex of the frame, and turn the yellow thumbscrew. Roof, pod and camera come pre-assembled and aimed at the factory, so the view is the same on every hive. The head lifts off the same way for winter.' },
+  { title: 'Hang the landing board, clip on the covers', parts: ['board', 'insert', 'hinge', 'border', 'studs', 'covers'], text: 'Drop the two hinge knuckles of the landing board onto the stainless pins at the front of the porch floor; it rests at 6° on its stop. The board comes painted in the hive colour chosen at order. Clip the two aluminium covers into the upright channels, over the cable in the right one.' },
+  { title: 'Hang the head', parts: ['beam', 'thumb', 'canopy', 'solarCanopy', 'flashing', 'gable', 'antenna', 'pod'], text: 'Lower the head so the hook at the back of the ridge beam drops into the pocket at the apex of the frame, and turn the yellow thumbscrew; the EPDM flashing on the back edge of the roof presses against the hive wall. Roof, pod and camera come pre-assembled and aimed at the factory, so the view is the same on every hive. The head lifts off the same way for winter.' },
   { title: 'Connect the cable', parts: ['gland', 'm12', 'cable'], text: 'Push the PoE cable up through the gland under the foot of the right upright and tighten the gland nut; leave a drip loop below it. With the beehive scale, plug the short M12 lead from the accessory socket into the scale connector.' },
   { title: 'Pair and watch', parts: ['display', 'face'], text: 'Hold the setup button for 5 s and pair the Observer with the hive in the web app over Bluetooth. The display shows today’s bees in and out within a minute of the first flight.' },
 ];
@@ -87,14 +87,19 @@ export const INSTALL = [
 // Part descriptions (shown on hover in the viewer, exported as glTF extras)
 // ---------------------------------------------------------------------------
 export const PARTS = {
-  frame: ['Wall frame', 'One laser-cut sheet of 2 mm 5052 marine-grade aluminium, folded on a press brake and powder-coated graphite: aluminium does not rust, and all fasteners are A2 stainless. The face lies against the hive; folded 15 mm returns along its outer edge and around the big window turn the uprights into U-channels (open to the front, closed by the colour covers) and stiffen the gable. Cut-outs: the big window over the hive front, the entrance window, and four vertical slots for the wood screws. It stays on the hive and carries the porch and the landing board; the head hangs on the pocket at its apex. No welds, no joints.'],
+  frame: ['Wall frame', 'One laser-cut sheet of 2 mm 5052 marine-grade aluminium, folded on a press brake and powder-coated graphite: aluminium does not rust, and all fasteners are A2 stainless. The face lies against the hive; folded 15 mm returns along its outer edge and around the big window turn the uprights into U-channels (open to the front, closed by the aluminium covers) and stiffen the gable. Cut-outs: the big window over the hive front, the entrance window, and four vertical slots for the wood screws. It stays on the hive and carries the porch and the landing board; the head hangs on the pocket at its apex. No welds, no joints.'],
   plate: ['Entrance plate', 'The bottom of the wall frame, with a window matching the 300 × 15 mm entrance and four vertical slots (5 × 11 mm) beside it for the wood screws. Matt graphite powder coat, like the rest of the frame: no glare in the camera view.'],
   riser: ['Scale risers', 'On the beehive scale the wall frame stands on two printed ASA risers hooked onto the scale front rail, 2 mm clear of the hive. Frame, roof, snow and bees on the board are then carried by the scale base and never weighed.'],
   robotFront: ['Robot entrance frame', 'On the Robotic Beehive the wall frame is bolted to the cabinet front, where the entrance tunnel ends. Power and data come from the robot PoE switch inside a corner post.'],
   screws: ['Wood screws', 'Four 4.5 × 40 mm A2 stainless countersunk wood screws (Torx T20), two each side of the entrance, through the slots in the entrance plate into the front of the bottom board. The slots allow ±3 mm to level the frame. Nothing is screwed into the hive bodies, so they still lift off; the top of the frame only leans on them through two rubber pads.'],
   porchScrews: ['Porch screws', 'Four M4 × 10 A2 stainless button screws through the tabs on the porch sides into rivet nuts pressed into the entrance plate. Undo them to take the porch and gate off for cleaning at the end of the season.'],
-  tiles: ['Colour covers', 'Snap-on covers in the hive colour: they close the upright channels (the right one hides the cables), and the same colour and pattern are on the front gable and the landing board lip. Beekeepers already paint hive fronts in different colours so bees find their own hive and drift less between hives, which also slows the spread of mites and disease. Bees see blue, yellow and white well and red as black, so the colours are blue, yellow, white and graphite, with dots, stripes or chevrons. All of it is outside the camera view, so the board the camera sees stays plain grey.'],
-  studs: ['Brick decks', 'Two small decks on the front corners of the landing board with a 4 × 4 grid of 8 mm studs, compatible with common toy construction bricks. Owners can add their own figures and decorations. They are outside the camera view and to the side of the flight path.'],
+  studs: ['Brick decks', 'Two small decks on the front corners of the landing board with a 4 × 4 grid of 8 mm studs, compatible with common toy construction bricks, in the hive colour. Owners can add their own figures and decorations. They are outside the camera view and to the side of the flight path.'],
+  covers: ['Upright covers', 'Folded aluminium covers in the same graphite powder coat as the frame. They close the upright channels; the right one hides the cables. They clip in without screws.'],
+  clips: ['Wall clips (top fixing)', 'Two small folded aluminium clips, each screwed to the first hive body with two 4 × 25 mm A2 stainless screws, hold the outer edges of the uprights against the wall at the top. The frame itself is never screwed to the body: to lift the first body, lift off the head, and the clips slide up off the uprights with the body.'],
+  seal: ['Wall seal', 'EPDM foam strip behind the top edges of the frame, pressed against the hive wall, so rain running down the wall cannot get behind the frame.'],
+  flashing: ['Roof flashing', 'The back edge of the roof is turned up 16 mm with an EPDM strip pressed against the hive wall, like the flashing where a porch roof meets a house. Rain running down the wall lands on the roof and runs off at the eaves, never behind the roof or onto the pod.'],
+  border: ['Hive colour border', 'The wooden landing board is painted in the hive colour around the grey insert (sides and front) and on its front lip, with dots, stripes or chevrons in a contrasting colour. Bee-safe water-based paint. Beekeepers already paint hive fronts in different colours so bees find their own hive and drift less between hives. Bees see blue, yellow and white well and red as black, so the colours are blue, yellow, white and graphite. It is outside the camera view.'],
+  antenna: ['Wi-Fi antennas', 'Two flat dual-band (2.4 / 5 GHz) antennas on the back of the wooden front gable, either side of the pod and tilted apart for polarisation diversity, on short U.FL cables into the pod. Wood and polycarbonate let radio through; the metal pod and the aluminium solar roof would not.'],
   channel: ['Cable upright', 'The right upright is a closed box section. The PoE cable and the gate cable run up inside it to the apex and along the ridge beam to the pod: no cable is in the sun, in the rain or in front of the lens.'],
   gland: ['Cable entries', 'Under the foot of the right upright, facing the ground: the PoE cable gland and the accessory socket. Water runs off them, not into them, and the cable leaves with a drip loop.'],
   m12: ['Accessory port', 'M12 8-pin socket with the pinout of the beehive scale front connector: 5 V out, ground, 1-Wire, UART, wake and shield. One short lead to the scale powers the scale pod from the Observer and shares time and readings, so the scale needs no solar board and both upload through one link.'],
@@ -111,22 +116,22 @@ export const PARTS = {
   compute: ['Compute cassette', 'Raspberry Pi 5 (8 GB), Hailo-8 26 TOPS accelerator and 256 GB NVMe on one sled. It slides out of the front of the pod after a quarter-turn. The sled is the upgrade path: pod, camera, power and connectors stay the same, and a Jetson Orin NX or the next accelerator slides into the same bay when pose models need more compute.'],
   face: ['Service face', 'Honey-yellow front of the compute cassette, set into the front gable: activity display, status ring, setup button and a USB-C port under a flap for copying full-resolution research clips on site.'],
   display: ['Activity display', 'Cheap reflective 2-row segment LCD (about €3), readable in direct sun and needing no backlight: today’s bees in (↓) and out (↑), with bars for the gate position. The always-on supervisor drives it through an HT1621 chip at about 50 µA, updates it every minute and keeps the last numbers while the computer sleeps. The button pages through yesterday, net flow and alerts.'],
-  gable: ['Gables', 'The roof is closed at both ends. At the back the wall frame sheet fills the triangle between the rafters; at the front a graphite panel closes the roof above the pod, with the pod face set into it and vent slots under the ridge so warm air leaves. Rain and snow blown in from the front no longer reach the pod or the beam; the eaves stay open for air.'],
+  gable: ['Gables', 'The roof is closed at both ends. At the back the wall frame sheet fills the triangle between the rafters. At the front a panel of oiled thermo-treated pine closes the roof above the pod: the pod face sits in it, vent slots under the ridge let warm air out, and the Wi-Fi antennas sit behind it, where wood lets the signal through.'],
   battery: ['Battery cassette', 'Solar version: four LiFePO4 32700 cells (12.8 V, 77 Wh) on a sled that slides out of the left side of the pod, charged from the roof panels. LiFePO4 tolerates summer heat better than Li-ion. In the PoE version this bay is empty or holds an LTE modem.'],
   blank: ['Side bay cover', 'Cover of the pod side bay. Behind it goes the battery cassette (solar version) or an LTE modem for apiaries without Wi-Fi or Ethernet.'],
   canopy: ['Roof', 'A 3 mm opal (light-diffusing), UV-stabilised polycarbonate sheet bent once along the ridge into a 30° gable, 448 × 212 mm, from the hive wall forward. At 30° rain and snow slide off, to the sides: the eaves overhang the landing board edges, so drips fall beside the board, outside the view. Opal keeps its shadow on the board soft. It rests on the rafters of the wall frame at the back, the ridge beam and the front rafters.'],
-  solarCanopy: ['Solar roof', 'The same gable with a 7 W ETFE panel laminated on each slope (14 W). Whichever way the hive faces, one slope gets the morning or afternoon sun. Bees fly when the sun shines, so the panels produce the most when the Observer has the most to do.'],
+  solarCanopy: ['Solar roof', 'The same gable in white powder-coated aluminium sheet (recyclable, unlike composite panel) with a 7 W ETFE panel laminated on each slope (14 W). Whichever way the hive faces, one slope gets the morning or afternoon sun. Bees fly when the sun shines, so the panels produce the most when the Observer has the most to do.'],
   porch: ['Entrance porch', 'A 46 mm deep, 17 mm high tunnel across the full entrance, in the same matt grey as the board. It moves the doorway forward onto the landing board: a bee that lands on the hive wall has to walk down onto the porch roof and step off in front of the mouth, so every bee in or out crosses the porch mouth in view. The mouth is the counting line. Open to the air, with no glass to clean or fog up.'],
   gate: ['Automatic entrance gate', 'A 2 mm plate that rises out of a slit in the porch floor at the mouth, with a 70 mm notch in its centre. One travel gives four positions: open (flush with the floor), reduced (only the 70 × 17 mm centre open, against wind, cold and robbing), hornet guard (a 70 × 5.5 mm slot: bees pass, hornets and wasps cannot) and closed (moving the hive, spraying nearby). It rises slowly with a soft silicone edge and a current limit, and only when the camera sees no bee in the mouth, so it cannot crush bees. Hidden under the floor when open.'],
-  gateDrive: ['Gate drive housing', 'Sealed printed ASA box under the porch floor, outside the camera view, 336 × 18 mm with a gearbox bulge in the middle. Drain holes in the bottom let water and debris that fall through the slit out. Its lead plugs into the foot of the right upright. Tick “See inside the gate” to look through it.'],
+  gateDrive: ['Gate drive housing', 'Sealed box of folded aluminium sheet with a gasketed lid, under the porch floor, outside the camera view, 336 × 18 mm with a gearbox bulge in the middle. Drain holes in the bottom let water and debris that fall through the slit out. Its lead plugs into the foot of the right upright. Tick “See inside the gate” to look through it.'],
   gateMotor: ['Motor + worm', 'N20-size micro stepper with a brass worm on its shaft, meshing with the worm wheel at the foot of the lead screw. A worm drive is self-locking: the gate holds any position without power, and bees or hornets cannot push it. About 1 W for 5 s per move.'],
   gateScrew: ['Lead screw + nut', 'Vertical 2 mm-lead screw turned by the worm wheel; a brass nut on the gate turns its rotation into 34 mm of travel, about 7 mm/s. The camera and a motor current limit stop it if a bee is in the way.'],
   gateGuide: ['Guide rods', 'Two stainless rods at the ends of the housing, with bronze bushings on the gate, so the 312 mm plate rises level and does not jam in the slit.'],
   gateSensor: ['Home sensor', 'Hall sensor on the housing floor and a magnet on the gate: the drive finds the open position after every power-up and counts steps from there.'],
   gateSupercap: ['Fail-open supercapacitor', 'Driver board with a supercapacitor that stays charged. If power is lost, it has enough energy to drive the gate back to open: the gate fails open, never closed.'],
   lintel: ['Gate lintel', 'The raised front edge of the porch roof. The gate slides up into it, and it marks the counting line from above.'],
-  board: ['Landing board', '10 mm HDPE, hinged to the front of the porch floor at a 6° slope so rain drains off, with an aluminium stiffener underneath. It is the background of every frame: matt, neutral light grey. White would overexpose in the sun and hide pale pollen loads.'],
-  insert: ['Board insert', 'The top 3 mm layer slides out forward for washing off droppings, dead bees and propolis. Spare inserts are cheap to keep.'],
+  board: ['Landing board', '15 mm thermo-treated pine (no chemicals, stable outdoors), hinged to the front of the porch floor at a 6° slope so rain drains off, with an aluminium stiffener underneath. A flush grey HDPE insert covers only the area the camera sees; the rest of the wood is painted in the hive colour.'],
+  insert: ['Board insert', 'Flush 3 mm matt grey HDPE plate: the background of every frame. Neutral light grey, because white would overexpose in the sun and hide pale pollen loads. It slides out forward for washing off droppings, dead bees and propolis, and is the only plastic the camera sees.'],
   hinge: ['Board hinge', 'Stainless pins at the front of the porch floor. The board folds up flat for shipping and swings down if something hits it.'],
   harness: ['Internal harness', 'PoE, accessory and gate lines from the foot of the right upright, up inside it, over the rafter and along the ridge beam to the supervisor board in the pod.'],
   cable: ['Cables', 'One PoE cable (power and data, up to 100 m) from under the right upright, run along the ground. With the scale, one short M12 lead joins the Observer and the scale.'],
@@ -270,12 +275,15 @@ function makeMaterials() {
     brass: std(0xc9a14a, { metalness: 0.7, roughness: 0.35 }),
     cap: std(0x2a5fb0, { roughness: 0.4 }),
     lcd: std(0xb4bea6, { roughness: 0.3 }), // reflective LCD glass
+    gableWood: std(0xa9794c, { roughness: 0.8 }), // oiled thermo-pine
+    boardWood: std(0x9b6f47, { roughness: 0.85 }), // thermo-pine
+    pcbBlack: std(0x1a1c1e, { roughness: 0.5 }),
     lcdOff: std(0xa9b39b, { roughness: 0.3 }),
     seg: std(0x1d231d, { roughness: 0.5 }),
     plate: std(0x9ea29d, { roughness: 0.9 }), // matt powder coat: the plate is in the camera view
     opal: new THREE.MeshStandardMaterial({ color: 0xf6f5f0, roughness: 0.35, transparent: true, opacity: 0.8, side: THREE.DoubleSide }),
     opalEdge: std(0xe9e7e0, { roughness: 0.4 }),
-    acm: std(0xeeeeea, { roughness: 0.5 }), // aluminium composite, white
+    acm: std(0xeeeeea, { roughness: 0.5 }), // aluminium sheet, white powder coat (solar roof)
     solar: std(0x162a52, { metalness: 0.35, roughness: 0.3 }),
     solarGrid: std(0x8fa3c2, { metalness: 0.6, roughness: 0.4 }),
     glass: new THREE.MeshPhysicalMaterial({ color: 0x9fb8c4, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.6 }),
@@ -378,15 +386,7 @@ export function buildObserver(options = {}) {
   const TH = THEMES[p.colour] || THEMES.blue;
   M.theme = new THREE.MeshStandardMaterial({ color: TH.base, roughness: 0.55 });
   M.themeInk = new THREE.MeshStandardMaterial({ color: TH.ink, roughness: 0.55 });
-  // motifs along a vertical strip centred at x (upright covers)
-  const patternStrip = (parent, x, y0, y1, z) => {
-    if (p.pattern === 'dots') for (let y = y0 + 10; y < y1 - 6; y += 16) cyl(parent, 4, 0.6, M.themeInk, x, y, z + 0.3, 'z', 'tiles', 18);
-    if (p.pattern === 'stripes') for (let y = y0 + 8; y < y1 - 6; y += 14) box(parent, 16, 5, 0.6, M.themeInk, x, y, z + 0.3, 'tiles');
-    if (p.pattern === 'chevrons') for (let y = y0 + 10; y < y1 - 8; y += 16) for (const s of [-1, 1]) {
-      const m = box(parent, 10, 3.2, 0.6, M.themeInk, x + s * 3.8, y + 2.6, z + 0.3, 'tiles');
-      m.rotation.z = s * 0.6;
-    }
-  };
+
   // Cables and bees are hidden in the exploded view (they would float).
   const fieldCables = group(root, 'fieldCables');
   nodes.fieldCables = fieldCables;
@@ -474,12 +474,32 @@ export function buildObserver(options = {}) {
     }
   }
 
-  // colour covers on the upright channels (personal hive colour, outside the camera view)
-  const tiles = explodable(group(obs, 'colourCovers', 0, 0, 0, 'tiles'), 0, 0, 40, 3, [0, 0, 120]);
-  for (const s of [-1, 1]) {
-    const x0 = s > 0 ? IX + 1 : -FW + 1, y0 = 46, y1 = winTop - 2;
-    slab(tiles, x0, y0, plateZ + F.depth, F.post - 2, y1 - y0, 2, M.theme, 'tiles');
-    patternStrip(tiles, x0 + (F.post - 2) / 2, y0, y1, plateZ + F.depth + 2);
+  // covers on the upright channels: folded aluminium, same powder coat as the frame (the right one hides the cables)
+  const covers = explodable(group(obs, 'uprightCovers', 0, 0, 0, 'covers'), 0, 0, 40, 3, [0, 0, 120]);
+  for (const s of [-1, 1]) slab(covers, s > 0 ? IX + 1 : -FW + 1, 46, plateZ + F.depth, F.post - 2, winTop - 48, 1.5, M.graphite, 'covers');
+  // top fixing: two folded aluminium wall clips screwed to the first hive body hold the outer
+  // edges of the uprights. The frame is never screwed to the body: with the head lifted off,
+  // the body lifts straight up and the clips slide off the uprights with it.
+  if (p.context === 'hive') {
+    const clips = explodable(group(obs, 'wallClips', 0, 0, 0, 'clips'), 0, 0, 0, 1, [0, 0, 200]);
+    for (const s of [-1, 1]) {
+      const xo = s * (FW + 11); // clip centre, beside the frame
+      box(clips, 18, 34, 2, M.alu, xo, 132, 1, 'clips'); // back plate on the hive body
+      box(clips, 2, 34, F.depth + 3, M.alu, s * (FW + 3), 132, (F.depth + 3) / 2, 'clips'); // web along the upright
+      box(clips, 10, 34, 2, M.alu, s * (FW - 2), 132, F.depth + 2, 'clips'); // lip over the upright edge
+      for (const y of [122, 142]) cyl(clips, 3.5, 1.5, M.steel, xo + s * 3, y, 2.6, 'z', 'clips', 12);
+    }
+  }
+  // water: EPDM strip behind the top edges of the frame, pressed against the hive wall
+  {
+    const seal = group(frame, 'wallSeal', 0, 0, 0, 'seal');
+    for (const s of [-1, 1]) {
+      const x0 = s * FW, x1 = 0, y0 = edgeY(FW) - 5, y1 = edgeY(0) - 6;
+      const len = Math.hypot(x1 - x0, y1 - y0);
+      const m = box(seal, len, 8, 3, M.rubber, (x0 + x1) / 2, (y0 + y1) / 2, plateZ - 1.5, 'seal');
+      m.rotation.z = Math.atan2(y1 - y0, x1 - x0);
+      box(seal, 8, edgeY(FW) - 60, 3, M.rubber, s * (FW - 4), (edgeY(FW) + 50) / 2, plateZ - 1.5, 'seal'); // down the outer edge
+    }
   }
 
   // ----- entrance porch + automatic gate --------------------------------------
@@ -587,6 +607,8 @@ export function buildObserver(options = {}) {
     half.rotation.z = -s * rad(RF.slope);
     box(half, slant, RF.t, RF.len, sheet, (s * slant) / 2, RF.t / 2, RF.len / 2, cPart);
     box(half, 3, 10, RF.len, solar ? M.acm : M.opalEdge, s * (slant - 1.5), RF.t - 5, RF.len / 2, cPart); // drip edge at the eave
+    box(half, slant - 4, 16, 2, solar ? M.acm : M.opalEdge, (s * slant) / 2, RF.t + 8, 1, 'flashing'); // upturned back edge against the wall
+    box(half, slant - 4, 10, 4, M.rubber, (s * slant) / 2, RF.t + 9, -2, 'flashing'); // EPDM strip pressed on the wall
     if (solar) {
       box(half, slant - 24, 1.2, RF.len - 20, M.solar, s * (slant / 2 + 4), RF.t + 0.6, RF.len / 2, 'solarCanopy');
       for (let i = 1; i < 4; i++) box(half, 0.8, 1.5, RF.len - 20, M.solarGrid, s * (16 + (i * (slant - 24)) / 4), RF.t + 0.7, RF.len / 2, 'solarCanopy');
@@ -704,24 +726,14 @@ export function buildObserver(options = {}) {
     for (const [x, y] of pts.slice(1)) sh.lineTo(x * MM, y * MM);
     sh.closePath();
     const gz = HD.z + pd / 2 - 1;
-    place(headAsm, cached('frontGable', () => new THREE.ExtrudeGeometry(sh, { depth: 3 * MM, bevelEnabled: false })), M.theme, 0, 0, gz, 'gable');
-    const gzf = gz + 3.3, topAt = (x) => top - Math.abs(x) * tanR;
-    if (p.pattern === 'dots') {
-      for (let y = gy0 + 10, r = 0; y < top - 10; y += 14, r++) for (let x = -gx + (r % 2 ? 16 : 8); x < gx; x += 16) {
-        if (y > topAt(x) - 9 || (Math.abs(x) < px + 6 && y < py + 6)) continue;
-        cyl(headAsm, 4.2, 0.6, M.themeInk, x, y, gzf, 'z', 'gable', 18);
-      }
-    } else if (p.pattern === 'stripes') {
-      for (let x = -gx + 14; x < gx - 8; x += 20) {
-        const y0 = Math.abs(x) < px + 5 ? py + 3 : gy0 + 3, y1 = topAt(Math.abs(x) + 4) - 5;
-        if (y1 - y0 > 6) box(headAsm, 7, y1 - y0, 0.6, M.themeInk, x, (y0 + y1) / 2, gzf, 'gable');
-      }
-    } else if (p.pattern === 'chevrons') {
-      for (let o = 16; top - o > gy0 + 14; o += 16) for (const s of [-1, 1]) {
-        const run = (top - o - gy0 - 4) / tanR, len = run / Math.cos(rad(RF.slope));
-        const m = box(headAsm, len, 5, 0.6, M.themeInk, s * run / 2, top - o - (run / 2) * tanR, gzf, 'gable');
-        m.rotation.z = -s * rad(RF.slope);
-      }
+    place(headAsm, cached('frontGable', () => new THREE.ExtrudeGeometry(sh, { depth: 3 * MM, bevelEnabled: false })), M.gableWood, 0, 0, gz, 'gable');
+    // Wi-Fi: two flat dual-band antennas on the back of the wooden gable, left and right of the pod,
+    // tilted apart for polarisation diversity. Wood and polycarbonate pass RF; the metal pod would not.
+    for (const s of [-1, 1]) {
+      const ax = s * (px + 34), ay = gy0 + 12;
+      const ant = box(headAsm, 44, 11, 1.2, M.pcbBlack, ax, ay, gz - 0.7, 'antenna');
+      ant.rotation.z = s * 0.35;
+      cable(headAsm, [[ax - s * 20, ay - 4, gz - 1.5], [s * (px + 8), ay - 14, gz - 6], [s * (px - 2), HD.y + 30, gz - 10]], 0.9, M.cable, 'antenna');
     }
     for (let i = 0; i < 3; i++) box(headAsm, 34 - i * 10, 2.5, 1, M.black, 0, top - 18 - i * 6, gz + 3.4, 'gable'); // vent slots
     const hx = place(headAsm, cached('gableHex', () => new THREE.CylinderGeometry(9 * MM, 9 * MM, 1.5 * MM, 6)), M.pod, 0, py + 14, gz + 3.5, 'gable');
@@ -743,13 +755,26 @@ export function buildObserver(options = {}) {
   explodable(boardHinge, 0, -20, 170, 3, [0, -20, 260]);
   nodes.board = boardHinge;
   const BW = p.board.w, BD = p.board.d;
-  slab(boardHinge, -BW / 2, -11, 0, BW, 8, BD, M.board, 'board');
-  slab(boardHinge, -BW / 2 + 12, -3, 1, BW - 24, 3, BD - 5, M.insert, 'insert');
-  box(boardHinge, 40, 3.2, 8, M.board, 0, -1.4, BD - 3, 'insert'); // finger notch lip
-  box(boardHinge, BW - 40, 6, 20, M.alu, 0, -14, BD / 2, 'board'); // stiffener underneath
+  const IW = 210, ID = 130; // HDPE insert: half-width and depth of the area the camera sees
+  slab(boardHinge, -BW / 2, -15, 0, BW, 15, BD, M.boardWood, 'board'); // 15 mm thermo-pine, pocketed for the insert
+  slab(boardHinge, -IW, -3, 0.5, 2 * IW, 3.05, ID, M.insert, 'insert'); // flush 3 mm HDPE insert
+  box(boardHinge, BW - 40, 5, 20, M.alu, 0, -17.5, BD / 2, 'board'); // aluminium stiffener underneath
   for (const sx of [-1, 1]) cyl(boardHinge, 4, 14, M.steel, sx * (PW2 - 4), -6, 0, 'x', 'hinge', 12);
-  // front lip in the hive colour (outside the camera view)
-  slab(boardHinge, -BW / 2, -11, BD, BW, 11, 1.5, M.theme, 'tiles');
+  // hive colour: painted border round the insert (sides and front) and the front lip, all outside the view
+  const paint = (x0, z0, x1, z1) => slab(boardHinge, x0, -0.4, z0, x1 - x0, 0.45, z1 - z0, M.theme, 'border');
+  paint(-BW / 2, 0, -IW, BD); paint(IW, 0, BW / 2, BD); paint(-IW, ID + 0.5, IW, BD);
+  slab(boardHinge, -BW / 2, -15, BD, BW, 15, 0.8, M.theme, 'border'); // front lip
+  const ink = 0.25;
+  const motif = (x, z, along) => { // one pattern motif centred at (x, z)
+    if (p.pattern === 'dots') cyl(boardHinge, 3.2, 0.5, M.themeInk, x, ink, z, 'y', 'border', 16);
+    if (p.pattern === 'stripes') box(boardHinge, along ? 4 : 10, 0.5, along ? 12 : 4, M.themeInk, x, ink, z, 'border');
+    if (p.pattern === 'chevrons') for (const s of [-1, 1]) {
+      const m = box(boardHinge, 6, 0.5, 2.4, M.themeInk, x + s * 2.4, ink, z + 1.6, 'border');
+      m.rotation.y = s * 0.6;
+    }
+  };
+  for (let x = -IW + 30; x <= IW - 30; x += 16) motif(x, ID + 10, true); // along the front border, between the decks
+  for (const sx of [-1, 1]) for (let z = 12; z < BD - 40; z += 16) motif(sx * (IW + 7), z, false); // down the side borders
   // brick decks on the front corners, outside the view: 4 × 4 studs on an 8 mm grid
   for (const sx of [-1, 1]) {
     const cx = sx * (BW / 2 - 18), cz = BD - 18;

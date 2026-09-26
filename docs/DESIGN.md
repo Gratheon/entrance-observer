@@ -5,6 +5,7 @@ Concept design of the production Entrance Observer: a camera under a small steep
 [![Entrance Observer on a hive: house-shaped wall frame, steep opal roof, yellow-faced pod under the ridge, porch with gate, blue dotted gable and upright covers, landing board with brick decks on its corners](hero.png)](https://gratheon.com/products/entrance_observer/)
 
 - **3D model:** open [`3d-model/index.html`](../3d-model/index.html) (self-contained, works offline) or see [gratheon.com/products/entrance_observer](https://gratheon.com/products/entrance_observer/). [`3d-model/entrance-observer.glb`](../3d-model/entrance-observer.glb) contains the exploded-view animation. The viewer moves the gate between its four positions (*Watch the gate work* runs it with the drive housing see-through), and the GLB has a second animation clip, `gate`.
+- **Design principles:** the Observer follows the [hardware design principles](https://gratheon.com/docs/hardware-design-principles/) shared by all Gratheon hardware: wood first, aluminium where it must be strong, plastic only where nothing else works, one tool to install, every part replaceable, bees first.
 - **Source:** `3d-model/observer-model.js` holds every dimension. The viewer shares its code and scene with the [beehive scale](https://github.com/Gratheon/beehive-sensors/tree/main/model) and [Robotic Beehive](https://github.com/Gratheon/robotic-beehive/tree/main/model) models and uses the same axes, so the three can be placed together.
 
 ## What the device is
@@ -21,9 +22,9 @@ Concept design of the production Entrance Observer: a camera under a small steep
 | **Compute** | Swappable sled: Raspberry Pi 5 (8 GB), Hailo-8 (26 TOPS) and 256 GB NVMe for now; a Jetson Orin NX or a later accelerator uses the same bay |
 | **Supervisor** | Always-on ESP32-S3 board (the beehive-scale carrier design): switches the computer on only when bees can fly, and drives the gate |
 | **Power** | PoE+ (802.3at), 12–24 V DC, or the solar version (14 W on the roof + 77 Wh LiFePO4) |
-| **Links** | Ethernet (PoE), Wi-Fi, BLE for setup, M12 accessory port for the beehive scale |
+| **Links** | Ethernet (PoE), Wi-Fi (two flat antennas behind the wooden gable), BLE for setup, M12 accessory port for the beehive scale |
 | **Metal** | One machined part: the 170 × 140 mm pod. The frame is one folded 2 mm 5052 aluminium sheet; the beam is a standard extrusion. Nothing rusts: aluminium, polymers and A2 stainless fasteners only. |
-| **Personal** | Hive colour (blue, yellow, white, graphite) and pattern (plain, dots, stripes, chevrons) on the gable, upright covers and board lip; brick decks with an 8 mm stud grid on the board corners |
+| **Personal** | Hive colour (blue, yellow, white, graphite) and pattern (plain, dots, stripes, chevrons) painted on the landing board border and lip; brick decks with an 8 mm stud grid on the board corners. The rest stays neutral: graphite frame, wooden gable. |
 | **Target BOM** | ≈ €350–450 at 100 units (Pi 5 + Hailo sled, gate drive included). ApicAI sells at €350–550. |
 
 ![Exploded view: roof and beam, pod with the compute sled sliding out of the front, camera module, wall frame with porch and gate drive, landing board](preview.png)
@@ -113,7 +114,9 @@ For a hornet, the design uses the hornet guard, not full closure. Closing the en
 
 ### 4. Roof, rain and snow
 
-- **Closed at both ends.** At the back the wall frame sheet fills the triangle between the rafters. At the front a graphite gable panel closes the roof above the pod, with the pod face set into it, the Gratheon hexagon and vent slots under the ridge so warm air leaves. Blown rain and snow no longer reach the pod or the beam; the eaves stay open for air.
+- **Closed at both ends.** At the back the wall frame sheet fills the triangle between the rafters. At the front a panel of oiled thermo-treated pine closes the roof above the pod, with the pod face set into it, the Gratheon hexagon and vent slots under the ridge so warm air leaves. Blown rain and snow no longer reach the pod or the beam; the eaves stay open for air.
+- **Sealed against the hive wall.** Where the roof meets the hive, its back edge is turned up 16 mm with an EPDM strip pressed on the wall, like the flashing where a porch roof meets a house: rain running down the wall lands on the roof and leaves at the eaves. An EPDM strip behind the top edges of the wall frame stops water getting behind the frame.
+- **Wi-Fi antennas.** Two flat dual-band antennas sit on the back of the wooden gable, either side of the pod and tilted apart for diversity. Wood and polycarbonate let the signal through; the metal pod (and the aluminium solar roof) would block it.
 - **Steep gable, from the hive wall forward.** One 3 mm opal (light-diffusing) UV-stabilised polycarbonate sheet, bent once along the ridge into a 30° gable, 476 × 212 mm. It starts at the hive wall, so no rain gets in behind it. At 30° rain and snow slide off, and a flat roof would hold snow.
 - **Drips land beside the board.** The ridge runs front to back, so water and snow go to the two side eaves, which overhang the landing board edges. Nothing drips onto the board in front of the camera.
 - **Why not a cone.** A cone or hipped roof would also shed snow, but a front slope would drip onto the board, and a double-curved part needs a mould. A sheet bent once is cut and bent in any workshop.
@@ -135,7 +138,7 @@ A beekeeper walking past the hive should see how the colony is doing without ope
 
 The earlier arch had a full-width aluminium head and two side boards. They were expensive and bulky, and the side boards blocked bees flying in from the sides. The structure is now:
 
-- **Wall frame.** One laser-cut sheet of 2 mm 5052 aluminium in the shape of a house gable, folded on a press brake and powder-coated matt graphite. No steel, no welds, no joints. The face lies against the hive; 15 mm folded returns along the outer edge and around the big window turn the uprights into U-channels open to the front (the colour covers close them) and stiffen the gable. Cut-outs: the big window over the hive front, the entrance window, four slots for the wood screws, and holes for the four rivet nuts that take the porch. It is screwed to the bottom board only and leans on the hive body through two rubber pads, so the bodies still lift off.
+- **Wall frame.** One laser-cut sheet of 2 mm 5052 aluminium in the shape of a house gable, folded on a press brake and powder-coated matt graphite. No steel, no welds, no joints. The face lies against the hive; 15 mm folded returns along the outer edge and around the big window turn the uprights into U-channels open to the front (clip-in aluminium covers close them) and stiffen the gable. Cut-outs: the big window over the hive front, the entrance window, four slots for the wood screws, and holes for the four rivet nuts that take the porch. It is screwed to the bottom board; at the top, two small aluminium wall clips screwed to the first hive body hold the outer edges of the uprights. The frame itself is never screwed to the body: with the head lifted off, the body lifts straight up and the clips slide off the uprights with it.
 - **Ridge beam.** A standard 30 × 36 mm aluminium extrusion that hooks into the apex of the frame, locked by one captive thumbscrew. It carries the roof, two thin front rafters (for snow on the front corners) and the pod. The whole head lifts off in seconds and lands in the same place.
 - **Pod.** The only machined metal: a 170 × 140 mm piece of finned aluminium extrusion, IP65, with printed end caps. It holds the camera module, the compute sled (slides out of the front, with the honey-yellow service face and the display), the supervisor board and, in the solar version, the battery sled (slides out of the side). The pod is the heatsink: its fins sit in the ventilated space under the roof. No fan.
 - **Sides are open.** Only the two slim uprights stand beside the board, against the hive wall, so bees can fly in from the front and the sides.
@@ -143,20 +146,20 @@ The earlier arch had a full-width aluminium head and two side boards. They were 
 ### 7. Wires: none in the sun, none in view
 
 - All cables enter from below, under the foot of the right upright, facing the ground: a PoE cable gland and an M12 accessory socket. Water runs off them, not into them, and the cable leaves with a drip loop.
-- The right upright is a U-channel closed by its colour cover. The harness runs up inside it, over the rafter and along the ridge beam to the pod. The gate drive plugs into the foot of the same upright.
+- The right upright is a U-channel closed by its aluminium cover. The harness runs up inside it, over the rafter and along the ridge beam to the pod. The gate drive plugs into the foot of the same upright.
 - The porch floor widens into a grey apron up to the uprights, so the camera never sees the ground beside the porch. The frame, roof, pod and cables stay outside the view. The viewer's *Show what the camera sees* inset renders exactly what the lens sees.
 
 ### 8. Personal hive colours and brick decks
 
-Beekeepers paint hive fronts in different colours so that bees find their own hive. It cuts drifting between hives, which also slows the spread of mites and disease between colonies. The Observer makes that part of the product:
+Beekeepers paint hive fronts in different colours so that bees find their own hive. It cuts drifting between hives, which also slows the spread of mites and disease between colonies. The Observer keeps its structure neutral (graphite frame, wooden gable, opal roof) and puts the personal touch where bees land:
 
-- **Colour and pattern.** The front gable, the snap-on covers of the uprights and the landing board lip come in one of four colours that bees see well: blue, yellow, white or graphite. Red is not offered, because bees see it as black. Each colour can be plain, or carry dots, stripes or chevrons in a contrasting colour: bees recognise patterns as well as colours. Neighbouring hives get different combinations.
-- **Outside the camera view.** None of the colours or patterns are in the image. The board the camera sees stays plain grey, and every unit sees the same background.
-- **Brick decks.** Two 32 × 32 mm decks on the front corners of the landing board carry a 4 × 4 grid of 8 mm studs, compatible with common toy construction bricks. Owners can put their own figures and decorations there; children love it, and it makes each hive recognisable to people too. The decks are outside the camera view and beside the flight path.
+- **Painted landing board edges.** The wooden landing board is painted in the hive colour around the grey insert (both sides and the front) and on its front lip, with bee-safe water-based paint. Colours are ones bees see well: blue, yellow, white or graphite. Red is not offered, because bees see it as black. Each can be plain or carry dots, stripes or chevrons in a contrasting colour; bees recognise patterns as well as colours. Neighbouring hives get different combinations.
+- **Outside the camera view.** The painted border is outside the image. The grey insert the camera sees is the same on every unit.
+- **Brick decks.** Two 32 × 32 mm decks on the front corners of the landing board, in the hive colour, carry a 4 × 4 grid of 8 mm studs compatible with common toy construction bricks. Owners can put their own figures and decorations there, and it makes each hive recognisable to people too. The decks are outside the camera view and beside the flight path.
 
 | Yellow, stripes | White, chevrons | Graphite, plain |
 | --- | --- | --- |
-| ![Yellow gable with stripes](preview-colours-yellow.png) | ![White gable with chevrons](preview-colours-white.png) | ![Graphite, plain](preview-colours-graphite.png) |
+| ![Yellow board edges with stripes](preview-colours-yellow.png) | ![White board edges with chevrons](preview-colours-white.png) | ![Graphite, plain](preview-colours-graphite.png) |
 
 ### 9. Installation, step by step
 
@@ -164,10 +167,10 @@ The viewer's *Install* section plays these steps back, with the parts of each st
 
 | Step | What to do | Fasteners |
 | --- | --- | --- |
-| 1. Wall frame | Hold the frame so its entrance window lines up with the entrance; the paper template in the box marks the four holes. Screw it to the front of the bottom board, two screws each side of the entrance. The vertical slots allow ±3 mm to level it. The top only leans on the hive body through two rubber pads. | 4 × wood screw 4.5 × 40 mm, A2 stainless, countersunk, Torx T20 |
+| 1. Wall frame | Hold the frame so its entrance window lines up with the entrance; the paper template in the box marks the holes. Screw it to the front of the bottom board, two screws each side of the entrance; the vertical slots allow ±3 mm to level it. Then screw the two wall clips to the first hive body so they hold the outer edges of the uprights at the top; the EPDM strip behind the frame seals against the wall. | 4 × wood screw 4.5 × 40 mm and 4 × wood screw 4 × 25 mm (clips), A2 stainless, Torx T20 |
 | 2. Porch with gate | Slide the porch over the entrance so its side tabs lie on the plate, and screw the tabs to the rivet nuts in the plate. The gate and drive come fitted. Plug the gate lead into the socket at the foot of the right upright. | 4 × M4 × 10 button screw, A2 stainless, into M4 rivet nuts |
-| 3. Landing board and colours | Drop the board's two hinge knuckles onto the stainless pins at the front of the porch floor; it rests at 6° on its stop. Snap the colour covers into the upright channels. | none (pins and snap-fits) |
-| 4. Head | Lower the head so the hook at the back of the ridge beam drops into the pocket at the apex of the frame, and turn the yellow thumbscrew. Roof, pod and camera come pre-assembled and aimed. | 1 × captive thumbscrew M6 |
+| 3. Landing board and covers | Drop the board's two hinge knuckles onto the stainless pins at the front of the porch floor; it rests at 6° on its stop. The board comes painted in the hive colour chosen at order. Clip the two aluminium covers into the upright channels. | none (pins and clips) |
+| 4. Head | Lower the head so the hook at the back of the ridge beam drops into the pocket at the apex of the frame, and turn the yellow thumbscrew. The EPDM flashing on the back edge of the roof presses against the hive wall. Roof, pod, antennas and camera come pre-assembled and aimed. | 1 × captive thumbscrew M6 |
 | 5. Cable | Push the PoE cable up through the gland under the foot of the right upright and tighten the gland nut; leave a drip loop. With the beehive scale, plug the M12 lead into the scale connector. | PG7 cable gland |
 | 6. Pair | Hold the setup button for 5 s and pair the Observer with the hive in the web app over Bluetooth. | — |
 
@@ -176,25 +179,28 @@ On the beehive scale, step 1 is different: the frame bolts to two printed risers
 | 1. Wall frame | 2. Porch with gate |
 | --- | --- |
 | ![Step 1: wall frame screwed to the bottom board](preview-install-1.png) | ![Step 2: porch fitted](preview-install-2.png) |
-| **3. Board and colours** | **4. Head** |
-| ![Step 3: landing board and colour covers](preview-install-3.png) | ![Step 4: head hung on the apex](preview-install-4.png) |
+| **3. Board and covers** | **4. Head** |
+| ![Step 3: landing board and covers](preview-install-3.png) | ![Step 4: head hung on the apex](preview-install-4.png) |
 
 **Materials and processes**
 
 | Part | Material | Process | Fixed with |
 | --- | --- | --- | --- |
 | Wall frame | 2 mm 5052-H32 aluminium, matt graphite powder coat | laser cut, press-brake folded | 4 wood screws to the bottom board |
-| Porch, lintel, apron | HDPE, matt grey | CNC routed | 4 × M4 into rivet nuts in the frame |
+| Porch, lintel, apron | HDPE, matt grey (camera background, gate slides through it) | CNC routed | 4 × M4 into rivet nuts in the frame |
 | Gate | 2 mm HDPE plate, silicone edge | CNC routed | brass nut on the lead screw |
-| Gate drive housing | ASA | 3D printed (pilot), injection moulded later | 4 × M3 under the porch floor |
-| Landing board | HDPE, with an aluminium stiffener | CNC routed | hinge pins |
-| Colour covers, brick decks, board lip | ASA in the hive colour | 3D printed (pilot), injection moulded later | snap-fit |
+| Gate drive housing | folded aluminium sheet, gasketed lid | laser cut, folded | 4 × M3 under the porch floor |
+| Landing board | 15 mm thermo-pine with a flush 3 mm HDPE insert where the camera looks, aluminium stiffener | CNC routed; border painted with water-based paint | hinge pins |
+| Upright covers, wall clips | aluminium sheet, graphite powder coat | laser cut, folded | clip-in; clips 2 × 4 × 25 mm wood screws each |
+| Brick decks | ASA (recycled grade) in the hive colour | 3D printed (pilot), injection moulded later | 2 × M3 into the board |
+| Wall seal, roof flashing | EPDM foam strip | cut to length | self-adhesive, pressed by the frame and roof |
 | Ridge beam | 30 × 36 mm aluminium extrusion, anodised | cut to length | hook + thumbscrew into the apex pocket |
-| Roof | 3 mm opal polycarbonate | cut, cold-bent once | 4 × M4 with EPDM washers to the beam |
-| Front gable | ASA in the hive colour | 3D printed (pilot), injection moulded later | clips to the front rafters |
+| Roof | 3 mm opal polycarbonate (diffuser: its shadow on the board stays soft); solar version in white powder-coated aluminium sheet | cut, cold-bent once | 4 × M4 with EPDM washers to the beam |
+| Front gable | 12 mm oiled thermo-pine | CNC routed | 4 × wood screws to the front rafters |
+| Wi-Fi antennas | flexible dual-band PCB antennas | bought in | self-adhesive on the back of the gable, U.FL to the pod |
 | Pod | finned aluminium extrusion, anodised, printed end caps | cut, machined | 2 × M5 to the beam |
 
-Nothing is steel and nothing rusts: aluminium, polymers and A2 stainless fasteners only.
+Nothing is plain steel and nothing rusts: wood, aluminium and A2 stainless fasteners, with plastic only for the camera background, the porch the gate slides through, the roof diffuser, the pod end caps and the brick decks.
 
 ### 10. Service and manufacturing
 
@@ -256,6 +262,9 @@ The prototype Jetson Orin Nano measured 6.9 W at 720p. The 9 W figure assumes 4K
 | Openness | Closed | Closed | Closed | Open source hardware and software |
 
 ## Open questions
+
+- A thermo-pine porch with a thin HDPE top would replace most of the remaining plastic; test whether the gate slit stays clean and square in wood.
+- Check the wall clips on hives with front hand cleats, and the EPDM seal on rough or painted hive fronts.
 
 - Measure the porch's cost to the bees: run two hives side by side on beehive scales, one with the porch and one without, and compare daily weight gain and forager traffic.
 - Measure how many bees land on the wall at all, from the wall strip in view, over a season and at different traffic levels.

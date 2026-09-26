@@ -28,9 +28,9 @@ const PART_ORDER = [
   ['Entrance', ['porch', 'board', 'insert', 'hinge']],
   ['Optics', ['camera', 'hood', 'led', 'fov']],
   ['Pod', ['pod', 'display', 'compute', 'face', 'supervisor', 'battery', 'blank', 'mic', 'sensor']],
-  ['Roof', ['canopy', 'solarCanopy', 'gable', 'beam', 'rafter', 'thumb']],
-  ['Frame', ['frame', 'plate', 'screws', 'porchScrews', 'channel', 'harness', 'gland', 'm12', 'riser', 'robotFront', 'cable']],
-  ['Personal', ['tiles', 'studs']],
+  ['Roof', ['canopy', 'solarCanopy', 'flashing', 'gable', 'antenna', 'beam', 'rafter', 'thumb']],
+  ['Frame', ['frame', 'plate', 'screws', 'clips', 'seal', 'covers', 'porchScrews', 'channel', 'harness', 'gland', 'm12', 'riser', 'robotFront', 'cable']],
+  ['Personal', ['border', 'studs']],
   ['Around it', ['bee', 'hive', 'stand', 'scale', 'scaleLink', 'robot']],
 ];
 
@@ -60,11 +60,12 @@ const SPECS = (s) => {
     ['Draw', `≈ 9 W observing · ${e.standby.toFixed(1)} Wh/day asleep`],
     ['Per flight day', `≈ ${r(e.continuous)} Wh continuous · ≈ ${r(e.sampled)} Wh sampled (2 of 15 min)`],
     ['Autonomy', p.power === 'solar' ? `≈ ${r(e.harvest)} Wh/day harvest in season · ${r(e.standbyDays)} days asleep on battery` : 'unlimited on PoE'],
-    ['Links', 'Ethernet (PoE) · Wi-Fi · BLE setup · M12 accessory'],
+    ['Links', 'Ethernet (PoE) · Wi-Fi (2 antennas in the gable) · BLE setup · M12 accessory'],
     ['Mounting', { hive: 'wall frame, 4 screws; head hangs on 1 thumbscrew', scale: 'wall frame on risers on the scale rail (not weighed)', robot: 'wall frame on the robot front' }[p.context]],
     ['Frame', '2 mm 5052 aluminium, folded, powder-coated; A2 stainless screws'],
     ['Metal', 'one machined part: the 170 mm pod'],
-    ['Hive colour', `${p.colour}, ${p.pattern}; brick decks on the board corners`],
+    ['Hive colour', `${p.colour}, ${p.pattern} on the landing board edges; brick decks`],
+    ['Materials', 'thermo-pine, aluminium, A2 stainless; plastic only where needed'],
     ['Target BOM', '≈ €350–450 at 100 units'],
   ];
 };
