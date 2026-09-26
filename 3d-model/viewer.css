@@ -105,3 +105,13 @@ html[data-theme="dark"] .entrance-observer {
 .entrance-observer .eo-gate-tools { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 8px; }
 .entrance-observer .eo-install-tools { margin-bottom: 8px; }
 .entrance-observer .eo-install { max-height: none; }
+
+/* Marketing showcase (gratheon.com front page): the model explodes as the page scrolls. */
+.eo-showcase { position: relative; width: 100%; max-width: 560px; margin: 0 auto; aspect-ratio: 1 / 1; }
+.eo-showcase > a { position: absolute; inset: 0; display: block; }
+.eo-showcase > a > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.eo-showcase-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.eo-showcase-ready > a > img { visibility: hidden; }
+.front-page .deviceShowcase { grid-template-columns: minmax(0, 1fr) minmax(280px, 560px); }
+.front-page .deviceShowcase .deviceImgs { display: block; width: 100%; }
+.front-page .deviceShowcase .eo-showcase img { max-width: none; max-height: none; border-radius: 0; }

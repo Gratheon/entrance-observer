@@ -1,4 +1,4 @@
-// Bundles the viewer (viewer.js + observer-model.js + three.js) into one script and
+// Bundles the viewer (viewer.js + showcase.js + observer-model.js + three.js) into one script and
 // writes the standalone page index.html, which works offline and from file://.
 //
 //   node build-viewer.mjs                         # index.html
@@ -16,7 +16,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const read = (f) => readFileSync(join(here, f), 'utf8');
 
 const result = await build({
-  stdin: { contents: "import { mountAll } from './viewer.js';\nmountAll();\n", resolveDir: here, loader: 'js' },
+  stdin: { contents: "import { mountAll } from './viewer.js';\nimport { mountShowcases } from './showcase.js';\nmountAll();\nmountShowcases();\n", resolveDir: here, loader: 'js' },
   bundle: true,
   format: 'iife',
   minify: true,

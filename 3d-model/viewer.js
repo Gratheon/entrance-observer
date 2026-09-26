@@ -61,7 +61,7 @@ const SPECS = (s) => {
     ['Per flight day', `≈ ${r(e.continuous)} Wh continuous · ≈ ${r(e.sampled)} Wh sampled (2 of 15 min)`],
     ['Autonomy', p.power === 'solar' ? `≈ ${r(e.harvest)} Wh/day harvest in season · ${r(e.standbyDays)} days asleep on battery` : 'unlimited on PoE'],
     ['Links', 'Ethernet (PoE) · Wi-Fi (2 antennas in the gable) · BLE setup · M12 accessory'],
-    ['Mounting', { hive: 'wall frame, 4 screws in the bottom board + 2 under the roof; head on 1 thumbscrew', scale: 'wall frame on risers on the scale rail (not weighed)', robot: 'wall frame on the robot front' }[p.context]],
+    ['Mounting', { hive: 'wall frame, 4 screws in the bottom board + 2 under the roof; head on 1 thumbscrew', scale: 'wall frame on risers bolted to the scale base (not weighed)', robot: 'wall frame on the robot front' }[p.context]],
     ['Frame', '2 mm 5052 aluminium, folded, powder-coated; A2 stainless screws'],
     ['Metal', 'one machined part: the 170 mm pod'],
     ['Hive colour', `${p.colour}, ${p.pattern} on the landing board edges; brick decks`],

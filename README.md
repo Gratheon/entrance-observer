@@ -18,7 +18,7 @@ A 4K camera under a small steep roof over the hive entrance. A short porch moves
 - **Design rationale, energy budget, compatibility:** [docs/DESIGN.md](docs/DESIGN.md)
 - **3D model:** open `3d-model/index.html` (self-contained, works offline) or see [gratheon.com/products/entrance_observer](https://gratheon.com/products/entrance_observer/). `3d-model/entrance-observer.glb` contains the exploded-view animation.
 
-The model lives in `3d-model/observer-model.js`; the viewer is `viewer.js`, `viewer.html` and `viewer.css`. After a change, rebuild:
+The model lives in `3d-model/observer-model.js`; the viewer is `viewer.js`, `viewer.html` and `viewer.css`. `showcase.js` is the scroll-driven marketing render on the gratheon.com front page (same bundle; it mounts on `[data-eo-showcase]`). After a change, rebuild:
 ```bash
 cd 3d-model && npm install   # first time only
 npm run build                # regenerates index.html and entrance-observer.glb

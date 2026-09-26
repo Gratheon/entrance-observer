@@ -75,7 +75,7 @@ export const GATE = {
 // Installation, in order. Each step lists the parts it adds; the viewer plays
 // them back and the exploded view uses the same order.
 export const INSTALL = [
-  { title: 'Screw the wall frame to the bottom board', parts: ['frame', 'plate', 'screws', 'topScrews', 'seal'], text: 'Hold the frame against the hive so its entrance window lines up with the entrance (the paper template in the box marks the four holes). Drive four 4.5 × 40 mm A2 stainless countersunk wood screws through the slots into the bottom board, two each side of the entrance; the slots allow ±3 mm to level it. Then drive two more through the slots in the gable, near the apex, into the first hive body; they pull the frame against the wall, where the EPDM strip behind it seals. The head goes on over them later, so the roof keeps them dry. On the beehive scale the frame bolts to two risers on the scale rail instead (2 × M5 each), 2 mm clear of the hive.' },
+  { title: 'Screw the wall frame to the bottom board', parts: ['frame', 'plate', 'screws', 'topScrews', 'seal'], text: 'Hold the frame against the hive so its entrance window lines up with the entrance (the paper template in the box marks the four holes). Drive four 4.5 × 40 mm A2 stainless countersunk wood screws through the slots into the bottom board, two each side of the entrance; the slots allow ±3 mm to level it. Then drive two more through the slots in the gable, near the apex, into the first hive body; they pull the frame against the wall, where the EPDM strip behind it seals. The head goes on over them later, so the roof keeps them dry. On the beehive scale the frame bolts to two printed risers instead, each held by one M6 thumbscrew in a threaded insert in the scale’s front wall, 2 mm clear of the hive.' },
   { title: 'Fit the porch with the gate', parts: ['porch', 'porchScrews', 'gate', 'gateDrive', 'lintel'], text: 'Slide the porch over the entrance so its tabs lie on the plate, and fix it with four M4 × 10 A2 button screws into the rivet nuts (Torx T20). The gate and its drive come fitted to the porch. Plug the gate lead into the socket at the foot of the right upright.' },
   { title: 'Hang the landing board, clip on the covers', parts: ['board', 'insert', 'hinge', 'border', 'studs', 'covers'], text: 'Drop the two hinge knuckles of the landing board onto the stainless pins at the front of the porch floor; it rests at 6° on its stop. The board comes painted in the hive colour chosen at order. Clip the two aluminium covers into the upright channels, over the cable in the right one.' },
   { title: 'Hang the head', parts: ['beam', 'thumb', 'canopy', 'solarCanopy', 'flashing', 'gable', 'antenna', 'pod'], text: 'Lower the head so the hook at the back of the ridge beam drops into the pocket at the apex of the frame, and turn the yellow thumbscrew; the EPDM flashing on the back edge of the roof presses against the hive wall. Roof, pod and camera come pre-assembled and aimed at the factory, so the view is the same on every hive. The head lifts off the same way for winter.' },
@@ -89,7 +89,7 @@ export const INSTALL = [
 export const PARTS = {
   frame: ['Wall frame', 'One laser-cut sheet of 2 mm 5052 marine-grade aluminium, folded on a press brake and powder-coated graphite: aluminium does not rust, and all fasteners are A2 stainless. The face lies against the hive; folded 15 mm returns along its outer edge and around the big window turn the uprights into U-channels (open to the front, closed by the aluminium covers) and stiffen the gable. Cut-outs: the big window over the hive front, the entrance window, and four vertical slots for the wood screws. It stays on the hive and carries the porch and the landing board; the head hangs on the pocket at its apex. No welds, no joints.'],
   plate: ['Entrance plate', 'The bottom of the wall frame, with a window matching the 300 × 15 mm entrance and four vertical slots (5 × 11 mm) beside it for the wood screws. Matt graphite powder coat, like the rest of the frame: no glare in the camera view.'],
-  riser: ['Scale risers', 'On the beehive scale the wall frame stands on two printed ASA risers hooked onto the scale front rail, 2 mm clear of the hive. Frame, roof, snow and bees on the board are then carried by the scale base and never weighed.'],
+  riser: ['Scale risers', 'On the beehive scale the wall frame stands on two printed ASA risers that bolt to two threaded inserts in the scale’s front wall (one M6 thumbscrew each), 2 mm clear of the hive. Frame, roof, snow and bees on the board are then carried by the scale base and never weighed.'],
   robotFront: ['Robot entrance frame', 'On the Robotic Beehive the wall frame is bolted to the cabinet front, where the entrance tunnel ends. Power and data come from the robot PoE switch inside a corner post.'],
   screws: ['Wood screws', 'Four 4.5 × 40 mm A2 stainless countersunk wood screws (Torx T20), two each side of the entrance, through the slots in the entrance plate into the front of the bottom board. The slots allow ±3 mm to level the frame. Two more screws near the apex (under the roof) hold the top.'],
   topScrews: ['Top screws', 'Two 4.5 × 40 mm A2 stainless pan-head wood screws with EPDM-backed washers, through slots in the gable of the wall frame into the first hive body. They are driven before the head goes on, so the roof covers them afterwards: out of the rain and out of sight. To lift the first hive body, lift off the head and undo these two screws.'],
@@ -139,8 +139,8 @@ export const PARTS = {
   bee: ['Bees', 'Honey bees on the landing board, on the porch roof and on the hive wall. At 4K each worker is about 125 px long, big enough for pose keypoints, pollen loads and mites.'],
   hive: ['Hive', 'A standard hive: bottom board, bodies and lid. The only change is the wall frame screwed to the bottom board.'],
   stand: ['Hive stand', 'Any stand works: the Observer hangs on the hive entrance and does not touch the stand.'],
-  scale: ['Beehive scale', 'Gratheon beehive scale, simplified. The Observer stands on its front rail with two risers, and one M12 lead powers the scale pod and carries its readings.'],
-  scaleLink: ['Scale connector', 'M12 socket under the front rail of the beehive scale. The Observer lead plugs in here; on a stand-alone scale the socket has a dust cap.'],
+  scale: ['Beehive scale', 'Gratheon beehive scale, simplified. The Observer bolts to the front of its base with two risers, and one M12 lead powers the scale pod and carries its readings.'],
+  scaleLink: ['Scale connector', 'M12 socket recessed into the underside of the beehive scale’s front wall. The Observer lead plugs in here; on a stand-alone scale the socket has a dust cap.'],
   robot: ['Robotic Beehive', 'Ghost of the Robotic Beehive cabinet. Its entrance tunnel ends in the Observer porch, and the cable runs inside the cabinet to the robot PoE switch.'],
 };
 
@@ -157,7 +157,7 @@ export function derive(p) {
     hiveBase = deckTop;
     bottomBoard = H.bottomBoard;
     entranceY = hiveBase + 12;
-    // In front of the deck (railZ + 6), at entrance level: nothing touches the weighed hive.
+    // 14 mm in front of the deck, at entrance level: nothing touches the weighed hive.
     origin = [0, entranceY, S.deck.d / 2 + 14];
   } else if (p.context === 'robot') {
     hiveBase = R.plinth + R.bottomBoard;
@@ -410,8 +410,8 @@ export function buildObserver(options = {}) {
   const framePart = { hive: 'frame', scale: 'frame', robot: 'robotFront' }[p.context];
   const WIN = H.entrance / 2 + 4, S = H.slot + 2; // entrance window half-width and height
   const plateZ = p.context === 'robot' ? -2 : 0;
-  const railTop = p.scale.feet + 50 - oy; // scale rail top, observer frame
-  const postBottom = p.context === 'scale' ? railTop - 34 : -12;
+  const scaleBase = p.scale.feet - oy; // bottom of the scale base, observer frame
+  const postBottom = p.context === 'scale' ? scaleBase + 16 : -12;
   const edgeY = (x) => roofUnder(x) - 3; // outer edge of the sheet, just under the roof
   const IX = FW - F.post; // inner edge of the uprights
   const winTop = edgeY(IX) - F.post; // top of the big window
@@ -459,10 +459,14 @@ export function buildObserver(options = {}) {
   cyl(frame, 8, 12, M.steel, footX, -46, plateZ + 27, 'y', 'm12', 20);
   cyl(frame, 9.5, 3, M.black, footX, -41.5, plateZ + 27, 'y', 'm12', 20);
   if (p.context === 'scale') {
-    // printed risers: hooks over the scale front rail at the bottom of the legs, 2 × M5 each
+    // printed risers: from the foot of each leg back to the scale's front wall, under the deck
+    // skirt, one M6 thumbscrew each into a threaded insert
+    const wallZ = p.scale.base.d / 2 - oz; // scale front wall, observer frame
     for (const s of [-1, 1]) {
-      slab(frame, s > 0 ? IX : -FW, railTop - 4, -18, F.post, 10, 18, M.asa, 'riser');
-      cyl(frame, 4.5, 3, M.steel, s * (FW - F.post / 2), postBottom + 12, plateZ + F.depth + 1, 'z', 'riser', 6);
+      const x0 = s > 0 ? IX : -FW, xc = s * (FW - F.post / 2);
+      slab(frame, x0, scaleBase + 30, wallZ, F.post, 16, -wallZ, M.asa, 'riser');
+      slab(frame, x0, scaleBase + 26, wallZ, F.post, 24, 4, M.asa, 'riser'); // back plate on the insert
+      cyl(frame, 6, 5, M.pod, xc, scaleBase + 38, wallZ + 7, 'z', 'riser', 16); // thumbscrew
     }
   }
   // wood screws: 4 × 4.5 × 40 mm A2 stainless countersunk, through the slots into the bottom board
@@ -907,14 +911,13 @@ export function buildObserver(options = {}) {
       box(sc, 20, 40, S.deck.d - 40, M.timber, s * (S.deck.w / 2 - 10), deckY - 20, 0, 'scale');
     }
     box(sc, 3, 38, 150, M.pod, bw / 2 + 1.5, bY + 20, 0, 'scale'); // pod face
-    // front rail (the Observer risers hook on it) and the M12 connector under it
-    const railZ = S.deck.d / 2 + 8;
-    slab(sc, -220, bY + 16, bd / 2, 440, 4, railZ - bd / 2, M.alu, 'scale');
-    slab(sc, -220, bY + 16, railZ - 4, 440, 30, 4, M.alu, 'scale');
-    cyl(sc, 8, 14, M.steel, 60, bY + 9, bd / 2 + 18, 'y', 'scaleLink', 20);
-    cyl(sc, 9, 12, M.black, 60, bY - 1, bd / 2 + 18, 'y', 'scaleLink', 20);
+    // threaded inserts for the risers in the front wall, and the M12 connector recessed underneath
+    for (const sx of [-1, 1]) cyl(sc, 5, 1, M.steel, sx * (F.w / 2 - F.post / 2), bY + 38, bd / 2 + 0.5, 'z', 'scale', 16);
+    const linkZ = bd / 2 - 11;
+    cyl(sc, 8, 14, M.steel, 60, bY + 7, linkZ, 'y', 'scaleLink', 20);
+    cyl(sc, 9, 10, M.black, 60, bY - 5, linkZ, 'y', 'scaleLink', 20);
     const acc = W(footX, -48, plateZ + 27);
-    cable(fieldCables, [acc, [acc[0], acc[1] - 20, acc[2] - 2], [acc[0] - 20, bY - 10, acc[2] - 30], [120, bY - 16, bd / 2 + 30], [60, bY - 12, bd / 2 + 18], [60, bY - 6, bd / 2 + 18]], 2.3, M.cable);
+    cable(fieldCables, [acc, [acc[0], acc[1] - 20, acc[2] - 2], [acc[0] - 20, bY - 12, bd / 2 + 10], [120, bY - 12, linkZ + 8], [60, bY - 14, linkZ], [60, bY - 8, linkZ]], 2.3, M.cable);
     const g = W(footX, -51, plateZ + 10);
     cable(fieldCables, [g, [g[0] + 4, g[1] - 30, g[2] + 4], [g[0] + 30, 30, g[2] + 10], [g[0] + 90, 3, g[2]], [700, 3, 150], [1100, 3, 60]], 2.8, M.cable);
   } else {
