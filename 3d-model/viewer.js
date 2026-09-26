@@ -10,6 +10,8 @@
 //   gate=open|reduced|guard|closed  entrance gate position
 //   xray=1                  see through the gate drive housing
 //   demo=1                  run the gate through its positions
+//   colour=blue|yellow|white|graphite  pattern=plain|dots|stripes|chevrons  hive colours
+//   step=0..6               install step (0 = all parts laid out)
 //   hive=solid|ghost|off    hive display
 //   fov=1                   show the camera field of view
 //   inset=0                 hide the camera-view inset
@@ -18,16 +20,17 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { buildObserver, energy, ENERGY, GATE, PARTS } from './observer-model.js';
+import { buildObserver, energy, ENERGY, GATE, INSTALL, PARTS, PATTERNS, THEMES } from './observer-model.js';
 
 // Parts list order in the panel, grouped by assembly.
 const PART_ORDER = [
   ['Gate', ['gate', 'gateMotor', 'gateScrew', 'gateGuide', 'gateSensor', 'gateSupercap', 'gateDrive', 'lintel']],
-  ['Entrance', ['porch', 'countLine', 'board', 'insert', 'marker', 'hinge']],
+  ['Entrance', ['porch', 'board', 'insert', 'hinge']],
   ['Optics', ['camera', 'hood', 'led', 'fov']],
   ['Pod', ['pod', 'display', 'compute', 'face', 'supervisor', 'battery', 'blank', 'mic', 'sensor']],
   ['Roof', ['canopy', 'solarCanopy', 'gable', 'beam', 'rafter', 'thumb']],
-  ['Frame', ['frame', 'plate', 'channel', 'harness', 'gland', 'm12', 'riser', 'robotFront', 'cable']],
+  ['Frame', ['frame', 'plate', 'screws', 'porchScrews', 'channel', 'harness', 'gland', 'm12', 'riser', 'robotFront', 'cable']],
+  ['Personal', ['tiles', 'studs']],
   ['Around it', ['bee', 'hive', 'stand', 'scale', 'scaleLink', 'robot']],
 ];
 
@@ -59,7 +62,9 @@ const SPECS = (s) => {
     ['Autonomy', p.power === 'solar' ? `≈ ${r(e.harvest)} Wh/day harvest in season · ${r(e.standbyDays)} days asleep on battery` : 'unlimited on PoE'],
     ['Links', 'Ethernet (PoE) · Wi-Fi · BLE setup · M12 accessory'],
     ['Mounting', { hive: 'wall frame, 4 screws; head hangs on 1 thumbscrew', scale: 'wall frame on risers on the scale rail (not weighed)', robot: 'wall frame on the robot front' }[p.context]],
+    ['Frame', '2 mm 5052 aluminium, folded, powder-coated; A2 stainless screws'],
     ['Metal', 'one machined part: the 170 mm pod'],
+    ['Hive colour', `${p.colour}, ${p.pattern}; brick decks on the board corners`],
     ['Target BOM', '≈ €350–450 at 100 units'],
   ];
 };
@@ -145,6 +150,8 @@ export function mountEntranceObserver(root) {
     context: ['hive', 'scale', 'robot'].includes(hash.get('context')) ? hash.get('context') : 'hive',
     power: hash.get('power') === 'solar' ? 'solar' : 'poe',
     gate: hash.get('gate') in GATE ? hash.get('gate') : 'open',
+    colour: hash.get('colour') in THEMES ? hash.get('colour') : 'blue',
+    pattern: PATTERNS.includes(hash.get('pattern')) ? hash.get('pattern') : 'dots',
   };
   let hiveMode = ['solid', 'ghost', 'off'].includes(hash.get('hive')) ? hash.get('hive') : 'solid';
   let showFov = hash.get('fov') === '1';
@@ -178,6 +185,11 @@ export function mountEntranceObserver(root) {
     model = buildObserver(opts);
     scene.add(model.root);
     model.applyExplode(explode);
+    if (installStep !== null) for (const g of model.nodes.explode) {
+      g.userData.u = g.userData.step > installStep ? 1 : 0;
+      const e = g.userData.u;
+      g.position.copy(g.userData.home).addScaledVector(g.userData.away, e);
+    }
     setHive(hiveMode);
     model.nodes.fov.visible = showFov;
     model.nodes.gate.position.y = gateY * 0.001;
@@ -209,8 +221,9 @@ export function mountEntranceObserver(root) {
     for (const [mesh, mat] of glow) mesh.material = mat;
     glow.clear();
     if (!part) return;
+    const set = new Set([].concat(part));
     model.root.traverse((o) => {
-      if (!o.isMesh || o.userData.part !== part) return;
+      if (!o.isMesh || !set.has(o.userData.part) || glow.has(o)) return;
       glow.set(o, o.material);
       const m = o.material.clone();
       if (m.emissive) { m.emissive.set(0xf2b705); m.emissiveIntensity = 0.55; }
@@ -317,10 +330,73 @@ export function mountEntranceObserver(root) {
   const syncInset = () => { insetLabel.hidden = !showInset || shot; };
   insetBox.addEventListener('change', () => { showInset = insetBox.checked; syncInset(); });
   syncInset();
+  for (const [name, key] of [['colour', 'colour'], ['pattern', 'pattern']]) {
+    for (const b of $(name).querySelectorAll('button')) {
+      b.addEventListener('click', () => { opts[key] = b.dataset.value; pressSeg(name, opts[key]); build(); });
+    }
+  }
+  // ---- install steps: each assembly waits at its own spot until its step ----
+  let installStep = null; // null = normal view, 0 = all parts laid out, 1..6 = after that step
+  let playTimer = 0;
+  const renderInstall = () => {
+    const list = $('install');
+    list.innerHTML = '';
+    INSTALL.forEach((st, i) => {
+      const li = document.createElement('li');
+      li.tabIndex = 0;
+      li.innerHTML = '<span class="n"></span><span class="t"></span><span class="r"></span><span class="d"></span>';
+      li.querySelector('.n').textContent = String(i + 1);
+      li.querySelector('.t').textContent = st.title;
+      li.querySelector('.d').textContent = st.text;
+      li.classList.toggle('on', installStep === i + 1);
+      li.addEventListener('click', () => { playTimer = 0; goStep(i + 1); });
+      li.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playTimer = 0; goStep(i + 1); } });
+      list.appendChild(li);
+    });
+  };
+  const frameInstall = () => {
+    const [ox, oy, oz] = model.derived.origin.map((v) => v * 0.001);
+    controls.target.set(ox, oy + 0.2, oz + 0.14);
+    camera.position.set(ox + 1.3, oy + 0.78, oz + 1.62);
+  };
+  const goStep = (k, instant = false) => {
+    if (installStep === null) {
+      for (const g of model.nodes.explode) g.userData.u = explode;
+      explode = explodeTarget = 0;
+      frameInstall();
+    }
+    installStep = k;
+    selected = null;
+    renderInstall();
+    if (instant) for (const g of model.nodes.explode) {
+      g.userData.u = g.userData.step > k ? 1 : 0;
+      g.position.copy(g.userData.home).addScaledVector(g.userData.away, g.userData.u);
+      model.nodes.fieldCables.visible = k >= 5;
+      for (const b of model.nodes.bees) b.visible = k >= 6;
+    }
+    if (k > 0) {
+      const st = INSTALL[k - 1];
+      highlight(st.parts);
+      $('info-title').textContent = `Step ${k} · ${st.title}`;
+      $('info-text').textContent = st.text;
+    } else {
+      highlight(null);
+      $('info-title').textContent = 'All parts';
+      $('info-text').textContent = 'Everything in the box: wall frame and screws, porch with the gate, landing board, colour covers and the pre-assembled head. Press a step to put it together.';
+    }
+  };
+  $('installplay').addEventListener('click', () => { goStep(0); playTimer = 2.2; });
+  const leaveInstall = () => {
+    if (installStep === null) return;
+    installStep = null; playTimer = 0;
+    highlight(null);
+    renderInstall();
+    model.applyExplode(explode);
+  };
   const explodeBtn = $('explode');
   const scrub = $('scrub');
-  explodeBtn.addEventListener('click', () => { explodeTarget = explodeTarget > 0.5 ? 0 : 1; });
-  scrub.addEventListener('input', () => { explode = explodeTarget = scrub.value / 1000; });
+  explodeBtn.addEventListener('click', () => { leaveInstall(); explodeTarget = explodeTarget > 0.5 ? 0 : 1; });
+  scrub.addEventListener('input', () => { leaveInstall(); explode = explodeTarget = scrub.value / 1000; model.applyExplode(explode); });
 
   // ---- hover / click on the model -----------------------------------------
   const ray = new THREE.Raycaster();
@@ -405,21 +481,41 @@ export function mountEntranceObserver(root) {
   pressSeg('context', opts.context);
   pressSeg('power', opts.power);
   pressSeg('gate', opts.gate);
+  pressSeg('colour', opts.colour);
+  pressSeg('pattern', opts.pattern);
   build();
+  renderInstall();
   frameCamera();
   applyXray();
   if (hash.get('demo') === '1') startDemo();
+  if (hash.has('step')) goStep(Math.max(0, Math.min(INSTALL.length, Number(hash.get('step')) || 0)), true);
   const clock = new THREE.Clock();
   let chipState = '';
   const frame = () => {
     const dt = Math.min(clock.getDelta(), 0.1);
-    if (explode !== explodeTarget) {
+    if (installStep !== null) {
+      // install mode: each assembly glides in when its step comes
+      let settled = true;
+      for (const g of model.nodes.explode) {
+        const t = g.userData.step > installStep ? 1 : 0;
+        let u = g.userData.u ?? 0;
+        if (u !== t) { settled = false; u = Math.abs(t - u) <= dt * 1.1 ? t : u + Math.sign(t - u) * dt * 1.1; g.userData.u = u; }
+        const e = u * u * (3 - 2 * u);
+        g.position.copy(g.userData.home).addScaledVector(g.userData.away, e);
+      }
+      model.nodes.fieldCables.visible = settled && installStep >= 5;
+      for (const b of model.nodes.bees) b.visible = settled && installStep >= 6;
+      if (playTimer > 0 && settled) {
+        playTimer -= dt;
+        if (playTimer <= 0) { if (installStep < INSTALL.length) { goStep(installStep + 1); playTimer = 2.6; } else playTimer = 0; }
+      }
+    } else if (explode !== explodeTarget) {
       const step = dt * 0.9;
       explode = Math.abs(explodeTarget - explode) <= step ? explodeTarget : explode + Math.sign(explodeTarget - explode) * step;
       model.applyExplode(explode);
       scrub.value = String(Math.round(explode * 1000));
     }
-    const state = explode > 0.98 ? 'Exploded' : explode < 0.02 ? 'Assembled' : 'Exploding';
+    const state = installStep !== null ? `Install step ${installStep} of ${INSTALL.length}` : explode > 0.98 ? 'Exploded' : explode < 0.02 ? 'Assembled' : 'Exploding';
     const key = `${state}|${opts.context}`;
     if (key !== chipState) {
       chipState = key;
@@ -447,7 +543,7 @@ export function mountEntranceObserver(root) {
     sky.position.copy(camera.position);
     renderer.render(scene, camera);
     // no inset while exploded or in x-ray (the board is lifted away then)
-    const insetOn = showInset && explode < 0.02 && !xray;
+    const insetOn = showInset && explode < 0.02 && !xray && (installStep === null || installStep >= INSTALL.length);
     if (insetOn) renderInset();
     insetLabel.style.visibility = insetOn ? 'visible' : 'hidden';
   };

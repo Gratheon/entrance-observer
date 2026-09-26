@@ -103,3 +103,5 @@ html[data-theme="dark"] .entrance-observer {
 /* Keep the chips clear of the camera-view inset in the top-right corner. */
 .entrance-observer .eo-hint { right: calc(min(34%, 340px) + 24px); }
 .entrance-observer .eo-gate-tools { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 8px; }
+.entrance-observer .eo-install-tools { margin-bottom: 8px; }
+.entrance-observer .eo-install { max-height: none; }

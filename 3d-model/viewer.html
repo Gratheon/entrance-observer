@@ -25,6 +25,11 @@
       </div>
     </section>
     <section>
+      <div class="eo-label">Install</div>
+      <div class="eo-install-tools"><button class="eo-btn" type="button" data-eo="installplay">▶ Play the installation</button></div>
+      <ol class="eo-steps eo-install" data-eo="install"></ol>
+    </section>
+    <section>
       <div class="eo-label">Parts</div>
       <ol class="eo-steps" data-eo="parts"></ol>
     </section>
@@ -50,6 +55,24 @@
           <div class="eo-gate-tools">
             <button class="eo-btn" type="button" data-eo="gatedemo">▶ Watch the gate work</button>
             <label class="eo-check"><input type="checkbox" data-eo="xray"> See inside the gate</label>
+          </div>
+        </div>
+        <div class="eo-field eo-wide">
+          <span>Hive colour (helps bees find their own hive)</span>
+          <div class="eo-seg" role="group" aria-label="Hive colour" data-eo="colour">
+            <button type="button" data-value="blue" aria-pressed="true">Blue</button>
+            <button type="button" data-value="yellow" aria-pressed="false">Yellow</button>
+            <button type="button" data-value="white" aria-pressed="false">White</button>
+            <button type="button" data-value="graphite" aria-pressed="false">Graphite</button>
+          </div>
+        </div>
+        <div class="eo-field eo-wide">
+          <span>Pattern</span>
+          <div class="eo-seg" role="group" aria-label="Pattern" data-eo="pattern">
+            <button type="button" data-value="plain" aria-pressed="false">Plain</button>
+            <button type="button" data-value="dots" aria-pressed="true">Dots</button>
+            <button type="button" data-value="stripes" aria-pressed="false">Stripes</button>
+            <button type="button" data-value="chevrons" aria-pressed="false">Chevrons</button>
           </div>
         </div>
         <div class="eo-field">

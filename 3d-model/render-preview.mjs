@@ -30,6 +30,14 @@ const shots = [
   ['preview-gate-guard.png', 'hive=solid&cam=gatefront&gate=guard&xray=1&inset=0', [900, 560]],
   ['preview-gate-closed.png', 'hive=solid&cam=gatefront&gate=closed&xray=1&inset=0', [900, 560]],
   ['preview-display.png', 'hive=solid&cam=display&inset=0', [1200, 800]],
+  ['preview-install-0.png', 'hive=solid&step=0', [1400, 1000]],
+  ['preview-install-1.png', 'hive=solid&step=1', [1400, 1000]],
+  ['preview-install-2.png', 'hive=solid&step=2', [1400, 1000]],
+  ['preview-install-3.png', 'hive=solid&step=3', [1400, 1000]],
+  ['preview-install-4.png', 'hive=solid&step=4', [1400, 1000]],
+  ['preview-colours-yellow.png', 'hive=solid&cam=hero&colour=yellow&pattern=stripes&inset=0', [900, 800]],
+  ['preview-colours-white.png', 'hive=solid&cam=hero&colour=white&pattern=chevrons&inset=0', [900, 800]],
+  ['preview-colours-graphite.png', 'hive=solid&cam=hero&colour=graphite&pattern=plain&inset=0', [900, 800]],
 ];
 const page = pathToFileURL(join(here, 'index.html')).href;
 for (const [file, opts, [w, h]] of shots) {

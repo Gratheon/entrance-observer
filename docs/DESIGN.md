@@ -2,7 +2,7 @@
 
 Concept design of the production Entrance Observer: a camera under a small steep roof over the hive entrance, with a porch that moves the doorway onto the landing board and an automatic gate in the porch mouth. It is a design proposal to review, not a frozen spec. The energy and cost figures are estimates until the Phase 2 units are measured.
 
-[![Entrance Observer on a hive: house-shaped wall frame, steep opal roof, yellow-faced pod under the ridge, porch with gate, landing board with calibration markers](hero.png)](https://gratheon.com/products/entrance_observer/)
+[![Entrance Observer on a hive: house-shaped wall frame, steep opal roof, yellow-faced pod under the ridge, porch with gate, blue dotted gable and upright covers, landing board with brick decks on its corners](hero.png)](https://gratheon.com/products/entrance_observer/)
 
 - **3D model:** open [`3d-model/index.html`](../3d-model/index.html) (self-contained, works offline) or see [gratheon.com/products/entrance_observer](https://gratheon.com/products/entrance_observer/). [`3d-model/entrance-observer.glb`](../3d-model/entrance-observer.glb) contains the exploded-view animation. The viewer moves the gate between its four positions (*Watch the gate work* runs it with the drive housing see-through), and the GLB has a second animation clip, `gate`.
 - **Source:** `3d-model/observer-model.js` holds every dimension. The viewer shares its code and scene with the [beehive scale](https://github.com/Gratheon/beehive-sensors/tree/main/model) and [Robotic Beehive](https://github.com/Gratheon/robotic-beehive/tree/main/model) models and uses the same axes, so the three can be placed together.
@@ -22,7 +22,8 @@ Concept design of the production Entrance Observer: a camera under a small steep
 | **Supervisor** | Always-on ESP32-S3 board (the beehive-scale carrier design): switches the computer on only when bees can fly, and drives the gate |
 | **Power** | PoE+ (802.3at), 12–24 V DC, or the solar version (14 W on the roof + 77 Wh LiFePO4) |
 | **Links** | Ethernet (PoE), Wi-Fi, BLE for setup, M12 accessory port for the beehive scale |
-| **Metal** | One machined part: the 170 × 140 mm pod. The frame is one laser-cut folded sheet; the beam is a standard extrusion. |
+| **Metal** | One machined part: the 170 × 140 mm pod. The frame is one folded 2 mm 5052 aluminium sheet; the beam is a standard extrusion. Nothing rusts: aluminium, polymers and A2 stainless fasteners only. |
+| **Personal** | Hive colour (blue, yellow, white, graphite) and pattern (plain, dots, stripes, chevrons) on the gable, upright covers and board lip; brick decks with an 8 mm stud grid on the board corners |
 | **Target BOM** | ≈ €350–450 at 100 units (Pi 5 + Hailo sled, gate drive included). ApicAI sells at €350–550. |
 
 ![Exploded view: roof and beam, pod with the compute sled sliding out of the front, camera module, wall frame with porch and gate drive, landing board](preview.png)
@@ -33,10 +34,10 @@ Concept design of the production Entrance Observer: a camera under a small steep
 
 The prototypes used a varifocal 4K camera on a wall bracket above the entrance. Each installation had a different angle and distance, so bee size, speed and the counting line changed from hive to hive, and the camera was sometimes knocked out of alignment.
 
-- **186 mm above the board, tilted 16° toward the hive.** A 90° low-distortion lens keeps the device low, and the calibration markers correct what distortion is left. The tilt adds the porch and the bottom of the hive wall to the view (see [section 2](#2-flight-and-landing-where-to-count)). On the board the view is still close to top-down, so pose keypoints, body length, pollen loads and mites are measurable, not just detectable. A fixed tilt beats a pivoting camera: no motor outdoors, and no calibration that drifts.
+- **186 mm above the board, tilted 16° toward the hive.** A 90° low-distortion lens keeps the device low. The tilt adds the porch and the bottom of the hive wall to the view (see [section 2](#2-flight-and-landing-where-to-count)). On the board the view is still close to top-down, so pose keypoints, body length, pollen loads and mites are measurable, not just detectable. A fixed tilt beats a pivoting camera: no motor outdoors, and no calibration that drifts.
 - **Locked optics.** A fixed M12 lens and a fixed working distance: every unit produces the same image, and models trained on one unit work on all of them.
 - **The camera is a module.** The sensor board connects over MIPI CSI with its own flex cable. A global-shutter sensor, which pose analysis of fast wing and leg motion may need, can replace it without changing the pod.
-- **Calibration markers on the board.** Four ArUco markers and a millimetre scale are in every frame. The software computes mm/px exactly, straightens the view, and raises an alert if the head has been knocked.
+- **Calibrated once, at the factory.** The camera hangs on the same wall frame that carries the porch and the board, and the head always lands in the same pocket, so the geometry is fixed. Each unit is calibrated once at the factory with a printed target (lens distortion, mm/px, the counting line). In use, the software compares the straight edges of the porch lintel and the board with that reference and raises an alert if the head has been knocked. The board stays plain: no markers or scales spoil the look.
 
 4K stays. A cheaper low-resolution SKU would lose mites and pose, the data quality the product is built for. If a budget version is needed, it should be the same device with a smaller compute sled, not a worse camera.
 
@@ -52,11 +53,11 @@ What matters is not where bees land but that every bee crosses one line the came
 - **The camera also sees the wall.** The 16° tilt adds the porch roof and the bottom ≈ 38 mm of the wall to the view. Bees that land on the wall are tracked from the moment they land, and the share of bees that land there is measured, not guessed.
 - **Counting rule.** A track that ends inside the porch is *in*, a track that starts there is *out*, wherever it came from. Tracks that stay ambiguous are reported separately with a confidence value, not dropped (the telemetry already has `unknownDirection`).
 - **Nothing to clean, nothing to light.** The porch is short and open-air, with no glass. Guard bees tend to like a defined doorway.
-- **Colours in view are chosen for detection.** Porch, gate, apron and entrance plate are matt grey. Nothing yellow or brown is in the view, so nothing looks like a bee, and no bare metal throws glare.
+- **Colours in view are chosen for detection.** Board, porch, gate and apron are plain matt grey; the frame is matt graphite. The personal colours and the brick decks are all outside the view, so nothing in the image looks like a bee, and no bare metal throws glare.
 
 Rejected alternatives: an enclosed glass tunnel with the camera behind the glass (propolis, dust and condensation on the glass, constant lighting, congestion at peak traffic, and the open view that pollen, guard and pose data depend on is lost), a pivoting camera (a motor outdoors and a calibration that drifts), and discouraging wall landings (the porch makes them harmless for counting, so the bees keep their natural flight).
 
-![What the camera sees: hive wall, porch roof, counting line, board with markers](preview-installed.png)
+![What the camera sees: hive wall, porch roof and plain landing board](preview-installed.png)
 
 ### 3. The automatic entrance gate
 
@@ -116,7 +117,7 @@ For a hornet, the design uses the hornet guard, not full closure. Closing the en
 - **Steep gable, from the hive wall forward.** One 3 mm opal (light-diffusing) UV-stabilised polycarbonate sheet, bent once along the ridge into a 30° gable, 476 × 212 mm. It starts at the hive wall, so no rain gets in behind it. At 30° rain and snow slide off, and a flat roof would hold snow.
 - **Drips land beside the board.** The ridge runs front to back, so water and snow go to the two side eaves, which overhang the landing board edges. Nothing drips onto the board in front of the camera.
 - **Why not a cone.** A cone or hipped roof would also shed snow, but a front slope would drip onto the board, and a double-curved part needs a mould. A sheet bent once is cut and bent in any workshop.
-- **Light.** Opal keeps the roof's shadow on the board soft, so it does not cut bees in half in the image. The camera meters on the grey board between the markers, with a short shutter time so bees in flight stay sharp.
+- **Light.** Opal keeps the roof's shadow on the board soft, so it does not cut bees in half in the image. The camera meters on the plain grey board, with a short shutter time so bees in flight stay sharp.
 - **Downward-facing window.** The lens window is at the tip of a matt black hood and faces the ground. Rain cannot reach it, the sky cannot reflect in it, and the roof keeps the sun off it. A 0.3 W heater film clears dew on cold mornings.
 - **Light bars, rarely used.** Two short diffused LED bars with crossed polarisers on the LEDs and the lens remove glints from shiny bees and wet pollen. They only flash in sync with the exposure, at dusk or in deep shade.
 
@@ -134,7 +135,7 @@ A beekeeper walking past the hive should see how the colony is doing without ope
 
 The earlier arch had a full-width aluminium head and two side boards. They were expensive and bulky, and the side boards blocked bees flying in from the sides. The structure is now:
 
-- **Wall frame.** One laser-cut sheet of powder-coated steel or aluminium, folded into box sections, in the shape of a house gable: entrance plate, two slim uprights and two rafters. It is screwed to the bottom board with four stainless screws and leans on the hive body through two rubber pads, never screwed to it, so the bodies still lift off. It carries the porch, the gate and the board. It is flat, so it ships flat.
+- **Wall frame.** One laser-cut sheet of 2 mm 5052 aluminium in the shape of a house gable, folded on a press brake and powder-coated matt graphite. No steel, no welds, no joints. The face lies against the hive; 15 mm folded returns along the outer edge and around the big window turn the uprights into U-channels open to the front (the colour covers close them) and stiffen the gable. Cut-outs: the big window over the hive front, the entrance window, four slots for the wood screws, and holes for the four rivet nuts that take the porch. It is screwed to the bottom board only and leans on the hive body through two rubber pads, so the bodies still lift off.
 - **Ridge beam.** A standard 30 × 36 mm aluminium extrusion that hooks into the apex of the frame, locked by one captive thumbscrew. It carries the roof, two thin front rafters (for snow on the front corners) and the pod. The whole head lifts off in seconds and lands in the same place.
 - **Pod.** The only machined metal: a 170 × 140 mm piece of finned aluminium extrusion, IP65, with printed end caps. It holds the camera module, the compute sled (slides out of the front, with the honey-yellow service face and the display), the supervisor board and, in the solar version, the battery sled (slides out of the side). The pod is the heatsink: its fins sit in the ventilated space under the roof. No fan.
 - **Sides are open.** Only the two slim uprights stand beside the board, against the hive wall, so bees can fly in from the front and the sides.
@@ -142,17 +143,66 @@ The earlier arch had a full-width aluminium head and two side boards. They were 
 ### 7. Wires: none in the sun, none in view
 
 - All cables enter from below, under the foot of the right upright, facing the ground: a PoE cable gland and an M12 accessory socket. Water runs off them, not into them, and the cable leaves with a drip loop.
-- The right upright is a closed box section. The harness runs up inside it, over the rafter and along the ridge beam to the pod. The gate drive plugs into the foot of the same upright.
+- The right upright is a U-channel closed by its colour cover. The harness runs up inside it, over the rafter and along the ridge beam to the pod. The gate drive plugs into the foot of the same upright.
 - The porch floor widens into a grey apron up to the uprights, so the camera never sees the ground beside the porch. The frame, roof, pod and cables stay outside the view. The viewer's *Show what the camera sees* inset renders exactly what the lens sees.
 
-### 8. Installation, service, manufacturing
+### 8. Personal hive colours and brick decks
 
-- **Install once.** Screw the wall frame to the bottom board (4 screws, paper drill template), hang the head on the apex, and turn one thumbscrew. The entrance module stays on the hive all year and works as an automatic reducer even while the head is away.
-- **Service.** The compute sled slides out of the front of the pod after a quarter-turn: status ring, setup button, USB-C for copying full-resolution research clips on site. The board insert slides out for washing.
-- **Parts any workshop can make.** One laser-cut folded sheet (frame), one standard extrusion cut to length (beam), one finned extrusion (pod), a cut and bent polycarbonate sheet (roof), a CNC-routed HDPE board and porch, and 3D-printed ASA small parts for pilot batches.
+Beekeepers paint hive fronts in different colours so that bees find their own hive. It cuts drifting between hives, which also slows the spread of mites and disease between colonies. The Observer makes that part of the product:
+
+- **Colour and pattern.** The front gable, the snap-on covers of the uprights and the landing board lip come in one of four colours that bees see well: blue, yellow, white or graphite. Red is not offered, because bees see it as black. Each colour can be plain, or carry dots, stripes or chevrons in a contrasting colour: bees recognise patterns as well as colours. Neighbouring hives get different combinations.
+- **Outside the camera view.** None of the colours or patterns are in the image. The board the camera sees stays plain grey, and every unit sees the same background.
+- **Brick decks.** Two 32 × 32 mm decks on the front corners of the landing board carry a 4 × 4 grid of 8 mm studs, compatible with common toy construction bricks. Owners can put their own figures and decorations there; children love it, and it makes each hive recognisable to people too. The decks are outside the camera view and beside the flight path.
+
+| Yellow, stripes | White, chevrons | Graphite, plain |
+| --- | --- | --- |
+| ![Yellow gable with stripes](preview-colours-yellow.png) | ![White gable with chevrons](preview-colours-white.png) | ![Graphite, plain](preview-colours-graphite.png) |
+
+### 9. Installation, step by step
+
+The viewer's *Install* section plays these steps back, with the parts of each step highlighted.
+
+| Step | What to do | Fasteners |
+| --- | --- | --- |
+| 1. Wall frame | Hold the frame so its entrance window lines up with the entrance; the paper template in the box marks the four holes. Screw it to the front of the bottom board, two screws each side of the entrance. The vertical slots allow ±3 mm to level it. The top only leans on the hive body through two rubber pads. | 4 × wood screw 4.5 × 40 mm, A2 stainless, countersunk, Torx T20 |
+| 2. Porch with gate | Slide the porch over the entrance so its side tabs lie on the plate, and screw the tabs to the rivet nuts in the plate. The gate and drive come fitted. Plug the gate lead into the socket at the foot of the right upright. | 4 × M4 × 10 button screw, A2 stainless, into M4 rivet nuts |
+| 3. Landing board and colours | Drop the board's two hinge knuckles onto the stainless pins at the front of the porch floor; it rests at 6° on its stop. Snap the colour covers into the upright channels. | none (pins and snap-fits) |
+| 4. Head | Lower the head so the hook at the back of the ridge beam drops into the pocket at the apex of the frame, and turn the yellow thumbscrew. Roof, pod and camera come pre-assembled and aimed. | 1 × captive thumbscrew M6 |
+| 5. Cable | Push the PoE cable up through the gland under the foot of the right upright and tighten the gland nut; leave a drip loop. With the beehive scale, plug the M12 lead into the scale connector. | PG7 cable gland |
+| 6. Pair | Hold the setup button for 5 s and pair the Observer with the hive in the web app over Bluetooth. | — |
+
+On the beehive scale, step 1 is different: the frame bolts to two printed risers hooked onto the scale's front rail (2 × M5 each), 2 mm clear of the hive, so nothing is weighed. On the Robotic Beehive it bolts to the cabinet front.
+
+| 1. Wall frame | 2. Porch with gate |
+| --- | --- |
+| ![Step 1: wall frame screwed to the bottom board](preview-install-1.png) | ![Step 2: porch fitted](preview-install-2.png) |
+| **3. Board and colours** | **4. Head** |
+| ![Step 3: landing board and colour covers](preview-install-3.png) | ![Step 4: head hung on the apex](preview-install-4.png) |
+
+**Materials and processes**
+
+| Part | Material | Process | Fixed with |
+| --- | --- | --- | --- |
+| Wall frame | 2 mm 5052-H32 aluminium, matt graphite powder coat | laser cut, press-brake folded | 4 wood screws to the bottom board |
+| Porch, lintel, apron | HDPE, matt grey | CNC routed | 4 × M4 into rivet nuts in the frame |
+| Gate | 2 mm HDPE plate, silicone edge | CNC routed | brass nut on the lead screw |
+| Gate drive housing | ASA | 3D printed (pilot), injection moulded later | 4 × M3 under the porch floor |
+| Landing board | HDPE, with an aluminium stiffener | CNC routed | hinge pins |
+| Colour covers, brick decks, board lip | ASA in the hive colour | 3D printed (pilot), injection moulded later | snap-fit |
+| Ridge beam | 30 × 36 mm aluminium extrusion, anodised | cut to length | hook + thumbscrew into the apex pocket |
+| Roof | 3 mm opal polycarbonate | cut, cold-bent once | 4 × M4 with EPDM washers to the beam |
+| Front gable | ASA in the hive colour | 3D printed (pilot), injection moulded later | clips to the front rafters |
+| Pod | finned aluminium extrusion, anodised, printed end caps | cut, machined | 2 × M5 to the beam |
+
+Nothing is steel and nothing rusts: aluminium, polymers and A2 stainless fasteners only.
+
+### 10. Service and manufacturing
+
+- **Service.** The compute sled slides out of the front of the pod after a quarter-turn: status ring, setup button, USB-C for copying full-resolution research clips on site. The board insert slides out for washing, and the porch comes off (4 screws) for cleaning at the end of the season. The entrance module stays on the hive all year and works as an automatic reducer even while the head is away.
+- **Parts any workshop can make.** One laser-cut folded sheet (frame), one standard extrusion cut to length (beam), one finned extrusion (pod), a cut and bent polycarbonate sheet (roof), CNC-routed HDPE board and porch, and 3D-printed ASA small parts for pilot batches.
 - **Flat-pack.** Frame, roof and board ship flat with the pod: a box of about 500 × 400 × 110 mm.
 
-### 9. Works alone, works better together
+### 11. Works alone, works better together
 
 The entrance module and head are the same in all three setups. Only what the frame stands on changes.
 
@@ -199,7 +249,7 @@ The prototype Jetson Orin Nano measured 6.9 W at 720p. The 9 W figure assumes 4K
 | | ApicAI (DE) | Beemate (AU) | Purple Hive (AU) | Gratheon Entrance Observer |
 | --- | --- | --- | --- | --- |
 | Focus | Pollination, counts | Counts, live stream | Varroa only | Counts, tracks, pollen, varroa, pose |
-| Camera | Jetson at the entrance | HD | 2 cameras, 1 photo/s | 4K over wall, porch and board, locked optics, calibrated board, porch as counting line |
+| Camera | Jetson at the entrance | HD | 2 cameras, 1 photo/s | 4K over wall, porch and board, locked optics, factory-calibrated, porch as counting line |
 | Acts on what it sees | — | — | SMS alerts | Automatic gate: hornet guard, reducer, fail-open |
 | Power | Mains / solar | Mains | Solar, 4G | PoE, or solar roof |
 | Integration | Scale + sensors | — | — | Beehive scale (power + data), Robotic Beehive |
