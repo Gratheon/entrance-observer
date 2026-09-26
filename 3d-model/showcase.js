@@ -3,8 +3,11 @@
 // [data-eo-showcase] element; the <img> inside stays as the fallback (no JS,
 // no WebGL) and as the placeholder until the first frame is drawn.
 //
-// Scroll mapping: while the element's centre moves from 75 % to 30 % of the
-// viewport height, the Observer explodes; scrolling back reassembles it.
+// Scroll mapping. Inside a pinned section ([data-eo-scrolly], a tall block
+// with a sticky full-screen stage), progress runs 0 → 1 across the section:
+// the camera orbits ~130° round the front of the device, the Observer explodes early,
+// stays apart while the camera turns, and reassembles at the end. Without such
+// a section, it explodes while the element's centre moves up the viewport.
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { buildObserver } from './observer-model.js';
@@ -55,20 +58,23 @@ export function mountShowcase(root) {
   const [ox, oy, oz] = model.derived.origin.map((v) => v * 0.001);
   const target = new THREE.Vector3();
 
+  const scrolly = root.closest('[data-eo-scrolly]');
+  let p = 0; // scroll progress 0..1 asked for by the page
+  let q = 0; // progress drawn (eases towards p)
   let u = 0; // explode amount drawn
-  let goal = 0; // explode amount the scroll position asks for
-  let p = 0; // scroll progress 0..1
+  // explode curve over the progress: apart early, together again at the end
+  const explodeAt = (t) => (scrolly ? smooth(0.04, 0.34, t) * (1 - smooth(0.8, 0.98, t)) : smooth(0.1, 0.55, t));
   let size = { w: 1, h: 1 };
   let raf = 0;
   let visible = false;
 
   const place = () => {
-    // assembled: close on the Observer; exploded: pull back and up to fit the parts
     const e = smooth(0, 1, u);
-    target.set(ox, oy + 0.17 + e * 0.17, oz + 0.06 + e * 0.05);
-    const yaw = -0.62 + p * 0.5; // a slow quarter turn while scrolling
-    const dist = 1.55 + e * 0.4;
-    const pitch = 0.3 + e * 0.05;
+    // orbit: from the front-left three-quarter view round to the right side
+    const yaw = scrolly ? -1.15 + smooth(0, 1, q) * 2.3 : -0.62 + q * 0.6; // ≈130°, front-left to front-right
+    target.set(ox, oy + 0.16 + e * 0.2, oz + 0.05 + e * 0.05);
+    const dist = (scrolly ? 1.45 : 1.55) + e * 0.55;
+    const pitch = 0.26 + e * 0.12 + (scrolly ? 0.06 * Math.sin(q * Math.PI) : 0);
     camera.position.set(
       target.x + Math.sin(-yaw) * Math.cos(pitch) * dist,
       target.y + Math.sin(pitch) * dist,
@@ -77,8 +83,9 @@ export function mountShowcase(root) {
     camera.lookAt(target);
   };
   const draw = () => {
+    u = explodeAt(q);
     model.applyExplode(u);
-    const fade = 1 - 0.88 * smooth(0.02, 0.45, u); // the hive steps back as the parts come apart
+    const fade = 1 - 0.9 * smooth(0.02, 0.4, u); // the hive steps back as the parts come apart
     for (const m of hiveMats) { m.opacity = fade; m.depthWrite = fade > 0.99; }
     for (const m of standMats) { m.opacity = fade; m.depthWrite = fade > 0.99; }
     place();
@@ -86,19 +93,22 @@ export function mountShowcase(root) {
   };
   const tick = () => {
     raf = 0;
-    const d = goal - u;
-    u = Math.abs(d) < 0.002 ? goal : u + d * 0.12;
+    const d = p - q;
+    q = Math.abs(d) < 0.0008 ? p : q + d * 0.1; // soft follow, so wheel steps glide
     draw();
-    if (u !== goal) raf = requestAnimationFrame(tick);
+    if (q !== p) raf = requestAnimationFrame(tick);
   };
   const kick = () => { if (!raf && visible) raf = requestAnimationFrame(tick); };
 
   const onScroll = () => {
-    const r = root.getBoundingClientRect();
     const vh = innerHeight || 1;
-    const centre = (r.top + r.height / 2) / vh; // 1 = at the bottom, 0 = at the top
-    p = Math.min(1, Math.max(0, 1 - centre));
-    goal = smooth(0.25, 0.7, p);
+    if (scrolly) {
+      const r = scrolly.getBoundingClientRect();
+      p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - vh)));
+    } else {
+      const r = root.getBoundingClientRect();
+      p = Math.min(1, Math.max(0, 1 - (r.top + r.height / 2) / vh));
+    }
     kick();
   };
   const resize = () => {
@@ -113,11 +123,11 @@ export function mountShowcase(root) {
   new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting;
     if (visible) onScroll();
-  }, { rootMargin: '100px' }).observe(root);
+  }, { rootMargin: '100px' }).observe(scrolly || root);
   addEventListener('scroll', onScroll, { passive: true });
   resize();
   onScroll();
-  u = goal;
+  q = p;
   draw();
   root.classList.add('eo-showcase-ready'); // hides the fallback image
 }
