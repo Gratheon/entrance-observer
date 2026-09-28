@@ -135,10 +135,13 @@ html[data-theme="dark"] .entrance-observer {
 @media (prefers-color-scheme: dark) {
   html:not([data-theme="light"]) .deviceShowcaseStage { background: radial-gradient(ellipse 70% 60% at 50% 55%, #2a2f2b 0%, #1a1e1b 60%, #111412 100%); }
   html:not([data-theme="light"]) .deviceShowcase p, html:not([data-theme="light"]) .deviceShowcaseKicker { color: #c9d0c6; }
-  html:not([data-theme="light"]) .deviceShowcase h3 { color: #d7ddd4; }
+  /* WHY: global main a { color: var(--nav-active) } beats .deviceShowcase h3 a { inherit } at equal specificity. */
+  html:not([data-theme="light"]) .front-page .deviceShowcase h3,
+  html:not([data-theme="light"]) .front-page .deviceShowcase h3 a { color: #fff; }
 }
 html[data-theme="dark"] .deviceShowcaseStage { background: radial-gradient(ellipse 70% 60% at 50% 55%, #2a2f2b 0%, #1a1e1b 60%, #111412 100%); }
 html[data-theme="dark"] .deviceShowcase p, html[data-theme="dark"] .deviceShowcaseKicker { color: #c9d0c6; }
-html[data-theme="dark"] .deviceShowcase h3 { color: #d7ddd4; }
+html[data-theme="dark"] .front-page .deviceShowcase h3,
+html[data-theme="dark"] .front-page .deviceShowcase h3 a { color: #fff; }
 @media (max-width: 700px) { .deviceShowcase { height: 240vh; } .deviceShowcaseStage { padding-top: 72px; } }
 @media (prefers-reduced-motion: reduce) { .deviceShowcase { height: auto; } .deviceShowcaseStage { position: relative; height: 90vh; } }

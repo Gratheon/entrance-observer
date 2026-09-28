@@ -70,13 +70,13 @@ export function mountShowcase(root) {
 
   const place = () => {
     const e = smooth(0, 1, u);
-    // orbit: from the front-left three-quarter view round to the right side
-    const yaw = scrolly ? -1.15 + smooth(0, 1, q) * 2.3 : -0.62 + q * 0.6; // ≈130°, front-left to front-right
+    // orbit: same camera path as beehive-sensors/model/showcase.js (front-left round to the service side)
+    const yaw = scrolly ? -0.9 + smooth(0, 1, q) * 2.3 : -0.55 + q * 0.6;
     target.set(ox, oy + 0.16 + e * 0.2, oz + 0.05 + e * 0.05);
     const dist = (scrolly ? 1.45 : 1.55) + e * 0.55;
     const pitch = 0.26 + e * 0.12 + (scrolly ? 0.06 * Math.sin(q * Math.PI) : 0);
     camera.position.set(
-      target.x + Math.sin(-yaw) * Math.cos(pitch) * dist,
+      target.x + Math.sin(yaw) * Math.cos(pitch) * dist,
       target.y + Math.sin(pitch) * dist,
       target.z + Math.cos(yaw) * Math.cos(pitch) * dist,
     );
