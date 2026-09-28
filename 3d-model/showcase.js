@@ -9,7 +9,7 @@
 // stays apart while the camera turns, and reassembles at the end. Without such
 // a section, it explodes while the element's centre moves up the viewport.
 import * as THREE from 'three';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { setupStudio, dressModel } from './studio.js';
 import { buildObserver } from './observer-model.js';
 
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -20,30 +20,11 @@ export function mountShowcase(root) {
   canvas.setAttribute('aria-hidden', 'true');
   root.appendChild(canvas);
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
-  renderer.setClearColor(0x000000, 0);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 
   const scene = new THREE.Scene();
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environmentIntensity = 0.7;
-  const sun = new THREE.DirectionalLight(0xfff6e5, 2.6);
-  sun.position.set(-1.2, 2.8, 2.2);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(1024, 1024);
-  Object.assign(sun.shadow.camera, { left: -0.8, right: 0.8, top: 1.4, bottom: -0.4, near: 0.5, far: 6 });
-  sun.shadow.bias = -0.0005;
-  scene.add(sun, new THREE.HemisphereLight(0xeaf2ff, 0xb9c9a0, 0.9));
-  // soft contact shadow on an invisible floor, so the hive stands on the page
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), new THREE.ShadowMaterial({ opacity: 0.18 }));
-  floor.rotation.x = -Math.PI / 2;
-  floor.receiveShadow = true;
-  scene.add(floor);
+  setupStudio(renderer, scene, { shadowBox: { left: -0.8, right: 0.8, top: 1.4, bottom: -0.4 } });
 
   const model = buildObserver({ context: 'hive', colour: 'blue', pattern: 'dots' });
   scene.add(model.root);
@@ -53,6 +34,7 @@ export function mountShowcase(root) {
   stand?.traverse((o) => { if (o.isMesh && !standMats.includes(o.material)) { o.material = o.material.clone(); standMats.push(o.material); } });
   for (const m of [...hiveMats, ...standMats]) m.transparent = true;
   model.nodes.fov.visible = false;
+  dressModel(model.root);
 
   const camera = new THREE.PerspectiveCamera(28, 1, 0.05, 20);
   const [ox, oy, oz] = model.derived.origin.map((v) => v * 0.001);

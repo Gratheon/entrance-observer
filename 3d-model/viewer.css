@@ -116,32 +116,28 @@ html[data-theme="dark"] .entrance-observer {
 /* Full-width pinned scroll section: title above, device in the middle, text below. */
 .front-page main { overflow-x: clip; }
 .deviceShowcase { position: relative; height: 280vh; margin: 40px calc(50% - 50vw) 40px; }
+/* Stacked showcases read as one black band: no page-coloured gap between them. */
+.deviceShowcase + .deviceShowcase { margin-top: -40px; }
+/* Black studio stage in every theme (product-page look); the 3D render adds its own rim light. */
 .deviceShowcaseStage {
   position: sticky; top: 0; height: 100vh; height: 100svh;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 88px 16px 36px; box-sizing: border-box; text-align: center;
-  background: radial-gradient(ellipse 70% 60% at 50% 55%, #ffffff 0%, #f1f3ef 55%, #e3e8e1 100%);
+  background: #000; color: #f5f5f7;
 }
-.deviceShowcaseKicker { margin: 0; font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; color: #6b7468; }
-.deviceShowcase h3 { margin: 6px 0 0; font-size: clamp(22px, 2.6vw, 34px); font-weight: 600; line-height: 1.15; letter-spacing: 0.01em; color: #4a5249; }
-.deviceShowcase h3 a { color: inherit; text-decoration: none; }
+.deviceShowcaseKicker { margin: 0; font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; color: #a1a1a6; }
+.deviceShowcase h3 { margin: 6px 0 28px; font-size: clamp(22px, 2.6vw, 34px); font-weight: 600; line-height: 1.15; letter-spacing: 0.01em; }
+/* WHY: global main a { color: var(--nav-active) } beats .deviceShowcase h3 a { inherit } at equal specificity. */
+.front-page .deviceShowcase h3, .front-page .deviceShowcase h3 a, .deviceShowcase h3, .deviceShowcase h3 a { color: #fff; }
+.deviceShowcase h3 a { text-decoration: none; }
 /* the site paints a yellow background on every link hover in main; not here */
-.deviceShowcase a:hover, .deviceShowcase a:focus-visible { background: transparent; color: inherit !important; }
+.deviceShowcase a:hover, .deviceShowcase a:focus-visible { background: transparent; color: #fff !important; }
 .deviceShowcase h3 a:hover { text-decoration: underline; text-underline-offset: 4px; }
 .deviceShowcase .eo-showcase { flex: 1 1 auto; width: 100%; max-width: 1400px; aspect-ratio: auto; min-height: 0; }
 .deviceShowcase .eo-showcase img { max-width: none; max-height: none; border-radius: 0; }
-.deviceShowcase p { max-width: 720px; margin: 20px auto 0; font-size: clamp(15px, 1.6vw, 19px); line-height: 1.5; color: #3e453d; }
+/* fade the lit floor out before the canvas edge, so the render has no visible frame on the black stage */
+.deviceShowcase .eo-showcase-canvas { -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent); mask-image: linear-gradient(to bottom, #000 80%, transparent); }
+.deviceShowcase p { max-width: 720px; margin: 20px auto 0; font-size: clamp(15px, 1.6vw, 19px); line-height: 1.5; color: #a1a1a6; }
 .deviceShowcaseMore { display: inline-block; margin-top: 12px; font-weight: 700; }
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme="light"]) .deviceShowcaseStage { background: radial-gradient(ellipse 70% 60% at 50% 55%, #2a2f2b 0%, #1a1e1b 60%, #111412 100%); }
-  html:not([data-theme="light"]) .deviceShowcase p, html:not([data-theme="light"]) .deviceShowcaseKicker { color: #c9d0c6; }
-  /* WHY: global main a { color: var(--nav-active) } beats .deviceShowcase h3 a { inherit } at equal specificity. */
-  html:not([data-theme="light"]) .front-page .deviceShowcase h3,
-  html:not([data-theme="light"]) .front-page .deviceShowcase h3 a { color: #fff; }
-}
-html[data-theme="dark"] .deviceShowcaseStage { background: radial-gradient(ellipse 70% 60% at 50% 55%, #2a2f2b 0%, #1a1e1b 60%, #111412 100%); }
-html[data-theme="dark"] .deviceShowcase p, html[data-theme="dark"] .deviceShowcaseKicker { color: #c9d0c6; }
-html[data-theme="dark"] .front-page .deviceShowcase h3,
-html[data-theme="dark"] .front-page .deviceShowcase h3 a { color: #fff; }
 @media (max-width: 700px) { .deviceShowcase { height: 240vh; } .deviceShowcaseStage { padding-top: 72px; } }
 @media (prefers-reduced-motion: reduce) { .deviceShowcase { height: auto; } .deviceShowcaseStage { position: relative; height: 90vh; } }
