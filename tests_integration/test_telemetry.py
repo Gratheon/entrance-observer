@@ -22,7 +22,7 @@ def test_report_telemetry():
         "stationary_bees_count": 1
     }
 
-    response = telemetry.report_telemetry(
+    telemetry.report_telemetry(
         metrics_data=metrics_data,
         bearer_token=bearer_token,
         hiveId=hiveId,

@@ -24,7 +24,7 @@ def calculate_derived_metrics(track_history, stationary_threshold=10):
     stationary_bees_count = 0
     total_distances = []
 
-    for track_id, track in track_history.items():
+    for track in track_history.values():
         if len(track) > 1:
             distances = [np.linalg.norm(np.array(track[i+1]) - np.array(track[i])) for i in range(len(track)-1)]
             total_distance = sum(distances)

@@ -2,7 +2,6 @@ import os
 import threading
 import cv2
 import time
-import numpy as np
 import app_settings
 import telemetry
 import metrics
@@ -153,7 +152,7 @@ def countBees(frames, output_video_path=None, detection_line_coefficient=None, v
 
     video_frame_stride = max(1, int(video_frame_stride or 1))
 
-    for i, (frame, results, capture_time) in enumerate(frames):
+    for i, (frame, results, _capture_time) in enumerate(frames):
         # Counting overlays must use the same coordinate space as model detections.
         line_y_counting = round(frame.shape[0] * detection_line_coefficient)
         counting_rectangle = rectangle_to_pixels(detection_rectangle, frame.shape[1], frame.shape[0])

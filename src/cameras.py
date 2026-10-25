@@ -120,7 +120,7 @@ def initialize_camera(device, backend, width, height, fps, properties):
     camera = cv2.VideoCapture(device, backend)
     
     if not camera.isOpened():
-        print(f"⚠️ Failed to open camera.")
+        print("⚠️ Failed to open camera.")
         return camera
     
     # Optimize camera settings for better performance

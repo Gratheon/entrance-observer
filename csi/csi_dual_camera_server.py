@@ -1,4 +1,3 @@
-import os
 import cv2
 import threading
 import numpy as np
@@ -39,7 +38,7 @@ class CSI_Camera:
             print('Video capturing is already running')
             return None
         # create a thread to read the camera image
-        if self.video_capture != None:
+        if self.video_capture is not None:
             self.running = True
             self.read_thread = threading.Thread(target=self.updateCamera)
             self.read_thread.start()
@@ -71,11 +70,11 @@ class CSI_Camera:
         return grabbed, frame
 
     def release(self):
-        if self.video_capture != None:
+        if self.video_capture is not None:
             self.video_capture.release()
             self.video_capture = None
         # Now kill the thread
-        if self.read_thread != None:
+        if self.read_thread is not None:
             self.read_thread.join()
 
 

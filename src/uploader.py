@@ -273,7 +273,7 @@ def uploadAndRemove(output_file: str, detections_file: str, start_time_utc: date
     settings = app_settings.get_telemetry_settings()
     bearer_token = settings.get("api_token")
     box_id = settings.get("section_id")
-    upload_url = settings.get("video_upload_url") or "https://video.gratheon.com/graphql"
+    upload_url = settings.get("video_upload_url") or "https://video.gratheon.com/graphql"  # noqa: F841  (see TODO below)
 
     if not bearer_token or not box_id:
         print("Error: Please set API token and section ID in app settings.")
@@ -281,7 +281,9 @@ def uploadAndRemove(output_file: str, detections_file: str, start_time_utc: date
         storage_manager.cleanup_storage()
         return
 
-    uploaded_successfully = False
+    # TODO: the upload request and delete-after-upload logic below this line were dropped by commit a2855da
+    # ("feat: poll gate-video for live stream commands"), so recorded videos are no longer uploaded.
+    uploaded_successfully = False  # noqa: F841
 def start_live_command_loop(stop_event, status_supplier=None, frame_supplier=None):
     telemetry_settings = app_settings.get_telemetry_settings()
     box_id = telemetry_settings.get("section_id")

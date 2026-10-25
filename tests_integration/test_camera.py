@@ -51,20 +51,20 @@ def test_camera_detection():
             height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
             fps = cap.get(cv2.CAP_PROP_FPS)
             
-            print(f"  ✓ Camera opened successfully")
+            print("  ✓ Camera opened successfully")
             print(f"  Resolution: {int(width)}x{int(height)}")
             print(f"  FPS: {fps}")
             
             # Try to read a frame
             ret, frame = cap.read()
             if ret:
-                print(f"  ✓ Frame capture successful")
+                print("  ✓ Frame capture successful")
                 print(f"  Frame shape: {frame.shape}")
             else:
-                print(f"  ✗ Frame capture failed")
+                print("  ✗ Frame capture failed")
             
             cap.release()
         else:
-            print(f"  ✗ Failed to open camera")
+            print("  ✗ Failed to open camera")
     
     return True
