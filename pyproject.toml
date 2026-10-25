@@ -1,0 +1,22 @@
+[tool.ruff]
+target-version = "py310"
+extend-exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "B"]
+ignore = ["B008", "B905"]
+
+# deptry runs in CI without the project environment installed,
+# so import names that differ from package names are mapped here.
+[tool.deptry]
+requirements_files = ["requirements.jetson.txt"]
+extend_exclude = ["training-notebook", "research-paper", "tests_integration"]
+known_first_party = ["app_settings", "cameras", "counter", "live_control", "metrics", "storage_manager", "streamer", "telemetry", "uploader", "video_utils"]
+package_module_name_map = { opencv-python = "cv2", opencv-python-headless = "cv2", pillow = "PIL", pyyaml = "yaml", gratheon-log-lib = "gratheon_log_lib", pyserial = "serial", python-dotenv = "dotenv", tensorflow-datasets = "tensorflow_datasets", tensorflow-io = "tensorflow_io", requests-toolbelt = "requests_toolbelt" }
+
+[tool.deptry.per_rule_ignores]
+# Imported directly but only installed transitively through ultralytics.
+DEP001 = ["numpy", "scipy", "torch", "requests"]
+# lapx and shapely are loaded by the ultralytics tracker at runtime.
+# TODO: requests-toolbelt is not imported anywhere, candidate for removal.
+DEP002 = ["lapx", "shapely", "requests-toolbelt"]

@@ -2,7 +2,6 @@ import json
 import numpy as np
 import cv2
 import argparse
-from collections import defaultdict
 
 def generate_heatmap(track_file_path, output_file_path):
     """
@@ -26,8 +25,8 @@ def generate_heatmap(track_file_path, output_file_path):
                 return
             
             #"height": 720, "width": 1280
-            height = 720; #frame_dimensions["height"]
-            width = 1280; #frame_dimensions["width"]
+            height = 720 #frame_dimensions["height"]
+            width = 1280 #frame_dimensions["width"]
             print(f"Frame dimensions: {width}x{height}")
             
             heatmap = np.zeros((height, width), dtype=np.float32)
@@ -38,7 +37,7 @@ def generate_heatmap(track_file_path, output_file_path):
             num_tracks = len(track_history)
             total_tracks += num_tracks
             print(f"Found {num_tracks} tracks in the first line.")
-            for track_id, track in track_history.items():
+            for track in track_history.values():
                 for x, y in track:
                     if 0 <= y < height and 0 <= x < width:
                         heatmap[y, x] += 1
@@ -54,7 +53,7 @@ def generate_heatmap(track_file_path, output_file_path):
                     total_tracks += num_tracks
                     if num_tracks > 0:
                         print(f"Found {num_tracks} tracks on line {i}.")
-                    for track_id, track in track_history.items():
+                    for track in track_history.values():
                         for x, y in track:
                             if 0 <= y < height and 0 <= x < width:
                                 heatmap[y, x] += 1

@@ -1,5 +1,4 @@
 import cv2
-import platform
 
 class OpenCVWriterWrapper:
     def __init__(self, writer):

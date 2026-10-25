@@ -10,6 +10,7 @@ import glob
 import shutil
 import subprocess
 import signal
+from urllib.parse import quote
 from flask import Flask, Response, render_template_string, jsonify, request, abort, send_file, send_from_directory
 import threading
 import logging
@@ -41,9 +42,6 @@ from uploader import (
 )
 import storage_manager
 from counter import count_bees_from_frames_async
-
-# enable GPU acceleration
-cv2.CAP_GSTREAMER
 
 app = Flask(__name__)
 video_frame = None
@@ -606,7 +604,6 @@ def get_live_frame_jpeg_bytes():
 
     return encoded_image.tobytes()
 
-from urllib.parse import quote
 
 @app.route('/img/<path:path>')
 def send_img(path):
@@ -3280,7 +3277,7 @@ def processing_thread(ai_queue, writer_fps, target_width, target_height, detect_
 
         start_time_utc = datetime.datetime.utcnow()
 
-        def upload_detect_file(file_path, metrics_data):
+        def upload_detect_file(file_path, metrics_data, start_time_utc=start_time_utc):
             append_bee_count(metrics_data)
             
             if metrics_data["bees_in"] > 0 or metrics_data["bees_out"] > 0 or metrics_data["detected_bees"] > 0:
